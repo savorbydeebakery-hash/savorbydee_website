@@ -1,0 +1,26 @@
+# SAVOR Bakery — local dev vars (gitignored). Copy to .dev.vars and fill in real values.
+# Cloudflare Workers secrets are set via `wrangler secret put` in production.
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Resend
+RESEND_API_KEY=
+RESEND_WEBHOOK_SECRET=
+STAFF_NOTIFY_EMAIL=
+
+# Cron watchdog
+CRON_SECRET=
+
+# Razorpay (test keys start with rzp_test_)
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=
+
+# Seed accounts (one-time script)
+SEED_ADMIN_EMAIL=
+SEED_ADMIN_PASSWORD=
+SEED_STAFF_EMAIL=
+SEED_STAFF_PASSWORD=

@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "active_work_id": "savor-bakery-66abdac6",
+  "works": {
+    "savor-bakery-170a7136": {
+      "work_id": "savor-bakery-170a7136",
+      "active_plan": "C:\\Users\\cloud\\OneDrive\\Desktop\\Hybrid_Second_Brain\\clients website\\SAVOR\\.omo\\plans\\savor-bakery.md",
+      "plan_name": "savor-bakery",
+      "status": "active",
+      "started_at": "2026-08-19T16:14:22.227Z",
+      "updated_at": "2026-08-19T16:14:22.227Z",
+      "session_ids": [
+        "opencode:ses_fe5b08355ffeF0ArycsACWdJSU"
+      ],
+      "session_origins": {
+        "opencode:ses_fe5b08355ffeF0ArycsACWdJSU": "direct"
+      },
+      "agent": "atlas",
+      "task_sessions": {}
+    },
+    "savor-bakery-66abdac6": {
+      "work_id": "savor-bakery-66abdac6",
+      "active_plan": "C:\\Users\\cloud\\OneDrive\\Desktop\\Hybrid_Second_Brain\\clients website\\SAVOR\\.omo\\plans\\savor-bakery.md",
+      "plan_name": "savor-bakery",
+      "status": "active",
+      "started_at": "2026-08-19T16:14:22.261Z",
+      "updated_at": "2026-08-19T16:14:22.261Z",
+      "session_ids": [
+        "opencode:ses_fe5b08355ffeF0ArycsACWdJSU"
+      ],
+      "session_origins": {
+        "opencode:ses_fe5b08355ffeF0ArycsACWdJSU": "direct"
+      },
+      "agent": "atlas",
+      "task_sessions": {}
+    }
+  },
+  "active_plan": "C:\\Users\\cloud\\OneDrive\\Desktop\\Hybrid_Second_Brain\\clients website\\SAVOR\\.omo\\plans\\savor-bakery.md",
+  "started_at": "2026-08-19T16:14:22.261Z",
+  "status": "active",
+  "updated_at": "2026-08-19T16:14:22.261Z",
+  "session_ids": [
+    "opencode:ses_fe5b08355ffeF0ArycsACWdJSU"
+  ],
+  "session_origins": {
+    "opencode:ses_fe5b08355ffeF0ArycsACWdJSU": "direct"
+  },
+  "plan_name": "savor-bakery",
+  "task_sessions": {},
+  "agent": "atlas"
+}
