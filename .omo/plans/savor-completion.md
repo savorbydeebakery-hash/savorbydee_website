@@ -157,7 +157,7 @@ Phase 5 (Client handoff doc - the final mile)  <-  documents only
 
 ### Phase 1 - Lint Cleanup (F2 readiness)
 
-#### T1.1: Fix all 44 lint errors -> `npm run lint` 0 errors
+#### T1.1: Fix all 44 lint errors -> `npm run lint` 0 errors ✅ DONE (verified: 0 errors, 0 warnings, 77 files; build passes; 48/48 tests)
 **References:** `lint-log.txt` (full error list with file:line:col + rule); savor-bakery plan F2 gate ("no `any` types, no missing error handling, proper TS types").
 **What to build:** Fix every ERROR by root cause (NOT eslint-disable unless justified):
 1. `react-hooks/set-state-in-effect` (8 errors) - `app/admin/{accounts,banners,categories,custom-cakes,gallery,menu-items,settings}/page.tsx`, `app/orders/[humanId]/page.tsx`, `components/item-detail-modal.tsx`, `lib/realtime/use-orders-realtime.ts`. Root cause: `useEffect(() => { fetchX() })` where fetchX calls `setLoading(true)` synchronously before the first await. Fix: initialize loading/selection state in `useState(initializer)` so the effect does NOT call setState synchronously; only setState after `await`. For item-detail-modal, compute initial selections eagerly in `useState(() => initFromItem(item))`. For use-orders-realtime, init `orders` to `[]` and only setOrders after async fetch resolves.
