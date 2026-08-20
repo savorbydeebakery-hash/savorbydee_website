@@ -99,7 +99,7 @@ Phase 5 (Client handoff doc - the final mile)  <-  documents only
 
 ### Phase 0 - Baseline Commits (preserve as-built Waves 2-6)
 
-#### T0.1: Commit remaining Wave 1 infra + Wave 2 storefront
+#### T0.1: Commit remaining Wave 1 infra + Wave 2 storefront ✅ DONE (40 commits total, tree clean)
 **References:** savor-bakery plan T1.3-T1.8, T2.1-T2.5 commit lines; `git status`.
 **What to build:**
 - Run `git status` to enumerate every dirty/untracked path (only 4 commits exist: Wave 1 T1.1/T1.2 + 1 refactor; everything else is uncommitted).
@@ -115,7 +115,7 @@ Phase 5 (Client handoff doc - the final mile)  <-  documents only
 
 ---
 
-#### T0.2: Commit Wave 3 (cart + checkout + orders)
+#### T0.2: Commit Wave 3 (cart + checkout + orders) ✅ DONE
 **References:** savor-bakery plan T3.1-T3.5 commit lines; `git status`.
 **What to build:** Stage + commit per the plan's T3.1-T3.5 messages: cart state (`lib/cart/store.ts`,`types.ts`), cart math+validation+tests (`lib/cart/math.ts`,`validation.ts`,`*.test.ts`), item detail modal (`components/item-detail-modal.tsx`), checkout (`app/cart/*`), order submission API + confirmation (`app/api/orders/*`, `app/orders/*`).
 **Acceptance criteria:** Wave 3 files committed; `npm run build` passes after each; `npm test` -> 48/48 pass after the cart commit.
@@ -125,7 +125,7 @@ Phase 5 (Client handoff doc - the final mile)  <-  documents only
 
 ---
 
-#### T0.3: Commit Wave 4 (realtime + alarm + order dashboard)
+#### T0.3: Commit Wave 4 (realtime + alarm + order dashboard) ✅ DONE
 **References:** savor-bakery plan T4.1-T4.5 commit lines; `git status`.
 **What to build:** Stage + commit per the plan's T4.1-T4.5 messages: realtime (`lib/realtime/*`), alarm (`lib/alarm/*`), ack watchdog (`app/api/cron/ack-watchdog/*`), resend webhook (if not committed in T0.1 - dedup via `git status`), admin order dashboard (`app/admin/orders/*`). NOTE: `app/admin/layout.tsx` + `app/admin/page.tsx` belong to Wave 5 (T0.4).
 **Acceptance criteria:** Wave 4 files committed; `npm run build` passes after each.
@@ -135,7 +135,7 @@ Phase 5 (Client handoff doc - the final mile)  <-  documents only
 
 ---
 
-#### T0.4: Commit Wave 5 (admin panel full CMS)
+#### T0.4: Commit Wave 5 (admin panel full CMS) ✅ DONE
 **References:** savor-bakery plan T5.1-T5.9 commit lines; `git status`.
 **What to build:** Stage + commit per the plan's T5.1-T5.9 messages: admin layout+dashboard (`app/admin/layout.tsx`,`app/admin/page.tsx`), menu items CRUD, categories CRUD, promo banners CRUD, gallery management, site settings editor, operating+holidays editor (if separate, else folded into T5.6 commit), custom cake inquiry mgmt (`app/admin/custom-cakes/*`,`app/custom-cake/*`), account/role mgmt (`app/admin/accounts/*`). Include `app/api/admin/*` routes if present.
 **Acceptance criteria:** All `app/admin/*` committed (except orders); `npm run build` passes after each.
@@ -145,7 +145,7 @@ Phase 5 (Client handoff doc - the final mile)  <-  documents only
 
 ---
 
-#### T0.5: Commit Wave 6 (payments + resilience + seed + e2e) -> working tree FULLY clean
+#### T0.5: Commit Wave 6 (payments + resilience + seed + e2e) -> working tree FULLY clean ✅ DONE
 **References:** savor-bakery plan T6.1-T6.5, T6.7 commit lines; `git status`.
 **What to build:** Stage + commit per the plan's T6.1-T6.7 messages: razorpay create-order (`app/api/razorpay/create-order/*`), checkout+verify (`components/retry-payment-button.tsx`,`app/api/razorpay/verify/*`), webhook+refund (`app/api/webhooks/razorpay/*`,`app/api/razorpay/refund/*`), resilience hardening (any uncommitted resilience-specific files - many items already in prior waves' files), seed menu (`supabase/migrations/00008_seed_menu.sql`), E2E suite (`e2e/*`,`playwright.config.ts`). Add `build-log.txt`,`test-log.txt`,`lint-log.txt` to `.gitignore` if not already; do NOT commit logs.
 **Acceptance criteria:** `git status` -> "nothing to commit, working tree clean" (FULLY clean); `npm run build` passes; `npm test` -> 48/48 pass.
