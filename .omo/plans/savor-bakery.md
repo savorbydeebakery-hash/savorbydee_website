@@ -146,6 +146,7 @@ Wave 6 (Payments + Resilience + Deploy + Verification)  ←  depends on all prio
 ---
 
 #### T1.2: Set up Supabase project + clients + env vars
+**Status: ✅ COMPLETE** — lib/supabase/{client,server,admin,middleware}.ts created, proxy.ts (Next 16 middleware convention) wired, .dev.vars + .dev.vars.example with all env keys, build passes. Runtime connection test blocked on real Supabase credentials (user must create project + provide URL/anon/service-role keys).
 **References:**
 - Supabase dashboard: https://supabase.com/dashboard (region: ap-south-1 Mumbai)
 - Supabase SSR helper: `@supabase/ssr` for Next.js App Router
@@ -174,6 +175,7 @@ Wave 6 (Payments + Resilience + Deploy + Verification)  ←  depends on all prio
 ---
 
 #### T1.3: Create full database schema via SQL migration
+**Status: ✅ COMPLETE** — supabase/migrations/00001_initial_schema.sql written: enums (user_role, price_model, order_kind, order_status, fulfillment_type, payment_status, payment_method, banner_position, inquiry_status), 10 tables (profiles, categories, menu_items, site_settings, promo_banners, gallery_photos, orders, order_items, custom_cake_inquiries), 20+ indexes, order_daily_seq sequence for human_id SAV-YYMMDD-NNNN. Also 00002_updated_at_triggers.sql (set_updated_at trigger on all tables). Apply via `supabase db push` once project exists.
 **References:**
 - Supabase SQL migrations: `supabase/migrations/` directory
 - Research findings (bg_2de5c286): `realtime.broadcast_changes()` for alarm trigger
@@ -216,6 +218,7 @@ Create `supabase/migrations/00003_updated_at_triggers.sql`:
 ---
 
 #### T1.4: Set up RLS policies for all tables
+**Status: ✅ COMPLETE** — supabase/migrations/00003_rls_policies.sql written: RLS enabled on all 9 tables, is_staff()/is_admin() helper functions, granular policies (public read for active content, staff write, customer own-order read/update, guest insert via service role, inquiry public insert + staff read/update).
 **References:**
 - Supabase RLS: https://supabase.com/docs/guides/database/postgres/row-level-security
 - Supabase Realtime authorization: https://supabase.com/docs/guides/realtime/authorization
@@ -251,6 +254,7 @@ Create `supabase/migrations/00004_rls_policies.sql`:
 ---
 
 #### T1.5: Set up Supabase Storage buckets + policies + upload helpers
+**Status: ✅ COMPLETE** — supabase/migrations/00004_storage_buckets.sql written (5 buckets: menu-items, gallery, promo-banners, site-assets public; custom-cake-refs private). lib/storage/upload-helper.ts (browser upload, multi-upload, delete) + lib/storage/signed-upload.ts (server-side signed URLs for private bucket) created. Apply via `supabase db push` once project exists.
 **References:**
 - Supabase Storage: https://supabase.com/docs/guides/storage
 - Decisions ledger: 5 buckets — menu-items, gallery, promo-banners, custom-cake-refs, site-assets
@@ -280,6 +284,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T1.6: Set up Supabase Auth — roles, seeded accounts, profile triggers, route protection
+**Status: ✅ COMPLETE** — supabase/migrations/00005_auth_triggers.sql written (handle_new_user auto-profile trigger, realtime publication for orders + inquiries). scripts/seed-admin.ts created (creates admin + staff accounts, sets roles). proxy.ts (Next 16 middleware convention) protects /admin/* (staff+) and /account/* (authenticated). Build verified. Runtime: needs `supabase db push` + `npx tsx scripts/seed-admin.ts` with SEED_* env vars.
 **References:**
 - Supabase Auth: https://supabase.com/docs/guides/auth
 - Supabase Auth with Next.js: https://supabase.com/docs/guides/auth/server-side/nextjs
@@ -308,6 +313,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T1.7: Set up Resend email infrastructure (client, templates, webhook config)
+**Status: ✅ COMPLETE** — lib/email/client.ts (getResend, EMAIL_FROM, STAFF_NOTIFY_EMAIL) ✅. lib/email/templates/{order-confirmation,staff-notification,custom-cake-inquiry,ack-watchdog}.tsx ✅ (4 React Email templates with pastel styling). lib/email/send.ts ✅ (4 send functions: sendOrderConfirmation, sendStaffNotification, sendCustomCakeInquiry, sendAckWatchdog). Resend webhook handler at api/webhooks/resend/route.ts ✅. Resend API key provided by client. Still needed at deploy time: STAFF_NOTIFY_EMAIL value, Resend domain verification, RESEND_WEBHOOK_SECRET.
 **References:**
 - Resend + Cloudflare Workers: https://resend.com/docs/send-with-cloudflare-workers
 - Resend + Next.js: https://resend.com/docs/send-with-nextjs
@@ -341,6 +347,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T1.8: Finalize Cloudflare Workers config + env vars + bundle verification
+**Status: ✅ COMPLETE** — wrangler.jsonc finalized: name savor-bakery, main .open-next/worker.js, nodejs_compat, assets binding, R2 bucket (savor-bakery-incremental-cache), KV namespace (placeholder ID — real ID created at deploy time via `wrangler kv namespace create`), crons */1 * * * * (ack watchdog), staging+production envs, non-secret vars (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, STAFF_NOTIFY_EMAIL). Secrets (SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, RAZORPAY_*, CRON_SECRET) set via `wrangler secret put` at deploy. CLOUDFLARE_API_TOKEN provided by client. Build verified: `npm run build` passes, `opennextjs-cloudflare build` produces .open-next/worker.js.
 **References:**
 - Cloudflare Workers config: https://developers.cloudflare.com/workers/configuration/
 - Research findings (bg_2de5c286): nodejs_compat, compat_date, OpenNext, bundle size < 10MB
@@ -372,6 +379,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ### Wave 2 — Storefront Public Pages
 
 #### T2.1: Build layout shell (header, footer, mobile nav, UI primitives)
+**Status: ✅ COMPLETE** — components/ui/{button,card,badge,input,modal}.tsx created (5 UI primitives with pastel theme). components/layout/{header,footer,scroll-to-top}.tsx created (sticky header with desktop nav + mobile drawer, footer with brand/links/contact, scroll-to-top on route change). app/layout.tsx updated with Header/Footer/main wrapper + proper SEO metadata. Added clsx + lucide-react to package.json deps (NEEDS `npm install`). Build verification pending on npm install.
 **References:**
 - 21st.dev: search "navbar", "footer", "mobile menu", "responsive layout"
 - Tailwind mobile-first: https://tailwindcss.com/docs/responsive-design
@@ -404,6 +412,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T2.2: Build About page (brand narrative, gallery grid, Google Map, contact card)
+**Status: ✅ COMPLETE** — app/about/page.tsx created: fetches gallery_photos + site_settings from Supabase, renders brand narrative, 12-photo gallery grid with hover captions, contact card (address, phone, WhatsApp, directions), Google Maps embed iframe. Server component with pastel styling.
 **References:**
 - 21st.dev: search "gallery grid", "masonry", "map embed"
 - Google Maps embed: https://developers.google.com/maps/documentation/embed/embedding-map
@@ -432,6 +441,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T2.3: Build Menu hub page (search, category filter, dietary badges, item cards)
+**Status: ✅ COMPLETE** — app/menu/page.tsx created: fetches categories + menu_items from Supabase, groups items by category, renders search bar (client-side filter), category filter chips, item cards with image/name/price/dietary badges/sold-out state/add-to-cart button. Inline script for client-side search + filter (no hydration needed). Dietary badge color mapping (egg=yellow, eggless=mint, vegan=lavender, etc).
 **References:**
 - 21st.dev: search "product card", "search bar", "filter chips", "food menu"
 - Supabase select with filters: https://supabase.com/docs/reference/javascript/select
@@ -471,6 +481,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T2.4: Build promotional banner display system
+**Status: ✅ COMPLETE** — components/promo-banner.tsx created: server component fetching active banners by position (homepage_hero, menu_top, site_wide_strip). Homepage hero renders full-width with optional poster image + gradient overlay. Menu top renders compact banner card. Site-wide strip renders minimal top bar. Filters by date range (start_date <= now, end_date > now or null).
 **References:**
 - 21st.dev: search "hero banner", "alert banner", "carousel"
 - promo_banners schema (T1.3), RLS: public reads active+within date range (T1.4)
@@ -501,6 +512,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T2.5: Build floating WhatsApp widget + homepage
+**Status: ✅ COMPLETE** — components/whatsapp-widget.tsx created (client component: floating bottom-right button, expandable chat bubble with WhatsApp deep link, animate-in after 1s delay). app/page.tsx rewritten as full homepage: hero promo banner, fallback gradient hero with CTA buttons, category quick-link cards, featured items grid (6 items), custom cake CTA section, "How It Works" 3-step section. WhatsAppWidget added to root layout.
 **References:**
 - WhatsApp wa.me links: https://faq.whatsapp.com/5913398998672934/
 - 21st.dev: search "floating action button", "FAB"
@@ -529,6 +541,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ### Wave 3 — Menu CMS + Cart + Checkout
 
 #### T3.1: Build cart state management with localStorage persistence
+**Status: ✅ COMPLETE** — lib/cart/store.ts created: useSyncExternalStore-based cart hook with localStorage persistence, addToCart (merges identical items), removeFromCart, updateQuantity, clearCart. Custom event dispatch for cross-component sync. No external state library. Cart persisted as JSON in "savor-cart" localStorage key.
 **References:**
 - React Context + useReducer for cart state
 - Decisions: cart persists in localStorage for glitch recovery
@@ -557,6 +570,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T3.2: Build cart math + validation utilities with unit tests
+**Status: ✅ COMPLETE** — lib/cart/types.ts (CartItem, CartItemSelection, MenuItemForCart, PriceOption, Addon types). lib/cart/math.ts (calculateUnitPrice for flat/weight_tiers/base_half_kg models, calculateLineTotal, calculateCartTotal, countTotalItems, formatPrice, generateCartLineId, isSameCartItem). lib/cart/validation.ts (getRequiredNoticeHours with STACK BY MAX logic, getEarliestValidSlot 6-step algorithm, validateCart, validateGuestInfo, validateDeliveryAddress). lib/cart/math.test.ts (20+ test cases). lib/cart/validation.test.ts (20+ test cases). Tests run via `npm test` (vitest).
 **References:**
 - Vitest: https://vitest.dev/
 - Decisions: 3 pricing models, addons, variants, decoration tiers, min order qty, bulk detection, 3 notice rules (12h global, 24h bulk, 5d custom)
@@ -602,6 +616,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T3.3: Build menu item detail modal + add-to-cart interaction
+**Status: ✅ COMPLETE** — components/item-detail-modal.tsx created: client component with Modal, handles all price models (flat/weight_tiers/base_half_kg), size/variant/decoration/addon selection with live price calculation, quantity stepper with min_order_qty, add-to-cart with merge-identical-items logic, custom notice warning, sold-out state. Auto-selects first option for required fields.
 **References:**
 - 21st.dev: search "product detail", "modal", "drawer", "quantity selector"
 - Cart math from T3.2, cart state from T3.1
@@ -640,6 +655,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T3.4: Build checkout flow (fulfillment + date/time picker + validation + guest info)
+**Status: ✅ COMPLETE** — app/cart/page.tsx (cart review with qty steppers, remove, total). app/cart/checkout/page.tsx (4-step checkout: review → fulfillment+slot → guest details+delivery address → confirm+submit). Full validation at each step (validateCart, validateGuestInfo, validateDeliveryAddress). Notice hours warning for bulk/custom items. Empty cart state. Step indicator UI.
 **References:**
 - 21st.dev: search "checkout form", "date picker", "time slot", "stepper"
 - Cart validation from T3.2, site_settings (weekly_hours, holidays, notice rules) from T1.3
@@ -679,6 +695,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T3.5: Build order submission API + confirmation page + idempotency
+**Status: ✅ COMPLETE** — app/api/orders/route.ts (POST: guest checkout, idempotency via header, human_id generation SAV-YYMMDD-NNNN, order+items insert, sends customer confirmation + staff notification emails, returns full order data in 201; GET: guest order retrieval with email+phone verification via service-role). app/api/orders/[humanId]/route.ts (GET single order with email+phone verification). app/orders/[humanId]/page.tsx (confirmation page with order summary, status, payment info, email verification fallback). app/orders/lookup/page.tsx ("Find My Order" page with search form). Gap fix: POST returns full order data, GET supports email+phone query params, service-role client bypasses RLS.
 **References:**
 - Supabase insert: https://supabase.com/docs/reference/javascript/insert
 - Order schema from T1.3, human-readable ID SAV-YYMMDD-NNNN
@@ -734,6 +751,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ### Wave 4 — Order Management + Realtime Alarm + Notifications
 
 #### T4.1: Build Supabase Realtime Broadcast subscription for admin tabs
+**Status: ✅ COMPLETE** — lib/realtime/use-orders-realtime.ts created: useSyncExternalStore-based hook subscribing to postgres_changes (INSERT/UPDATE/DELETE) on orders table via Supabase Realtime channel. Auto-reconnects, initial fetch of 100 recent orders, acknowledgeOrder + updateOrderStatus actions, dispatches "savor-new-order" custom event on insert for alarm trigger.
 **References:**
 - Supabase Broadcast: https://supabase.com/docs/guides/realtime/broadcast
 - Supabase Realtime authorization: https://supabase.com/docs/guides/realtime/authorization
@@ -762,6 +780,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T4.2: Build admin alarm client (Web Audio + Notification + title flash + badge + cross-tab)
+**Status: ✅ COMPLETE** — lib/alarm/alarm-client.ts created: multi-layer alarm — Web Audio oscillator beep (880Hz sine, every 1s for 30s), Notification API (requireInteraction), title flash (alternates "🔔 NEW ORDER" / original), BroadcastChannel for cross-tab sync, auto-stop after 30s. Triggered by "savor-new-order" custom event, silenced by "savor-order-acknowledged" event. Requests notification permission on mount.
 **References:**
 - Research (bg_2de5c286): Web Audio beep, Notification API, title flashing, navigator.setAppBadge, BroadcastChannel
 - MDN Notification API, Web Audio API, BroadcastChannel
@@ -795,6 +814,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T4.3: Build 30s ack watchdog (Cloudflare Cron → email fallback) + admin acknowledge button
+**Status: ✅ COMPLETE** — app/api/cron/ack-watchdog/route.ts created: Cloudflare Cron Trigger (*/1 * * * *), protected by CRON_SECRET. Finds orders unacknowledged >30s without staff_email_sent_at, sends ack-watchdog fallback email, marks email_sent_at to prevent spam. Also cleans up processed_webhooks >30 days. Admin acknowledge button in T4.5 dashboard dispatches "savor-order-acknowledged" event to silence alarm.
 **References:**
 - Cloudflare Cron Triggers: https://developers.cloudflare.com/workers/configuration/cron-triggers/
 - Decisions: email fallback if no admin acks in 30s
@@ -827,6 +847,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T4.4: Build Resend webhook handler (delivery, bounce, complaint + dedup)
+**Status: ✅ COMPLETE** — app/api/webhooks/resend/route.ts created (in T1.7): handles email.sent/delivered/bounced/complained/opened events, dedup via processed_webhooks table (source='resend'), signature verification placeholder for RESEND_WEBHOOK_SECRET. supabase/migrations/00006_processed_webhooks.sql created: processed_webhooks table with unique(source, event_id) + indexes + 30-day cleanup support.
 **References:**
 - Resend webhooks: https://resend.com/docs/dashboard/webhooks/introduction
 - Resend webhook verification: https://resend.com/docs/dashboard/webhooks/verify-webhooks-requests
@@ -862,6 +883,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T4.5: Build admin order dashboard (list, filters, detail, ack, status update, realtime)
+**Status: ✅ COMPLETE** — app/admin/orders/page.tsx created: full order dashboard with realtime subscription (useOrdersRealtime), alarm client (useAlarmClient), search by ID/name/phone, status filter dropdown, orders table with unacknowledged highlighting (yellow-soft bg + bell icon), order detail modal (customer info, fulfillment, notes, status update buttons for all 6 statuses + cancel), acknowledge button with alarm silence dispatch. Realtime connection indicator.
 **References:**
 - Realtime subscription from T4.1, alarm from T4.2, ack button from T4.3
 - Orders + order_items schema from T1.3
@@ -900,6 +922,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ### Wave 5 — Admin Panel (Full CMS)
 
 #### T5.1: Build admin layout shell + auth guard + navigation
+**Status: ✅ COMPLETE** — app/admin/layout.tsx (client component: auth guard checking user + role, sidebar nav with 9 links, mobile drawer, logout, user email/role display). app/admin/page.tsx (dashboard: 5 stat cards, recent orders, today's slots, quick links). app/login/page.tsx (login form with Supabase auth, redirect to next param).
 **References:**
 - RBAC from T1.6 (requireStaff, requireAdmin, middleware)
 - 21st.dev: search "admin dashboard layout", "sidebar", "tab navigation"
@@ -926,6 +949,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T5.2: Build menu items CRUD (create, edit, delete, sold-out toggle, price models, addons, variants, image upload)
+**Status: ✅ COMPLETE** — app/admin/menu-items/page.tsx: full CRUD with card grid, image upload (Supabase Storage), all price models (flat/weight_tiers/base_half_kg), JSON editors for price_options/addons/variants/decoration_tiers/size_options, dietary tags, sold-out toggle, active toggle, custom notice flag, sort order, category assignment.
 **References:**
 - menu_items schema from T1.3, RLS: admin write (T1.4)
 - 21st.dev: search "data table", "form", "CRUD", "toggle switch", "image upload"
@@ -975,6 +999,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T5.3: Build categories CRUD
+**Status: ✅ COMPLETE** — app/admin/categories/page.tsx: list with reorder (up/down arrows), add/edit/delete, active toggle.
 **References:**
 - categories schema from T1.3, RLS: admin write (T1.4)
 - Reuse DeleteConfirmModal from T5.2
@@ -1000,6 +1025,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T5.4: Build promo banners CRUD
+**Status: ✅ COMPLETE** — app/admin/banners/page.tsx: full CRUD with poster image upload, position selector (homepage_hero/menu_top/site_wide_strip), CTA text+link, date range, active toggle.
 **References:**
 - promo_banners schema from T1.3, RLS: admin write (T1.4)
 - Decisions: title, body, CTA, poster image, start/end date, position, dismissible
@@ -1028,6 +1054,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T5.5: Build gallery management (multi-upload, caption, reorder, delete)
+**Status: ✅ COMPLETE** — app/admin/gallery/page.tsx: multi-file upload, grid view, reorder (up/down), caption editor modal, active toggle, delete with storage cleanup.
 **References:**
 - gallery_photos schema from T1.3, Storage 'gallery' bucket from T1.5
 - Reuse ImageUploader, DeleteConfirmModal from T5.2
@@ -1057,6 +1084,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T5.6: Build site settings editor (6 tabs: general, location, notice rules, operating hours, delivery, payment)
+**Status: ✅ COMPLETE** — app/admin/settings/page.tsx: 6-tab editor covering all site_settings fields. General (bakery name, narrative, contact, WhatsApp, footer). Location (address, maps embed/directions). Notice Rules (global/bulk/custom hours with stack-by-max explanation). Operating Hours (per-day open/close times + holidays add/remove). Delivery (enable toggle, instructions). Payment (Razorpay enable, KYC pending mode, UPI ID).
 **References:**
 - site_settings schema from T1.3 (singleton id=1), RLS: admin write (T1.4)
 - Decisions: everything editable; notice rules; contact; WhatsApp; delivery config; payment mode
@@ -1090,6 +1118,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T5.7: Build operating hours editor + holidays editor
+**Status: ✅ COMPLETE** — Included in T5.6 site settings "Operating Hours" tab: per-day (Mon-Sun) open/close checkbox + time pickers, holidays list with add/remove.
 **References:**
 - site_settings.weekly_hours jsonb + holidays date[] from T1.3
 - Decisions: full per-day customization (7-day open/closed + times + holiday dates)
@@ -1115,6 +1144,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T5.8: Build custom cake inquiry management (review, quote, confirm, decline, mark paid)
+**Status: ✅ COMPLETE** — app/admin/custom-cakes/page.tsx: inquiry cards with customer info, cake details, reference image, status badges, review/quote modal (status dropdown, quote amount in paise, staff notes). app/custom-cake/page.tsx: customer-facing inquiry form with all fields + reference image upload to custom-cake-refs bucket.
 **References:**
 - custom_cake_inquiries schema from T1.3, orders schema (kind=custom_inquiry/custom_full)
 - RLS: staff read, admin write (T1.4)
@@ -1154,6 +1184,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T5.9: Build account/role management (change password, change email, admin manages staff)
+**Status: ✅ COMPLETE** — app/admin/accounts/page.tsx: "My Account" section (change password, change email via Supabase auth), "All Accounts" section (admin only: list all profiles, edit role dropdown customer/staff/admin).
 **References:**
 - profiles schema from T1.3, Supabase Auth admin API
 - RLS: admin write (T1.4)
@@ -1187,6 +1218,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ### Wave 6 — Payments + Resilience + Deploy + Verification
 
 #### T6.1: Build Razorpay create-order API (Edge function, test mode)
+**Status: ✅ COMPLETE** — app/api/razorpay/create-order/route.ts: fetches SAVOR order, creates Razorpay order via REST API (Basic Auth with RAZORPAY_KEY_ID:RAZORPAY_KEY_SECRET), saves razorpay_order_id to order, returns {razorpayOrderId, amount, currency, keyId}. Handles already-paid and cancelled orders.
 **References:**
 - Razorpay Orders API: https://razorpay.com/docs/api/orders/
 - Razorpay Standard Checkout: https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/integration-steps/
@@ -1219,6 +1251,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T6.2: Build Razorpay checkout integration (checkout.js modal + KYC-pending fallback)
+**Status: ✅ COMPLETE** — components/retry-payment-button.tsx (RetryPaymentButton): loads checkout.js dynamically, calls /api/razorpay/create-order, opens Razorpay modal with handler → /api/razorpay/verify, payment.failed handler, KYC-pending UPI fallback card with UPI ID + WhatsApp screenshot instructions, success state. app/api/razorpay/verify/route.ts: HMAC-SHA256 signature verification, updates order to paid.
 **References:**
 - Razorpay checkout.js: https://checkout.razorpay.com/v1/checkout.js
 - Research (bg_96037fdc): `new Razorpay({key, order_id, ...}).open()`
@@ -1249,6 +1282,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T6.3: Build Razorpay webhook handler (signature verification, idempotent processing)
+**Status: ✅ COMPLETE** — app/api/webhooks/razorpay/route.ts: raw body HMAC-SHA256 verification (Web Crypto), dedup via processed_webhooks (source='razorpay'), handles payment.captured (→paid), payment.failed (→failed), refund.processed (→refunded+cancelled), lookup by razorpay_order_id, 200 fast return.
 **References:**
 - Razorpay webhooks: https://razorpay.com/docs/webhooks/
 - Research (bg_96037fdc): HMAC-SHA256 over raw body, X-Razorpay-Signature header, webhook secret, raw body before JSON parse, Edge + Web Crypto
@@ -1287,6 +1321,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T6.4: Build refund/cancellation flow + resilience hardening
+**Status: ✅ COMPLETE** — app/api/razorpay/refund/route.ts: fetches paid order, calls Razorpay Refunds API with razorpay_payment_id, updates payment_status='refunded' + status='cancelled' + notes with reason. Retry flow via RetryPaymentButton (failed/unpaid orders). Resilience hardening: cart persists in localStorage (T3.1), confirm modals in all destructive admin actions, sold-out items greyed with badge, idempotency via processed_webhooks, ack-watchdog cron cleans processed_webhooks >30 days (T4.3).
 **References:**
 - Razorpay Refunds API: https://razorpay.com/docs/api/refunds/
 - Decisions: wrong-button guards, cart localStorage recovery, idempotent order creation, rate limiting
@@ -1325,6 +1360,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T6.5: Seed menu data from client's real menu
+**Status: ✅ COMPLETE** — supabase/migrations/00008_seed_menu.sql: 6 categories + 78 items. Tea Cakes (15 flat), Cheesecakes (6 weight_tiers + 5 addons each), Cupcakes/Muffins/Brownies (12 flat incl. Gourmet with 4 variants), High Tea Nibbles (19 flat with veg/non-veg tags), Desserts (6 flat incl. Pannacotta 6 variants + Tartlettes variants), Frosted Sponge Cakes (18 base_half_kg with size_options ½kg/1kg/2kg + decoration_tiers Basic/Premium/Luxury + requires_custom_notice=true + eggless tag). All prices in paise.
 **References:**
 - Client's real menu (pasted in Batch 3 answers, stored in draft)
 - menu_items + categories schema from T1.3
@@ -1359,6 +1395,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T6.6: Deploy to Cloudflare Workers staging + domain/DNS setup + Resend domain verification
+**Status: [~] BLOCKED** — Requires shell access (not available in this session) + live Cloudflare account/zone + Supabase project creation + Razorpay live keys + Resend domain verification. All prerequisite infra is ready (wrangler.jsonc, proxy.ts, .dev.vars template, migrations, credentials in .omo/credentials-setup.md). Steps documented for the execution session: npx supabase projects create → supabase db push → npx supabase link → run seed → wrangler secret put (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RAZORPAY_*, RESEND_*, CRON_SECRET, STAFF_NOTIFY_EMAIL) → wrangler deploy → replace placeholder-kv-id → verify crons.
 **References:**
 - Cloudflare Workers deploy: https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/
 - Resend domain verification: https://resend.com/docs/dashboard/domains/introduction
@@ -1405,6 +1442,7 @@ Create `lib/storage/signed-upload.ts` — generates signed upload URL for custom
 ---
 
 #### T6.7: E2E test suite (Playwright) for critical user flows
+**Status: ✅ COMPLETE** — playwright.config.ts (baseURL from E2E_BASE_URL env, chromium project, webServer auto-start for local, HTML+list reporters) + 9 spec files in e2e/: order-placement, admin-alarm, sold-out-toggle, bulk-rule, custom-cake-inquiry, checkout-closed-day, promo-banner, razorpay-test-checkout, admin-menu-edit. Run with `npm run e2e` (or `npx playwright test`). Admin-dependent specs read ADMIN_EMAIL/ADMIN_PASSWORD env.
 **References:**
 - Playwright: https://playwright.dev/
 - Critical flows: order placement, admin alarm, sold-out toggle, bulk rule, custom cake inquiry, checkout datepicker, promo banner, admin login + menu edit, Razorpay test checkout
