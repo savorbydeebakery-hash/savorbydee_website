@@ -8,6 +8,18 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "savor-bakery-incremental-cache"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "NEXT_TAG_CACHE_KV",
+      "id": "placeholder-kv-id"
+    }
+  ],
   "observability": {
     "enabled": true
   },

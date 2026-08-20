@@ -112,6 +112,7 @@ Wave 6 (Payments + Resilience + Deploy + Verification)  ←  depends on all prio
 ### Wave 1 — Infra + Schema + Auth
 
 #### T1.1: Initialize Next.js project with Cloudflare Workers (OpenNext) scaffold
+**Status: ✅ COMPLETE** — dev server HTTP 200 (localhost:3000), OpenNext preview HTTP 200 (localhost:8787), build passes, wrangler types generated, pastel palette in globals.css, git initialized. Note: removed `.codegraph` junction (CodeGraph MCP artifact) that crashed Turbopack.
 **References:**
 - Cloudflare Next.js on Workers guide: https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/
 - OpenNext adapter: `@opennextjs/cloudflare`
