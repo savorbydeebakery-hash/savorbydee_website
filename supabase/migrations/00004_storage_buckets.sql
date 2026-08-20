@@ -35,27 +35,22 @@ create policy "custom_cake_refs_staff_read" on storage.objects
 -- ---------- WRITE: staff only (all buckets) ----------
 create policy "staff_write_menu_items" on storage.objects
   for insert to authenticated
-  using (bucket_id = 'menu-items' and public.is_staff())
   with check (bucket_id = 'menu-items' and public.is_staff());
 
 create policy "staff_write_gallery" on storage.objects
   for insert to authenticated
-  using (bucket_id = 'gallery' and public.is_staff())
   with check (bucket_id = 'gallery' and public.is_staff());
 
 create policy "staff_write_promo_banners" on storage.objects
   for insert to authenticated
-  using (bucket_id = 'promo-banners' and public.is_staff())
   with check (bucket_id = 'promo-banners' and public.is_staff());
 
 create policy "staff_write_site_assets" on storage.objects
   for insert to authenticated
-  using (bucket_id = 'site-assets' and public.is_staff())
   with check (bucket_id = 'site-assets' and public.is_staff());
 
 create policy "staff_write_custom_cake_refs" on storage.objects
   for insert to authenticated
-  using (bucket_id = 'custom-cake-refs' and public.is_staff())
   with check (bucket_id = 'custom-cake-refs' and public.is_staff());
 
 -- ---------- UPDATE / DELETE: staff only ----------
