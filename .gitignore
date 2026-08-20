@@ -61,3 +61,5 @@ next-env.d.ts
 
 # supabase cli temp
 /supabase/.temp/
+
+/lint-json.txt
