@@ -53,3 +53,11 @@ next-env.d.ts
 
 # evidence (QA artifacts)
 /evidence/
+
+# build/test/lint logs
+/build-log.txt
+/test-log.txt
+/lint-log.txt
+
+# supabase cli temp
+/supabase/.temp/
