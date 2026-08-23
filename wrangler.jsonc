@@ -8,16 +8,14 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "r2_buckets": [
-    {
-      "binding": "NEXT_INC_CACHE_R2_BUCKET",
-      "bucket_name": "savor-bakery-incremental-cache"
-    }
-  ],
   "kv_namespaces": [
     {
       "binding": "NEXT_TAG_CACHE_KV",
-      "id": "placeholder-kv-id"
+      "id": "f093d94fdebf4188aa60ded662505117"
+    },
+    {
+      "binding": "NEXT_INC_CACHE_KV",
+      "id": "53cc6d539bcc4482a941b535d56f9eca"
     }
   ],
   "observability": {
@@ -26,27 +24,32 @@
   "triggers": {
     "crons": ["*/1 * * * *"]
   },
-  "vars": {
-    "NEXT_PUBLIC_SUPABASE_URL": "",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "",
-    "STAFF_NOTIFY_EMAIL": ""
-  },
   "env": {
     "staging": {
       "name": "savor-bakery-staging",
-      "vars": {
-        "NEXT_PUBLIC_SUPABASE_URL": "",
-        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "",
-        "STAFF_NOTIFY_EMAIL": ""
-      }
+      "kv_namespaces": [
+        {
+          "binding": "NEXT_TAG_CACHE_KV",
+          "id": "f093d94fdebf4188aa60ded662505117"
+        },
+        {
+          "binding": "NEXT_INC_CACHE_KV",
+          "id": "53cc6d539bcc4482a941b535d56f9eca"
+        }
+      ]
     },
     "production": {
       "name": "savor-bakery-production",
-      "vars": {
-        "NEXT_PUBLIC_SUPABASE_URL": "",
-        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "",
-        "STAFF_NOTIFY_EMAIL": ""
-      }
+      "kv_namespaces": [
+        {
+          "binding": "NEXT_TAG_CACHE_KV",
+          "id": "f093d94fdebf4188aa60ded662505117"
+        },
+        {
+          "binding": "NEXT_INC_CACHE_KV",
+          "id": "53cc6d539bcc4482a941b535d56f9eca"
+        }
+      ]
     }
   }
 }

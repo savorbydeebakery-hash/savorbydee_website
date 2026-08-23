@@ -19,7 +19,8 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
     adminPage.waitForURL(/\/admin/),
     adminPage.getByRole("button", { name: /sign in/i }).click(),
   ]);
-  await expect(adminPage.getByText(/orders/i).first()).toBeVisible();
+  await adminPage.goto("/admin/orders");
+  await expect(adminPage.getByRole("heading", { name: /orders/i })).toBeVisible();
 
   // Customer context places an order
   const customerContext = await browser.newContext();

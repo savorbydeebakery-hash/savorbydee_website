@@ -18,7 +18,8 @@ test("admin price edit reflects on storefront", async ({ page }) => {
   ]);
 
   // Open menu items admin
-  await expect(page.getByText(/menu items/i).first()).toBeVisible();
+  await page.goto("/admin/menu-items");
+  await expect(page.getByRole("heading", { name: /menu items/i })).toBeVisible();
 
   // Edit first item's price
   await page.locator("button", { hasText: /edit/i }).first().click();

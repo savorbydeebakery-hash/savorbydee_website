@@ -99,9 +99,12 @@ export default function CheckoutPage() {
         throw new Error(data.error ?? "Order submission failed");
       }
 
-      const data = (await response.json()) as { order: { humanId: string } };
+      const data = (await response.json()) as {
+        order: { human_id?: string; humanId?: string };
+      };
+      const orderId = data.order?.human_id || data.order?.humanId;
       clearCart();
-      router.push(`/orders/${data.order.humanId}?email=${encodeURIComponent(guest.email)}`);
+      router.push(`/orders/${orderId}?email=${encodeURIComponent(guest.email)}`);
     } catch (err) {
       setErrors([err instanceof Error ? err.message : "Something went wrong"]);
     } finally {
