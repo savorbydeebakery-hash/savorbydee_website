@@ -113,7 +113,7 @@ export default function CustomCakePage() {
           </Select>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input label="Flavor Preference" value={form.flavor} onChange={(e) => setForm({ ...form, flavor: e.target.value })} placeholder="Chocolate, Vanilla, Red Velvet..." />
+            <Input label="Flavour Preference" value={form.flavor} onChange={(e) => setForm({ ...form, flavor: e.target.value })} placeholder="Chocolate, Vanilla, Red Velvet..." />
             <Input label="Weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="½kg, 1kg, 2kg..." />
           </div>
 

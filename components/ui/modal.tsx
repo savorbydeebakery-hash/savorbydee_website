@@ -54,6 +54,9 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
           "relative z-10 w-full rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto",
           sizes[size]
         )}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
       >
         {title && (
           <div className="flex items-center justify-between border-b border-ink/8 px-6 py-4">

@@ -5,17 +5,19 @@ import { test, expect } from "@playwright/test";
  * NOTE: Requires seeded admin credentials via env ADMIN_EMAIL / ADMIN_PASSWORD.
  */
 test("admin price edit reflects on storefront", async ({ page }) => {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@savorbakery.in";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "Savor@2026";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
 
   // Login as admin
   await page.goto("/login");
   await page.getByLabel(/email/i).fill(adminEmail);
   await page.getByLabel(/password/i).fill(adminPassword);
-  await page.getByRole("button", { name: /sign in/i }).click();
+  await Promise.all([
+    page.waitForURL(/\/admin/),
+    page.getByRole("button", { name: /sign in/i }).click(),
+  ]);
 
   // Open menu items admin
-  await page.goto("/admin/menu-items");
   await expect(page.getByText(/menu items/i).first()).toBeVisible();
 
   // Edit first item's price

@@ -14,6 +14,7 @@ import type { CartItem, MenuItemForCart } from "./types";
 const flatItem: MenuItemForCart = {
   id: "item-1",
   name: "Chocolate Truffle Cake",
+  category_id: "cat-1",
   base_price_cents: 80000, // ₹800
   price_model: "flat",
   price_options: [],
@@ -38,6 +39,7 @@ const flatItem: MenuItemForCart = {
 const weightTierItem: MenuItemForCart = {
   id: "item-2",
   name: "Red Velvet Cake",
+  category_id: "cat-1",
   base_price_cents: 0,
   price_model: "weight_tiers",
   price_options: [
@@ -57,6 +59,7 @@ const weightTierItem: MenuItemForCart = {
 const baseHalfKgItem: MenuItemForCart = {
   id: "item-3",
   name: "Custom Design Cake",
+  category_id: "cat-1",
   base_price_cents: 90000, // ₹900 for ½kg base
   price_model: "base_half_kg",
   price_options: [],

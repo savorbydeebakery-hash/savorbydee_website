@@ -1,13 +1,21 @@
 import { clsx } from "clsx";
 import type { InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes } from "react";
 
+/** Derive a stable, unique-ish id from a label so labels always associate with their control. */
+function idFromLabel(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
 }
 
 export function Input({ label, error, className, id, ...props }: InputProps) {
-  const inputId = id ?? props.name;
+  const inputId = id ?? props.name ?? (label ? idFromLabel(label) : undefined);
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -35,7 +43,7 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 }
 
 export function Textarea({ label, error, className, id, ...props }: TextareaProps) {
-  const textareaId = id ?? props.name;
+  const textareaId = id ?? props.name ?? (label ? idFromLabel(label) : undefined);
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -63,7 +71,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export function Select({ label, error, className, id, children, ...props }: SelectProps) {
-  const selectId = id ?? props.name;
+  const selectId = id ?? props.name ?? (label ? idFromLabel(label) : undefined);
   return (
     <div className="flex flex-col gap-1.5">
       {label && (

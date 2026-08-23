@@ -200,6 +200,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setQuantity(Math.max(item.min_order_qty, quantity - 1))}
+                  aria-label="Decrease quantity"
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink/15 text-ink hover:bg-pink-soft transition-colors"
                   disabled={quantity <= item.min_order_qty}
                 >
@@ -208,6 +209,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                 <span className="w-8 text-center font-semibold text-ink">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
+                  aria-label="Increase quantity"
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink/15 text-ink hover:bg-pink-soft transition-colors"
                 >
                   <Plus size={16} />

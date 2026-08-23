@@ -7,11 +7,20 @@ import { test, expect } from "@playwright/test";
 test("bulk orders enforce 24h notice window", async ({ page }) => {
   await page.goto("/menu");
 
-  // Add 15 of the first item (bulk threshold is 10)
-  const addButton = page.locator("button", { hasText: /add to cart/i }).first();
-  for (let i = 0; i < 15; i++) {
-    await addButton.click();
+  // Open the first item's detail modal
+  await page.locator("button", { hasText: /add to cart/i }).first().click();
+
+  // Set quantity to 15 (bulk threshold is 10) via the modal's + button
+  const increaseQty = page.getByRole("button", { name: /increase quantity/i });
+  for (let i = 0; i < 14; i++) {
+    await increaseQty.click();
   }
+
+  // Confirm in the modal (scoped to the dialog so we hit the modal's button)
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /add to cart/i })
+    .click();
 
   await page.goto("/cart");
   await page.getByRole("button", { name: /checkout/i }).click();

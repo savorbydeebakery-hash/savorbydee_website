@@ -55,4 +55,6 @@ export interface MenuItemForCart {
   is_sold_out: boolean;
   requires_custom_notice: boolean;
   image_url?: string;
+  category_id: string;
+  dietary_tags?: string[];
 }

@@ -7,6 +7,10 @@ import { test, expect } from "@playwright/test";
 test("closed day is not selectable in checkout", async ({ page }) => {
   await page.goto("/menu");
   await page.locator("button", { hasText: /add to cart/i }).first().click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /add to cart/i })
+    .click();
   await page.goto("/cart");
   await page.getByRole("button", { name: /checkout/i }).click();
 
