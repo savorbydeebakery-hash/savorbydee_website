@@ -17,7 +17,7 @@ The SAVOR bakery site is ~99% code-complete (39 todos across 6 waves, all files 
 - planner env has NO shell tool → draft + plan hand-built with `write` (scaffold script not runnable here), template replicated from existing savor-bakery plan/draft.
 
 ## Credentials reality (from .omo/credentials-setup.md + .dev.vars.example)
-- ✅ PROVIDED + usable by worker with shell: Supabase CLI token (sbp_REDACTED), Cloudflare API token (CLOUDFLARE_API_TOKEN), Resend API key (RESEND_API_KEY), GitHub repo.
+- ✅ PROVIDED + usable by worker with shell: Supabase CLI token (sbp_*** redacted — in .dev.vars), Cloudflare API token (CLOUDFLARE_API_TOKEN), Resend API key (RESEND_API_KEY), GitHub repo.
 - ❌ CLIENT-GATED (cannot be done by worker): Razorpay test keys (rzp_test_*), staff notify email value, Resend sending-domain verification (needs registered domain), domain registration, Razorpay live keys (post-KYC).
 - ⚠️ DEFAULTABLE for staging: seed admin/staff creds (generate strong defaults, document rotation), STAFF_NOTIFY_EMAIL (use seed admin email for staging).
 

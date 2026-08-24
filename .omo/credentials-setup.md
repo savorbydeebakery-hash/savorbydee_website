@@ -62,7 +62,7 @@ Once the build agent has shell access, run these commands:
 
 ```bash
 # 1. Login with the CLI token
-npx supabase login --token sbp_REDACTED
+npx supabase login --token sbp_***redacted***
 
 # 2. Create project (Mumbai region for lowest latency to Kolkata)
 npx supabase projects create savor-bakery --region ap-south-1

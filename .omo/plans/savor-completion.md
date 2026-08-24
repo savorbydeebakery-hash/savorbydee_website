@@ -178,7 +178,7 @@ Phase 5 (Client handoff doc - the final mile)  <-  documents only
 ### Phase 2 - Provision Live Supabase + Migrate + Seed
 
 #### T2.1: Create Supabase project + apply migrations + seed admin/staff ✅ DONE (project tkzbroymiyvnigqxcpze linked; 7 migrations applied; 9 tables live; 6 categories + 76 active items; admin+staff seeded; RLS verified; NOTE: project is Tokyo region - client-created, documented in handoff)
-**References:** `.omo/credentials-setup.md` (Supabase section); provided Supabase CLI token `sbp_REDACTED`; `supabase/migrations/00001-00008`.
+**References:** `.omo/credentials-setup.md` (Supabase section); provided Supabase CLI token `sbp_***` (redacted — stored in `.dev.vars`); `supabase/migrations/00001-00008`.
 **What to build:**
 1. Smoke-test the token: `npx supabase projects list` (using `SUPABASE_ACCESS_TOKEN` from `.dev.vars`). If it errors/empty -> token dead -> HALT, surface to user (do NOT proceed).
 2. Create project: `npx supabase projects create savor-bakery --region ap-south-1` -> capture `<project-ref>`.
