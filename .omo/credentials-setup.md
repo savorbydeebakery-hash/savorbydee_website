@@ -1,8 +1,9 @@
 # SAVOR Bakery — Credentials Setup Guide
 
-> **Last updated**: 2026-08-20
+> **Last updated**: 2026-08-23
 > **IMPORTANT**: This file is git-tracked. NEVER put raw secret values here.
 > All secrets live in `.dev.vars` (gitignored) or `wrangler secret put` (production).
+> **Token storage confirmed**: Cloudflare API token = `$env:CLOUDFLARE_API_TOKEN` + `.dev.vars` (gitignored). GitHub remote has NO token embedded. Never commit secrets.
 
 ---
 
