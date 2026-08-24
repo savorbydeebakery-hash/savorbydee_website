@@ -3,6 +3,8 @@ import { PromoBanner } from "@/components/promo-banner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DailyMenu } from "@/components/daily-menu";
+import { GalleryMarquee } from "@/components/gallery-marquee";
 import Link from "next/link";
 import { ArrowRight, Cake, Cookie, Coffee, ShoppingBag } from "lucide-react";
 
@@ -11,21 +13,28 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const supabase = await createClient();
 
-  // Fetch featured items (first 6 active items with images)
-  const { data: featuredItems } = await supabase
-    .from("menu_items")
-    .select("id, name, description, base_price_cents, image_url, is_sold_out")
-    .eq("is_active", true)
-    .order("sort_order")
-    .limit(6);
-
-  // Fetch categories for quick links
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("id, name")
-    .eq("is_active", true)
-    .order("sort_order")
-    .limit(6);
+  // Fetch daily-menu items (full cart fields for the add-to-cart modal)
+  const [{ data: dailyItems }, { data: categories }, { data: galleryPhotos }] =
+    await Promise.all([
+      supabase
+        .from("menu_items")
+        .select(
+          "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, requires_custom_notice, daily_menu"
+        )
+        .eq("is_active", true)
+        .eq("daily_menu", true)
+        .order("sort_order"),
+      supabase
+        .from("categories")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("sort_order"),
+      supabase
+        .from("gallery_photos")
+        .select("id, image_url, caption")
+        .eq("is_active", true)
+        .order("sort_order"),
+    ]);
 
   return (
     <div>
@@ -90,53 +99,11 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Featured items */}
-      {featuredItems && featuredItems.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-ink">Featured Bakes</h2>
-            <Link
-              href="/menu"
-              className="inline-flex items-center gap-1 text-sm font-medium text-pink hover:gap-2 transition-all"
-            >
-              View all <ArrowRight size={16} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredItems.map((item) => (
-              <Card key={item.id} hover className="flex flex-col gap-3">
-                {item.image_url && (
-                  <div className="aspect-[4/3] overflow-hidden rounded-xl bg-pink-soft">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                  </div>
-                )}
-                <div className="flex flex-1 flex-col gap-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-ink">{item.name}</h3>
-                    {item.is_sold_out ? (
-                      <Badge color="neutral">Sold Out</Badge>
-                    ) : (
-                      <span className="text-sm font-semibold text-pink whitespace-nowrap">
-                        ₹{(item.base_price_cents / 100).toFixed(0)}+
-                      </span>
-                    )}
-                  </div>
-                  {item.description && (
-                    <p className="text-sm text-ink-soft line-clamp-2">
-                      {item.description}
-                    </p>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Today's Menu (admin-curated) */}
+      <DailyMenu items={dailyItems ?? []} categories={categories ?? []} />
+
+      {/* Infinite gallery marquee */}
+      <GalleryMarquee photos={galleryPhotos ?? []} />
 
       {/* Custom cake CTA */}
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">

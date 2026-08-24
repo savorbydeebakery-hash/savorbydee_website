@@ -57,4 +57,5 @@ export interface MenuItemForCart {
   image_url?: string;
   category_id: string;
   dietary_tags?: string[];
+  daily_menu: boolean;
 }

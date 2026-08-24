@@ -33,6 +33,7 @@ interface MenuItem {
   is_active: boolean;
   sort_order: number;
   requires_custom_notice: boolean;
+  daily_menu: boolean;
 }
 
 interface Category {
@@ -138,6 +139,7 @@ export default function AdminMenuItemsPage() {
               <div className="mt-2 flex flex-wrap gap-1">
                 {item.is_sold_out && <Badge color="neutral">Sold Out</Badge>}
                 {!item.is_active && <Badge color="neutral">Hidden</Badge>}
+                {item.daily_menu && <Badge color="pink">Today&apos;s Menu</Badge>}
                 {item.requires_custom_notice && <Badge color="lavender">Custom Notice</Badge>}
                 {item.dietary_tags?.map((tag) => (
                   <Badge key={tag} color="mint">{tag}</Badge>
@@ -209,6 +211,7 @@ function MenuItemForm({
       is_active: true,
       sort_order: 0,
       requires_custom_notice: false,
+      daily_menu: false,
     }
   );
 
@@ -298,6 +301,10 @@ function MenuItemForm({
           <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input type="checkbox" checked={form.requires_custom_notice ?? false} onChange={(e) => setForm({ ...form, requires_custom_notice: e.target.checked })} />
             Requires Custom Notice (5 days)
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input type="checkbox" checked={form.daily_menu ?? false} onChange={(e) => setForm({ ...form, daily_menu: e.target.checked })} />
+            On Today&apos;s Menu
           </label>
         </div>
 

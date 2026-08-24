@@ -31,9 +31,10 @@ const flatItem: MenuItemForCart = {
     { label: "Premium", price_delta: 5000 },
   ],
   size_options: [],
-  min_order_qty: 1,
+min_order_qty: 1,
   is_sold_out: false,
-  requires_custom_notice: false,
+  requires_custom_notice: true,
+  daily_menu: false,
 };
 
 const weightTierItem: MenuItemForCart = {
@@ -54,6 +55,7 @@ const weightTierItem: MenuItemForCart = {
   min_order_qty: 1,
   is_sold_out: false,
   requires_custom_notice: false,
+  daily_menu: false,
 };
 
 const baseHalfKgItem: MenuItemForCart = {
@@ -74,9 +76,10 @@ const baseHalfKgItem: MenuItemForCart = {
     { label: "1kg", price_delta: 70000 },
     { label: "2kg", price_delta: 160000 },
   ],
-  min_order_qty: 1,
+min_order_qty: 1,
   is_sold_out: false,
-  requires_custom_notice: true,
+  requires_custom_notice: false,
+  daily_menu: false,
 };
 
 // --- calculateUnitPrice ---

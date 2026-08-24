@@ -22,7 +22,7 @@ export default async function MenuPage() {
     supabase
       .from("menu_items")
       .select(
-        "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, requires_custom_notice"
+        "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, requires_custom_notice, daily_menu"
       )
       .eq("is_active", true)
       .order("sort_order"),

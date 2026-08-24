@@ -1,0 +1,99 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ItemDetailModal } from "@/components/item-detail-modal";
+import type { MenuItemForCart } from "@/lib/cart/types";
+
+interface MenuCategory {
+  id: string;
+  name: string;
+}
+
+interface DailyMenuProps {
+  items: MenuItemForCart[];
+  categories: MenuCategory[];
+}
+
+export function DailyMenu({ items, categories }: DailyMenuProps) {
+  const [selectedItem, setSelectedItem] = useState<MenuItemForCart | null>(null);
+
+  if (!items || items.length === 0) return null;
+
+  const categoryName = (id: string) => categories.find((c) => c.id === id)?.name;
+
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <Badge color="pink" className="mb-2">Fresh to Order</Badge>
+          <h2 className="text-2xl font-semibold text-ink">Today&apos;s Menu</h2>
+        </div>
+        <Link
+          href="/menu"
+          className="inline-flex items-center gap-1 text-sm font-medium text-pink hover:gap-2 transition-all"
+        >
+          View all <ArrowRight size={16} />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => (
+          <Card key={item.id} hover className="flex flex-col gap-3">
+            {item.image_url && (
+              <div className="aspect-[4/3] overflow-hidden rounded-xl bg-pink-soft">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={item.image_url}
+                  alt={item.name}
+                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                />
+              </div>
+            )}
+            <div className="flex flex-1 flex-col gap-1">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-semibold text-ink">{item.name}</h3>
+                {item.is_sold_out ? (
+                  <Badge color="neutral">Sold Out</Badge>
+                ) : (
+                  <span className="text-sm font-semibold text-pink whitespace-nowrap">
+                    ₹{(item.base_price_cents / 100).toFixed(0)}+
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-ink-soft">
+                {categoryName(item.category_id)}
+              </p>
+              {item.description && (
+                <p className="text-sm text-ink-soft line-clamp-2">
+                  {item.description}
+                </p>
+              )}
+              <div className="mt-auto pt-2">
+                <Button
+                  size="sm"
+                  variant={item.is_sold_out ? "ghost" : "primary"}
+                  disabled={item.is_sold_out}
+                  className="w-full"
+                  onClick={() => setSelectedItem(item)}
+                >
+                  {item.is_sold_out ? "Unavailable" : "Add to Cart"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <ItemDetailModal
+        item={selectedItem}
+        open={selectedItem !== null}
+        onClose={() => setSelectedItem(null)}
+      />
+    </section>
+  );
+}
