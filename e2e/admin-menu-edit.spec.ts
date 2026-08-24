@@ -21,10 +21,10 @@ test("admin price edit reflects on storefront", async ({ page }) => {
   await page.goto("/admin/menu-items");
   await expect(page.getByRole("heading", { name: /menu items/i })).toBeVisible();
 
-  // Edit first item's price
+  // Edit first item's price (99900 paise = ₹999, displays as "₹999")
   await page.locator("button", { hasText: /edit/i }).first().click();
   const priceInput = page.locator("input[name='base_price_cents'], input[type='number']").first();
-  await priceInput.fill("99999");
+  await priceInput.fill("99900");
   await page.getByRole("button", { name: /save/i }).click();
 
   // Storefront reflects new price

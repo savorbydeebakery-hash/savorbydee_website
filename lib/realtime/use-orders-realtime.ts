@@ -92,6 +92,10 @@ export function useOrdersRealtime() {
   useEffect(() => {
     const timerId = setTimeout(() => { void fetchOrders(); }, 0);
 
+    // Polling fallback: re-fetch periodically so new orders appear even if
+    // the realtime channel is slow or disconnected.
+    const pollId = setInterval(() => { void fetchOrders(); }, 15_000);
+
     const supabase = createClient();
     const channel = supabase
       .channel("admin-orders-realtime")
@@ -136,6 +140,7 @@ export function useOrdersRealtime() {
 
     return () => {
       clearTimeout(timerId);
+      clearInterval(pollId);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
