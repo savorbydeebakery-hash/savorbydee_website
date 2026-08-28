@@ -12,7 +12,7 @@ export const metadata = {
     "Explore the visual story of Savor by Dee - handcrafted cakes, desserts, and savoury bakes from Shillong.",
 };
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
 
 // Every image here is rendered twice — once in the parallax gallery, once in
 // the static grid below it — so the source list is bounded.

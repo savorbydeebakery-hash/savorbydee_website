@@ -339,27 +339,10 @@ body {
   vertical-align: bottom;
 }
 
-/* ---------- Scroll reveal (CSS-driven, hydration-safe) ----------
-   Base state is VISIBLE. When .kinetic-revealed is added by IntersectionObserver
-   (non-reduced-motion users), a fade+rise transition plays. Reduced-motion
-   users keep the base visible state via the global reduced-motion block. */
-.kinetic-reveal {
-  opacity: 1;
-  transform: none;
-  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.kinetic-reveal:not(.kinetic-revealed) {
-  opacity: 0;
-  transform: translateY(24px);
-}
-
-/* Once revealed, keep visible */
-.kinetic-reveal.kinetic-revealed {
-  opacity: 1;
-  transform: none;
-}
+/* Scroll reveal is now GSAP ScrollTrigger — see components/kinetic/reveal.tsx.
+   The old CSS version hid content via `.kinetic-reveal:not(.kinetic-revealed)`,
+   which meant a JS failure left the page permanently blank. Content is now
+   visible by default and GSAP animates from a hidden state. */
 
 /* ---------- Kinetic word rise (hero headline) ----------
    Words are visible in base state; the rise animation only plays on mount
@@ -388,6 +371,36 @@ body {
 
 .kinetic-word {
   animation: kinetic-word-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- Hero gradient mesh ----------
+   Slow drift so the background is never quite static. Animating
+   background-position on a radial-gradient stack is compositor-friendly here
+   because the layer is otherwise static and full-bleed. */
+@keyframes mesh-drift {
+  0%, 100% { transform: scale(1.1) translate3d(0, 0, 0); }
+  33%      { transform: scale(1.18) translate3d(-2%, 1.5%, 0); }
+  66%      { transform: scale(1.14) translate3d(2%, -1%, 0); }
+}
+.hero-mesh {
+  animation: mesh-drift 24s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ---------- Film grain ----------
+   One SVG turbulence tile at low opacity. Cheap, and it is most of what
+   separates a designed gradient from a default one. */
+.hero-grain {
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-mesh {
+    animation: none;
+  }
 }
 
 /* ---------- Hero collage float ----------

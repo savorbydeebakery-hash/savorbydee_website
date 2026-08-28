@@ -17,7 +17,7 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
   await adminPage.getByLabel(/password/i).fill(adminPassword);
   await Promise.all([
     adminPage.waitForURL(/\/admin/),
-    adminPage.getByRole("button", { name: /sign in/i }).click(),
+    adminPage.locator("form").getByRole("button", { name: /sign in/i }).click(),
   ]);
   await adminPage.goto("/admin/orders");
   await expect(adminPage.getByRole("heading", { name: /orders/i })).toBeVisible();

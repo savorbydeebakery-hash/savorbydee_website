@@ -10,14 +10,31 @@ import { SmartImage } from "@/components/kinetic/smart-image";
 import { HomeTiles } from "@/components/home/home-tiles";
 import { CurationRow } from "@/components/home/curation-row";
 import { BestBakerySection } from "@/components/home/best-bakery-section";
+import { PropField } from "@/components/props/prop-field";
+import {
+  Macaron,
+  Cherry,
+  ChocolateCurl,
+  Sprinkles,
+  CakeSlice,
+} from "@/components/props/pastry-props";
 import Link from "next/link";
 import { ArrowRight, Cake, ShoppingBag } from "lucide-react";
 
-// ISR via the KV incremental cache (NEXT_INC_CACHE_KV, see wrangler.jsonc).
-// Was force-dynamic, which meant seven Supabase round-trips to Tokyo on every
-// single request. 60s is fresh enough for the sold-out toggle, which is
-// re-validated server-side at checkout regardless.
-export const revalidate = 60;
+// NOTE: this was briefly `export const revalidate = 60` to avoid seven Supabase
+// round-trips to Tokyo per request. That engages OpenNext's ISR path, which
+// dispatches background revalidation through the configured queue — and
+// open-next.config.ts uses `memoryQueue`, which revalidates inside the same
+// worker invocation. The result was:
+//
+//   Uncaught Error: The Workers runtime canceled this request because it
+//   detected that your Worker's code had hung and would never generate a
+//   response.
+//
+// The shell returned 200 but the RSC stream never resolved, so the page
+// rendered as a permanent loading skeleton. Reverted until a real queue
+// (Cloudflare Queues) is wired up — see REDESIGN_PLAN.md "Deferred".
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -100,7 +117,13 @@ export default async function HomePage() {
       {/* Hero promo banner */}
       <PromoBanner position="homepage_hero" />
 
-      {/* Hero — floating image collage */}
+      {/* Hero — floating image collage. Props sit behind the collage; the two
+          macarons are the deepest so they drift most as the hero scrolls out.
+          Sprinkles are hidden below sm to respect the 3-props-on-mobile cap. */}
+      <PropField travel={200}>
+      <Macaron size={92} x="6%" y="18%" depth={0.75} className="hidden sm:block" />
+      <Macaron size={64} x="88%" y="62%" depth={0.35} />
+      <Sprinkles size={150} x="78%" y="12%" depth={0.55} className="hidden sm:block" />
       <HeroCollage
         title={
           <>
@@ -113,12 +136,15 @@ export default async function HomePage() {
         images={heroImages}
         backgroundImage={heroBackground}
       />
+      </PropField>
 
       {/* CTA buttons */}
-      <section className="mx-auto max-w-6xl px-4 pb-8 sm:px-6">
-        <div className="flex flex-wrap justify-center gap-3 -mt-8 relative z-10">
+      {/* The hero is dark now, so the old -mt-8 overlap would have dropped these
+          onto the cocoa edge. They sit cleanly on cream instead. */}
+      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <div className="relative z-10 flex flex-wrap justify-center gap-3">
           <Link href="/menu">
-            <Button size="lg" variant="primary">
+            <Button size="lg" variant="cocoa">
               <ShoppingBag size={18} /> Browse Menu
             </Button>
           </Link>
@@ -131,10 +157,15 @@ export default async function HomePage() {
       </section>
 
       {/* Four big image tiles: Daily / Custom / Full / Specials */}
-      <HomeTiles galleryPhotos={featuredPhotos.slice(7, 11)} />
+      <PropField>
+        <Cherry size={44} x="50%" y="46%" depth={0.5} className="hidden lg:block" />
+        <HomeTiles galleryPhotos={featuredPhotos.slice(7, 11)} />
+      </PropField>
 
       {/* Chef's Choice (admin-curated) — raised band */}
-      <div className="bg-shell">
+      <PropField className="bg-shell">
+        <Macaron size={72} x="3%" y="16%" depth={0.45} className="hidden lg:block" />
+        <ChocolateCurl size={58} x="94%" y="70%" depth={0.8} className="hidden lg:block" />
         <CurationRow
           eyebrow="Handpicked"
           title="Chef's Choice"
@@ -142,7 +173,7 @@ export default async function HomePage() {
           items={chefsChoiceItems ?? []}
           categories={categories ?? []}
         />
-      </div>
+      </PropField>
 
       {/* Most Ordered (admin-curated bestsellers) */}
       <CurationRow
@@ -160,19 +191,25 @@ export default async function HomePage() {
 
       {/* Infinite gallery marquee — DARK band. Glass and light props read
           against this; it is the page's mid-scroll punctuation. */}
-      <div className="bg-cocoa">
+      <PropField className="bg-cocoa">
+        {/* Light-toned sprinkles — dark band needs light props. */}
+        <Sprinkles size={120} x="6%" y="14%" depth={0.6} tone="light" className="hidden md:block" />
+        <Sprinkles size={100} x="86%" y="68%" depth={0.4} tone="light" className="hidden md:block" />
         <GalleryMarquee photos={allGalleryPhotos} />
-      </div>
+      </PropField>
 
       {/* Best Bakery in Shillong — image left, story right */}
-      <BestBakerySection
-        photo={featuredPhotos[16]?.image_url}
-        settings={settings}
-      />
+      <PropField>
+        <CakeSlice size={88} x="92%" y="12%" depth={0.35} className="hidden xl:block" />
+        <BestBakerySection
+          photo={featuredPhotos[16]?.image_url}
+          settings={settings}
+        />
+      </PropField>
 
       {/* Custom cake CTA — DARK band with a glass panel. Glass needs something
           behind it to refract; the gradient mesh is that something. */}
-      <Reveal>
+      <PropField>
         <section className="relative overflow-hidden bg-cocoa px-4 py-20 sm:px-6">
           <div
             aria-hidden="true"
@@ -184,6 +221,8 @@ export default async function HomePage() {
                 "radial-gradient(70% 60% at 50% 100%, rgb(74 56 48 / 0.6), transparent 70%)",
             }}
           />
+          <Cherry size={52} x="10%" y="18%" depth={0.5} className="hidden md:block" />
+          <Cherry size={38} x="88%" y="70%" depth={0.9} className="hidden md:block" />
           <div className="glass glass-liquid relative mx-auto max-w-3xl rounded-[var(--r-xl)] p-8 text-center sm:p-14">
             <Cake className="mx-auto mb-4 text-blush" size={40} />
             <h2 className="text-h2 mb-4 text-shell">Dreaming of a Custom Cake?</h2>
@@ -198,7 +237,7 @@ export default async function HomePage() {
             </Link>
           </div>
         </section>
-      </Reveal>
+      </PropField>
 
       {/* Scattered image strip (from gallery, for the "image everywhere" feel) */}
       {featuredPhotos.length > 0 && (

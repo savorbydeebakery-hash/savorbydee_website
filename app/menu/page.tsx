@@ -8,7 +8,7 @@ export const metadata = {
     "Browse our full menu of cakes, desserts, cookies, and savoury bakes. Pre-order online with 12 hours notice.",
 };
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
 
 export default async function MenuPage({
   searchParams,

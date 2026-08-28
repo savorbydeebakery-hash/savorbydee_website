@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import Image from "next/image";
+import { useGSAP } from "@gsap/react";
+import { gsap } from "@/lib/motion/gsap";
 import { cn } from "@/lib/utils";
 
 interface HeroCollageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
@@ -101,34 +103,139 @@ const SLOTS = [
 
 const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
   ({ className, title, subtitle, stats, images, backgroundImage, ...props }, ref) => {
+    const scope = useRef<HTMLElement>(null);
+
+    useGSAP(
+      () => {
+        const root = scope.current;
+        if (!root) return;
+
+        const tiles = gsap.utils.toArray<HTMLElement>("[data-collage-tile]", root);
+        const photo = root.querySelector<HTMLElement>("[data-hero-photo]");
+        if (tiles.length === 0) return;
+
+        const mm = gsap.matchMedia();
+
+        mm.add("(prefers-reduced-motion: no-preference)", () => {
+          // Scroll parallax — deeper tiles travel further as the hero exits.
+          gsap.to(tiles, {
+            y: (_i, el: HTMLElement) => -180 * Number(el.dataset.depth ?? 0.4),
+            ease: "none",
+            scrollTrigger: {
+              trigger: root,
+              start: "top top",
+              end: "bottom top",
+              scrub: 1,
+            },
+          });
+
+          if (photo) {
+            gsap.to(photo, {
+              y: 80,
+              ease: "none",
+              scrollTrigger: { trigger: root, start: "top top", end: "bottom top", scrub: 1 },
+            });
+          }
+        });
+
+        // Pointer parallax — fine pointers only. Touch devices report
+        // coarse and would get nothing useful from mousemove anyway.
+        mm.add(
+          "(pointer: fine) and (prefers-reduced-motion: no-preference)",
+          () => {
+            // quickTo is materially cheaper than a fresh tween per event.
+            const movers = tiles.map((el) => ({
+              el,
+              depth: Number(el.dataset.depth ?? 0.4),
+              toX: gsap.quickTo(el, "x", { duration: 0.7, ease: "power3.out" }),
+              toY: gsap.quickTo(el, "yPercent", { duration: 0.7, ease: "power3.out" }),
+            }));
+
+            const onMove = (e: PointerEvent) => {
+              const { innerWidth: w, innerHeight: h } = window;
+              const dx = (e.clientX - w / 2) / w;
+              const dy = (e.clientY - h / 2) / h;
+              movers.forEach(({ depth, toX, toY }) => {
+                toX(dx * depth * 60);
+                toY(dy * depth * 12);
+              });
+            };
+
+            window.addEventListener("pointermove", onMove, { passive: true });
+            return () => window.removeEventListener("pointermove", onMove);
+          }
+        );
+
+        return () => mm.revert();
+      },
+      { scope }
+    );
+
     return (
       <section
-        ref={ref}
+        ref={(node) => {
+          scope.current = node;
+          if (typeof ref === "function") ref(node as never);
+          else if (ref) (ref as React.RefObject<HTMLElement | null>).current = node;
+        }}
         className={cn("relative w-full overflow-hidden py-20 font-sans sm:py-32", className)}
         {...props}
       >
-        {/* Background image with blur + warm overlay */}
+        {/* ---- Background, back to front ----
+            Was a single blurred photo at opacity-30 under a flat cream
+            gradient, which is the "boring background" being replaced.
+            Four layers now: cocoa gradient mesh, the photo, film grain, and a
+            vignette. The mesh is what the hero's glass elements refract. */}
+
+        {/* 1. Cocoa base + animated gradient mesh */}
+        <div aria-hidden="true" className="absolute inset-0 bg-cocoa" />
+        <div
+          aria-hidden="true"
+          className="hero-mesh absolute inset-0 opacity-90"
+          style={{
+            background:
+              "radial-gradient(55% 65% at 18% 22%, rgb(194 86 107 / 0.55), transparent 62%)," +
+              "radial-gradient(50% 60% at 82% 28%, rgb(247 216 204 / 0.32), transparent 62%)," +
+              "radial-gradient(65% 70% at 60% 88%, rgb(154 134 196 / 0.28), transparent 66%)," +
+              "radial-gradient(80% 60% at 50% 50%, rgb(74 56 48 / 0.5), transparent 75%)",
+          }}
+        />
+
+        {/* 2. Photo */}
         {backgroundImage && (
-          <>
-            <Image
-              src={backgroundImage}
-              alt=""
-              aria-hidden="true"
-              fill
-              priority
-              sizes="100vw"
-              className="scale-105 object-cover opacity-30 blur-sm"
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/90" />
-          </>
+          <Image
+            src={backgroundImage}
+            alt=""
+            aria-hidden="true"
+            fill
+            priority
+            sizes="100vw"
+            data-hero-photo
+            className="scale-110 object-cover opacity-25 mix-blend-luminosity"
+          />
         )}
+
+        {/* 3. Film grain — one cheap layer, and most of what separates a
+               designed gradient from a default one. */}
+        <div aria-hidden="true" className="hero-grain absolute inset-0" />
+
+        {/* 4. Vignette, to pull the eye to the headline */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 70% at 50% 45%, transparent 35%, rgb(46 33 27 / 0.85) 100%)",
+          }}
+        />
 
         {/* Main Content */}
         <div className="container relative z-10 mx-auto px-4 text-center">
-          <h1 className="text-display text-ink">
+          <h1 className="text-display text-shell drop-shadow-[0_2px_24px_rgba(46,33,27,0.5)]">
             {title}
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base text-ink-soft md:text-lg">
+          {/* #D8CCC0 on cocoa is 7.4:1 — --ink-soft would be unreadable here. */}
+          <p className="mx-auto mt-6 max-w-2xl text-base text-[#D8CCC0] md:text-lg">
             {subtitle}
           </p>
         </div>
@@ -142,6 +249,7 @@ const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
               return (
                 <div
                   key={slot.key}
+                  data-collage-tile
                   data-depth={slot.depth}
                   className={cn(
                     "absolute animate-float-up overflow-hidden",
@@ -172,11 +280,17 @@ const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
 
         {/* Stats Section */}
         <div className="container relative z-10 mx-auto mt-16 px-4">
-          <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-16">
+          {/* Glass over the gradient mesh — the placement rule's happy path. */}
+          <div className="mx-auto flex max-w-3xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:gap-4">
             {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="font-display text-4xl font-bold tracking-tight text-berry">{stat.value}</p>
-                <p className="mt-1 text-sm font-medium text-ink-soft">{stat.label}</p>
+              <div
+                key={stat.label}
+                className="glass glass-liquid glass-sheen flex-1 rounded-[var(--r-lg)] px-6 py-5 text-center"
+              >
+                <p className="font-display text-4xl font-bold tracking-tight text-blush">
+                  {stat.value}
+                </p>
+                <p className="mt-1 text-sm font-medium text-[#D8CCC0]">{stat.label}</p>
               </div>
             ))}
           </div>

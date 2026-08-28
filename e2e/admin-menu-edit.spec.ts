@@ -14,7 +14,7 @@ test("admin price edit reflects on storefront", async ({ page }) => {
   await page.getByLabel(/password/i).fill(adminPassword);
   await Promise.all([
     page.waitForURL(/\/admin/),
-    page.getByRole("button", { name: /sign in/i }).click(),
+    page.locator("form").getByRole("button", { name: /sign in/i }).click(),
   ]);
 
   // Open menu items admin

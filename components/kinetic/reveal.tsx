@@ -1,64 +1,98 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, EASE } from "@/lib/motion/gsap";
 
 /**
- * Scroll-into-view reveal wrapper (CSS-driven, hydration-safe).
+ * Scroll reveal, now driven by GSAP ScrollTrigger.
  *
- * SSR + first client render: content is fully visible (no hidden state) —
- * identical HTML, zero hydration risk. An IntersectionObserver adds the
- * `.kinetic-revealed` class when the element scrolls into view, which triggers
- * a CSS fade+rise keyframe animation. The global `prefers-reduced-motion`
- * block disables the animation for reduced-motion users, so they always see
- * the content instantly.
+ * The public API (Reveal / RevealGroup / RevealItem and their props) is
+ * unchanged from the IntersectionObserver version, so all ~12 call sites
+ * upgrade without edits.
+ *
+ * FAILURE MODE, deliberately chosen: content is visible by default and GSAP
+ * animates *from* a hidden state. The previous CSS version was the other way
+ * round — `.kinetic-reveal:not(.kinetic-revealed)` set opacity:0, so if JS
+ * failed to run the content stayed invisible forever. Now a JS failure just
+ * means no animation.
+ *
+ * No flash: useGSAP runs in useLayoutEffect, so the from-state is applied
+ * before the browser paints.
+ *
+ * Reduced motion is gated once here via gsap.matchMedia rather than per
+ * component — those users get the final state immediately.
  */
+
+const REVEAL_START = "top 85%";
+
 export function Reveal({
   children,
   delay = 0,
-  y = 24,
+  y = 32,
   className = "",
   once = true,
+  parallax,
 }: {
   children: ReactNode;
   delay?: number;
   y?: number;
   className?: string;
   once?: boolean;
+  /**
+   * Pixels of scroll-scrubbed vertical drift. Positive drifts up as the
+   * section passes. Adds depth; use sparingly (see the prop budget).
+   */
+  parallax?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            el.classList.add("kinetic-revealed");
-            if (once) io.disconnect();
-          }
+  useGSAP(
+    () => {
+      const el = ref.current;
+      if (!el) return;
+
+      const mm = gsap.matchMedia();
+
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.from(el, {
+          y,
+          opacity: 0,
+          duration: 0.9,
+          delay,
+          ease: EASE,
+          scrollTrigger: { trigger: el, start: REVEAL_START, once },
         });
-      },
-      { threshold: 0.15 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [once]);
+
+        if (parallax) {
+          gsap.to(el, {
+            y: -parallax,
+            ease: "none",
+            scrollTrigger: {
+              trigger: el,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: 1,
+            },
+          });
+        }
+      });
+
+      return () => mm.revert();
+    },
+    { scope: ref, dependencies: [delay, y, once, parallax] }
+  );
 
   return (
-    <div
-      ref={ref}
-      className={`kinetic-reveal ${className}`}
-      style={{ transitionDelay: `${delay}s` }}
-    >
+    <div ref={ref} className={className}>
       {children}
     </div>
   );
 }
 
 /**
- * Stagger container — wraps <RevealItem> children to cascade.
- * Reveals items sequentially when the container enters view.
+ * Stagger container. Cascades its <RevealItem> children when it enters view.
+ * One ScrollTrigger for the whole group, not one per child.
  */
 export function RevealGroup({
   children,
@@ -71,27 +105,31 @@ export function RevealGroup({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const items = Array.from(el.querySelectorAll(".kinetic-reveal-item")) as HTMLElement[];
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            items.forEach((item, i) => {
-              item.style.transitionDelay = `${i * stagger}s`;
-              item.classList.add("kinetic-revealed");
-            });
-            io.disconnect();
-          }
+  useGSAP(
+    () => {
+      const el = ref.current;
+      if (!el) return;
+
+      const items = el.querySelectorAll<HTMLElement>(".kinetic-reveal-item");
+      if (items.length === 0) return;
+
+      const mm = gsap.matchMedia();
+
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        gsap.from(items, {
+          y: 32,
+          opacity: 0,
+          duration: 0.8,
+          ease: EASE,
+          stagger,
+          scrollTrigger: { trigger: el, start: REVEAL_START, once: true },
         });
-      },
-      { threshold: 0.1 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [stagger]);
+      });
+
+      return () => mm.revert();
+    },
+    { scope: ref, dependencies: [stagger] }
+  );
 
   return (
     <div ref={ref} className={className}>
@@ -100,9 +138,7 @@ export function RevealGroup({
   );
 }
 
-/**
- * Single item inside a <RevealGroup>. Uses CSS stagger reveal.
- */
+/** Single item inside a <RevealGroup>. The class is the group's selector. */
 export function RevealItem({
   children,
   className = "",
@@ -110,9 +146,5 @@ export function RevealItem({
   children: ReactNode;
   className?: string;
 }) {
-  return (
-    <div className={`kinetic-reveal kinetic-reveal-item ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`kinetic-reveal-item ${className}`}>{children}</div>;
 }
