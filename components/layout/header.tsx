@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, ShoppingBag, X } from "lucide-react";
-import { useState } from "react";
+import { Menu, ShoppingBag, X, User, LogIn } from "lucide-react";
+import { useEffect, useState } from "react";
 import { clsx } from "clsx";
+import { createClient } from "@/lib/supabase/client";
 
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/menu", label: "Menu" },
+  { href: "/gallery", label: "Gallery" },
   { href: "/about", label: "About" },
   { href: "/custom-cake", label: "Custom Cakes" },
   { href: "/orders/lookup", label: "Find My Order" },
@@ -17,6 +19,31 @@ const navLinks = [
 export function Header() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<{ email?: string } | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    const getSession = async () => {
+      const {
+        data: { user: current },
+      } = await supabase.auth.getUser();
+      setUser(current ? { email: current.email } : null);
+      setLoaded(true);
+    };
+
+    void getSession();
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ? { email: session.user.email } : null);
+      setLoaded(true);
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const loginHref = `/login?next=${encodeURIComponent(pathname)}`;
 
   return (
     <>
@@ -52,6 +79,26 @@ export function Header() {
 
           {/* Right actions */}
           <div className="flex items-center gap-2">
+            {loaded && user ? (
+              <Link
+                href="/account"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-soft hover:bg-pink-soft hover:text-ink transition-colors"
+              >
+                <User size={20} />
+                <span className="hidden max-w-[90px] truncate text-sm sm:inline">
+                  {user.email?.split("@")[0]}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href={loginHref}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-soft hover:bg-pink-soft hover:text-ink transition-colors"
+              >
+                <LogIn size={20} />
+                <span className="text-sm">Log In</span>
+              </Link>
+            )}
+
             <Link
               href="/cart"
               className="relative rounded-lg p-2 text-ink-soft hover:bg-pink-soft hover:text-ink transition-colors"
@@ -87,6 +134,23 @@ export function Header() {
           />
           <nav className="absolute left-0 right-0 top-16 bg-white border-b border-ink/8 shadow-lg">
             <div className="flex flex-col p-4 gap-1">
+              {loaded && user ? (
+                <Link
+                  href="/account"
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-pink"
+                >
+                  My Account
+                </Link>
+              ) : (
+                <Link
+                  href={loginHref}
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-pink"
+                >
+                  Log In
+                </Link>
+              )}
               {navLinks.map((link) => (
                 <Link
                   key={link.href}

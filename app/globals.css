@@ -1,24 +1,39 @@
 @import "tailwindcss";
 
+/* Hero display font — Baloo 2 ExtraBold (loaded via next/font in layout.tsx) */
+.font-round8 {
+  font-family: var(--font-baloo), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #2d2a32;
-  /* SAVOR pastel palette — white-dominant with bright pastel accents */
-  --pastel-pink: #ffb5c5;
-  --pastel-pink-soft: #ffe4ea;
-  --pastel-mint: #b5e8cc;
-  --pastel-mint-soft: #e2f7ec;
-  --pastel-lavender: #d4c5f9;
-  --pastel-lavender-soft: #efeafd;
-  --pastel-peach: #ffd4b5;
-  --pastel-peach-soft: #fff0e4;
-  --pastel-sky: #b5daf9;
-  --pastel-sky-soft: #e6f2fd;
-  --pastel-yellow: #ffe9a8;
-  --pastel-yellow-soft: #fff7dd;
-  --ink: #2d2a32;
-  --ink-soft: #6b6772;
-  --ink-faint: #9a96a3;
+  --background: #FAF6F1;    /* Milk Foam */
+  --foreground: #3B3630;    /* warm dark text */
+  /* SAVOR warm milk palette */
+  --pastel-pink: #F6C7CF;   /* Strawberry Milk */
+  --pastel-pink-soft: #FBE6EA;
+  --pastel-mint: #F2E6D8;   /* Vanilla Linen — success/surfaces */
+  --pastel-mint-soft: #F9F2E9;
+  --pastel-lavender: #EADFD6; /* Blanched Almond — in-progress */
+  --pastel-lavender-soft: #F3ECE5;
+  --pastel-peach: #F7D8CC;  /* Soft Peach Milk */
+  --pastel-peach-soft: #FCEDE6;
+  --pastel-sky: #E6D7C8;    /* deeper almond */
+  --pastel-sky-soft: #F1E8DC;
+  --pastel-yellow: #F0DCC0; /* pending/warning */
+  --pastel-yellow-soft: #FAF0E2;
+  /* Replaced gold with warm neutrals */
+  --gold: #D9C7AE;
+  --gold-deep: #A9926F;
+  --gold-soft: #F4ECDF;
+  --blush: #F6C7CF;
+  --blush-soft: #FBE6EA;
+  --rose: #C98A94;
+  --ink: #3B3630;
+  --ink-soft: #6E655C;
+  --ink-faint: #A89F94;
 }
 
 @theme inline {
@@ -39,6 +54,12 @@
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-gold-soft: var(--gold-soft);
+  --color-blush: var(--blush);
+  --color-blush-soft: var(--blush-soft);
+  --color-rose: var(--rose);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
@@ -59,6 +80,14 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Keep the infinite gallery marquee scrolling — it's a decorative,
+     content-agnostic carousel and should stay alive even for reduced-motion
+     users (matches how the reference bakery sites behave). */
+  .marquee-track {
+    animation-duration: var(--marquee-duration, 45s) !important;
+    animation-iteration-count: infinite !important;
   }
 }
 
@@ -103,7 +132,7 @@ body {
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(90deg, #f3f0f6 25%, #fdfbfe 37%, #f3f0f6 63%);
+  background: linear-gradient(90deg, #f3ece2 25%, #fdfaf5 37%, #f3ece2 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -120,6 +149,109 @@ body {
     transform: translateY(0) scale(0.98);
   }
 }
+
+/* ---------- Scattered image strip (bento-style scattered collage) ---------- */
+.scattered-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.scattered-strip .tile:nth-child(1) {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+.scattered-strip .tile:nth-child(4) {
+  grid-column: span 2;
+}
+.scattered-strip .tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  aspect-ratio: 4 / 3;
+}
+
+.scattered-strip .tile img {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.scattered-strip .tile:hover img {
+  transform: scale(1.06);
+}
+
+/* ---------- Kinetic text mask overflow ---------- */
+.kinetic-text-mask {
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: bottom;
+}
+
+/* ---------- Scroll reveal (CSS-driven, hydration-safe) ----------
+   Base state is VISIBLE. When .kinetic-revealed is added by IntersectionObserver
+   (non-reduced-motion users), a fade+rise transition plays. Reduced-motion
+   users keep the base visible state via the global reduced-motion block. */
+.kinetic-reveal {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.kinetic-reveal:not(.kinetic-revealed) {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+/* Once revealed, keep visible */
+.kinetic-reveal.kinetic-revealed {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Kinetic word rise (hero headline) ----------
+   Words are visible in base state; the rise animation only plays on mount
+   for non-reduced-motion users (disabled by the reduced-motion block below). */
+.kinetic-word-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.kinetic-word {
+  display: inline-block;
+  transform: none;
+}
+
+@keyframes kinetic-word-rise {
+  from {
+    transform: translateY(110%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.kinetic-word {
+  animation: kinetic-word-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- Hero floating accent blobs (CSS-only, SSR-safe) ---------- */
+@keyframes float-a {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(8deg); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(12px) rotate(-10deg); }
+}
+@keyframes float-c {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float-a { animation: float-a 6s ease-in-out infinite; }
+.animate-float-b { animation: float-b 7s ease-in-out infinite; }
+.animate-float-c { animation: float-c 5.5s ease-in-out infinite; }
 
 @keyframes loader-pulse {
   0%, 100% {

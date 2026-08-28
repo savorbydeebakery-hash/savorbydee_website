@@ -220,7 +220,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
               <div className="flex items-center gap-4">
                 <div className="text-right">
                   <p className="text-xs text-ink-faint">Total</p>
-                  <p className="text-lg font-bold text-pink">{formatPrice(lineTotal)}</p>
+                  <p className="text-lg font-bold text-gold-deep">{formatPrice(lineTotal)}</p>
                 </div>
                 <Button onClick={handleAddToCart} size="md" variant="primary">
                   <ShoppingBag size={16} /> Add to Cart

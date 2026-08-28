@@ -151,7 +151,7 @@ export default function FindMyOrderPage() {
               ))}
               <div className="border-t border-ink/8 pt-3 flex justify-between">
                 <span className="font-semibold text-ink">Total</span>
-                <span className="font-bold text-pink">{formatPrice(order.total_cents)}</span>
+                <span className="font-bold text-gold-deep">{formatPrice(order.total_cents)}</span>
               </div>
             </div>
           </Card>

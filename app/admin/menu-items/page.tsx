@@ -34,6 +34,9 @@ interface MenuItem {
   sort_order: number;
   requires_custom_notice: boolean;
   daily_menu: boolean;
+  is_special: boolean;
+  is_chefs_choice: boolean;
+  is_bestseller: boolean;
 }
 
 interface Category {
@@ -140,7 +143,10 @@ export default function AdminMenuItemsPage() {
                 {item.is_sold_out && <Badge color="neutral">Sold Out</Badge>}
                 {!item.is_active && <Badge color="neutral">Hidden</Badge>}
                 {item.daily_menu && <Badge color="pink">Today&apos;s Menu</Badge>}
-                {item.requires_custom_notice && <Badge color="lavender">Custom Notice</Badge>}
+                {item.is_special && <Badge color="yellow">Special</Badge>}
+                {item.is_chefs_choice && <Badge color="lavender">Chef&apos;s Choice</Badge>}
+                {item.is_bestseller && <Badge color="mint">Bestseller</Badge>}
+                {item.requires_custom_notice && <Badge color="neutral">Custom Notice</Badge>}
                 {item.dietary_tags?.map((tag) => (
                   <Badge key={tag} color="mint">{tag}</Badge>
                 ))}
@@ -212,6 +218,9 @@ function MenuItemForm({
       sort_order: 0,
       requires_custom_notice: false,
       daily_menu: false,
+      is_special: false,
+      is_chefs_choice: false,
+      is_bestseller: false,
     }
   );
 
@@ -305,6 +314,18 @@ function MenuItemForm({
           <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input type="checkbox" checked={form.daily_menu ?? false} onChange={(e) => setForm({ ...form, daily_menu: e.target.checked })} />
             On Today&apos;s Menu
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input type="checkbox" checked={form.is_special ?? false} onChange={(e) => setForm({ ...form, is_special: e.target.checked })} />
+            Special
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input type="checkbox" checked={form.is_chefs_choice ?? false} onChange={(e) => setForm({ ...form, is_chefs_choice: e.target.checked })} />
+            Chef&apos;s Choice
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input type="checkbox" checked={form.is_bestseller ?? false} onChange={(e) => setForm({ ...form, is_bestseller: e.target.checked })} />
+            Bestseller
           </label>
         </div>
 

@@ -4,9 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, MessageCircle } from "lucide-react";
 
 export const metadata = {
-  title: "About SAVOR Bakery — Our Story",
+  title: "About Savor by Dee — Our Story",
   description:
-    "Learn about SAVOR Bakery — handcrafted cakes, desserts and savoury bakes made fresh to order in Kolkata.",
+    "Learn about Savor by Dee, the artisanal bakery — handcrafted cakes, desserts and savoury bakes made fresh to order in Shillong.",
 };
 
 export const dynamic = "force-dynamic";
@@ -29,14 +29,14 @@ export default async function AboutPage() {
       .single(),
   ]);
 
-  const bakeryName = settings?.bakery_name ?? "SAVOR";
+  const bakeryName = settings?.bakery_name ?? "Savor by Dee";
   const narrative =
     settings?.about_narrative ??
-    "SAVOR Bakery began with a simple love for baking — the warmth of a kitchen, the joy of sharing something made by hand. Every cake, every cookie, every savoury bite is crafted fresh to order, using quality ingredients and a whole lot of heart. From custom celebration cakes to everyday treats, we're here to make your moments a little sweeter.";
+    "Savor by Dee began with a simple love for baking — the warmth of a kitchen, the joy of sharing something made by hand. Every cake, every cookie, every savoury bite is crafted fresh to order, using quality ingredients and a whole lot of heart. From custom celebration cakes to everyday treats, we're here to make your moments a little sweeter.";
   const phone = settings?.contact_phone ?? "+91 98365 37447";
   const whatsapp = settings?.whatsapp_number ?? "919836537447";
-  const addressLine1 = settings?.address_line1 ?? "";
-  const addressCity = settings?.address_city ?? "Kolkata";
+  const addressLine1 = settings?.address_line1 ?? "Near Laban Police Station, Myliem";
+  const addressCity = settings?.address_city ?? "Shillong, Meghalaya";
   const mapsEmbed = settings?.google_maps_embed_url;
   const mapsDirections = settings?.google_maps_directions_url;
 
@@ -132,7 +132,7 @@ export default async function AboutPage() {
               style={{ border: 0 }}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              title="SAVOR Bakery location"
+              title="Savor by Dee location"
             />
           ) : (
             <div className="flex h-[300px] items-center justify-center bg-pink-soft">

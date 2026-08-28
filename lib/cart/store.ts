@@ -151,8 +151,13 @@ export function clearCart() {
 
 // --- Hook ---
 
+// Stable, referentially-cached server snapshot for useSyncExternalStore.
+// An inline `() => ({ items: [] })` creates a new object every render, which
+// React flags as "getServerSnapshot should be cached" and can cause loops.
+const SERVER_SNAPSHOT: CartState = { items: [] };
+
 export function useCart() {
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => ({ items: [] }));
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => SERVER_SNAPSHOT);
 
   const totalCents = calculateCartTotal(snapshot.items);
   const totalItems = countTotalItems(snapshot.items);

@@ -11,7 +11,7 @@ export function Footer() {
           <div className="flex flex-col gap-2">
             <span className="text-xl font-bold text-ink">SAVOR</span>
             <p className="text-sm text-ink-soft max-w-xs">
-              Handcrafted cakes, desserts & savoury bakes. Made fresh to order in Kolkata.
+              Handcrafted cakes, desserts & savoury bakes. Made fresh to order in Shillong.
             </p>
           </div>
 
@@ -43,7 +43,7 @@ export function Footer() {
 
         <div className="mt-8 border-t border-ink/5 pt-6 text-center">
           <p className="text-xs text-ink-faint">
-            © {year} SAVOR Bakery. All rights reserved. Made with 🧡 in Kolkata.
+            © {year} Savor by Dee. All rights reserved. Made with 🧡 in Shillong.
           </p>
         </div>
       </div>

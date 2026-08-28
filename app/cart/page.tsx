@@ -67,7 +67,7 @@ export default function CartPage() {
               </button>
             </div>
             <div className="text-right">
-              <p className="font-semibold text-pink">{formatPrice(item.lineTotalCents)}</p>
+              <p className="font-semibold text-gold-deep">{formatPrice(item.lineTotalCents)}</p>
               <button
                 onClick={() => removeFromCart(item.id)}
                 className="text-xs text-ink-faint hover:text-red-500 transition-colors"

@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ItemDetailModal } from "@/components/item-detail-modal";
+import { RevealGroup, RevealItem } from "@/components/kinetic/reveal";
+import { KineticImage } from "@/components/kinetic/kinetic-image";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
 interface MenuCategory {
@@ -17,6 +19,7 @@ interface MenuCategory {
 interface MenuClientProps {
   categories: MenuCategory[];
   menuItems: MenuItemForCart[];
+  tag?: string;
 }
 
 const dietaryColors: Record<string, "mint" | "lavender" | "sky" | "yellow"> = {
@@ -28,18 +31,34 @@ const dietaryColors: Record<string, "mint" | "lavender" | "sky" | "yellow"> = {
   "nut-free": "sky",
 };
 
-export function MenuClient({ categories, menuItems }: MenuClientProps) {
+const tagTitles: Record<string, string> = {
+  daily: "Today's Menu",
+  specials: "Specials",
+  "chefs-choice": "Chef's Choice",
+  bestseller: "Most Ordered",
+};
+
+export function MenuClient({ categories, menuItems, tag }: MenuClientProps) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedItem, setSelectedItem] = useState<MenuItemForCart | null>(null);
+
+  const taggedItems = useMemo(() => {
+    if (!tag) return menuItems;
+    if (tag === "daily") return menuItems.filter((i) => i.daily_menu);
+    if (tag === "specials") return menuItems.filter((i) => i.is_special);
+    if (tag === "chefs-choice") return menuItems.filter((i) => i.is_chefs_choice);
+    if (tag === "bestseller") return menuItems.filter((i) => i.is_bestseller);
+    return menuItems;
+  }, [menuItems, tag]);
 
   const itemsByCategory = useMemo(
     () =>
       categories.map((cat) => ({
         ...cat,
-        items: menuItems.filter((item) => item.category_id === cat.id),
+        items: taggedItems.filter((item) => item.category_id === cat.id),
       })),
-    [categories, menuItems]
+    [categories, taggedItems]
   );
 
   const visibleSections = useMemo(() => {
@@ -59,6 +78,16 @@ export function MenuClient({ categories, menuItems }: MenuClientProps) {
 
   return (
     <>
+      {/* Tag heading */}
+      {tag && tagTitles[tag] && (
+        <div className="mb-6 text-center">
+          <h2 className="text-2xl font-semibold text-ink">{tagTitles[tag]}</h2>
+          <p className="text-sm text-ink-soft mt-1">
+            {taggedItems.length} item{taggedItems.length === 1 ? "" : "s"}
+          </p>
+        </div>
+      )}
+
       {/* Search bar */}
       <div className="mb-8 flex justify-center">
         <div className="relative w-full max-w-md">
@@ -83,8 +112,8 @@ export function MenuClient({ categories, menuItems }: MenuClientProps) {
           type="button"
           className={`filter-chip rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
             activeCategory === "all"
-              ? "border-pink bg-pink-soft text-pink"
-              : "border-ink/15 bg-white text-ink-soft hover:border-pink hover:text-pink"
+              ? "border-gold bg-gold-soft text-gold-deep"
+              : "border-ink/15 bg-white text-ink-soft hover:border-gold hover:text-gold-deep"
           }`}
           data-category="all"
           onClick={() => setActiveCategory("all")}
@@ -97,8 +126,8 @@ export function MenuClient({ categories, menuItems }: MenuClientProps) {
             type="button"
             className={`filter-chip rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
               activeCategory === cat.id
-                ? "border-pink bg-pink-soft text-pink"
-                : "border-ink/15 bg-white text-ink-soft hover:border-pink hover:text-pink"
+                ? "border-gold bg-gold-soft text-gold-deep"
+                : "border-ink/15 bg-white text-ink-soft hover:border-gold hover:text-gold-deep"
             }`}
             data-category={cat.id}
             onClick={() => setActiveCategory(cat.id)}
@@ -112,71 +141,65 @@ export function MenuClient({ categories, menuItems }: MenuClientProps) {
       {visibleSections.map((cat) => (
         <section key={cat.id} className="mb-12" data-category-section={cat.id}>
           <h2 className="mb-5 text-2xl font-semibold text-ink">{cat.name}</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cat.items.map((item) => (
-              <Card
-                key={item.id}
-                hover
-                className="menu-item-card flex flex-col gap-3"
-                data-item-id={item.id}
-                data-item-name={item.name.toLowerCase()}
-              >
-                {item.image_url && (
-                  <div className="aspect-[4/3] overflow-hidden rounded-xl bg-pink-soft">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className="flex flex-1 flex-col gap-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-ink">{item.name}</h3>
-                    {item.is_sold_out ? (
-                      <Badge color="neutral">Sold Out</Badge>
-                    ) : (
-                      <span className="whitespace-nowrap text-sm font-semibold text-pink">
-                        ₹{(item.base_price_cents / 100).toFixed(0)}+
-                      </span>
-                    )}
-                  </div>
-                  {item.description && (
-                    <p className="line-clamp-2 text-sm text-ink-soft">
-                      {item.description}
-                    </p>
+              <RevealItem key={item.id}>
+                <Card
+                  hover
+                  className="menu-item-card flex flex-col gap-3"
+                  data-item-id={item.id}
+                  data-item-name={item.name.toLowerCase()}
+                >
+                  {item.image_url && (
+                    <KineticImage src={item.image_url} alt={item.name} />
                   )}
-                  {item.dietary_tags && item.dietary_tags.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {item.dietary_tags.map((tag: string) => (
-                        <Badge
-                          key={tag}
-                          color={dietaryColors[tag.toLowerCase()] ?? "neutral"}
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
+                  <div className="flex flex-1 flex-col gap-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-ink">{item.name}</h3>
+                      {item.is_sold_out ? (
+                        <Badge color="neutral">Sold Out</Badge>
+                      ) : (
+                        <span className="whitespace-nowrap text-sm font-semibold text-gold-deep">
+                          ₹{(item.base_price_cents / 100).toFixed(0)}+
+                        </span>
+                      )}
                     </div>
-                  )}
-                  <div className="mt-auto pt-2">
-                    <Button
-                      size="sm"
-                      variant={item.is_sold_out ? "ghost" : "primary"}
-                      disabled={item.is_sold_out}
-                      className="w-full"
-                      data-item-id={item.id}
-                      data-item-name={item.name}
-                      data-item-price={item.base_price_cents}
-                      onClick={() => setSelectedItem(item)}
-                    >
-                      {item.is_sold_out ? "Unavailable" : "Add to Cart"}
-                    </Button>
+                    {item.description && (
+                      <p className="line-clamp-2 text-sm text-ink-soft">
+                        {item.description}
+                      </p>
+                    )}
+                    {item.dietary_tags && item.dietary_tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {item.dietary_tags.map((tag: string) => (
+                          <Badge
+                            key={tag}
+                            color={dietaryColors[tag.toLowerCase()] ?? "neutral"}
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-auto pt-2">
+                      <Button
+                        size="sm"
+                        variant={item.is_sold_out ? "ghost" : "primary"}
+                        disabled={item.is_sold_out}
+                        className="w-full"
+                        data-item-id={item.id}
+                        data-item-name={item.name}
+                        data-item-price={item.base_price_cents}
+                        onClick={() => setSelectedItem(item)}
+                      >
+                        {item.is_sold_out ? "Unavailable" : "Add to Cart"}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </RevealItem>
             ))}
-          </div>
+          </RevealGroup>
         </section>
       ))}
 

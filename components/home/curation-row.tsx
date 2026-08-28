@@ -16,12 +16,19 @@ interface MenuCategory {
   name: string;
 }
 
-interface DailyMenuProps {
+interface CurationRowProps {
+  title: string;
+  subtitle: string;
   items: MenuItemForCart[];
   categories: MenuCategory[];
 }
 
-export function DailyMenu({ items, categories }: DailyMenuProps) {
+/**
+ * Reusable homepage product row (Chef's Choice / Most Ordered).
+ * Cards show image, name, price + Add to Cart via ItemDetailModal.
+ * Hides entirely when no items are flagged.
+ */
+export function CurationRow({ title, subtitle, items, categories }: CurationRowProps) {
   const [selectedItem, setSelectedItem] = useState<MenuItemForCart | null>(null);
 
   if (!items || items.length === 0) return null;
@@ -29,15 +36,15 @@ export function DailyMenu({ items, categories }: DailyMenuProps) {
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name;
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      <div className="flex items-center justify-between mb-6">
+    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      <div className="mb-6 flex items-end justify-between">
         <div>
-          <Badge color="pink" className="mb-2">Fresh to Order</Badge>
-          <h2 className="text-2xl font-semibold text-ink">Today&apos;s Menu</h2>
+          <h2 className="text-2xl font-semibold text-ink">{title}</h2>
+          <p className="text-sm text-ink-soft mt-1">{subtitle}</p>
         </div>
         <Link
-          href="/menu"
-          className="inline-flex items-center gap-1 text-sm font-medium text-pink hover:gap-2 transition-all"
+          href={title === "Most Ordered" ? "/menu?tag=bestseller" : "/menu?tag=chefs-choice"}
+          className="inline-flex items-center gap-1 text-sm font-medium text-pink hover:gap-2 transition-all whitespace-nowrap"
         >
           View all <ArrowRight size={16} />
         </Link>
@@ -56,16 +63,14 @@ export function DailyMenu({ items, categories }: DailyMenuProps) {
                   {item.is_sold_out ? (
                     <Badge color="neutral">Sold Out</Badge>
                   ) : (
-                    <span className="text-sm font-semibold text-gold-deep whitespace-nowrap">
+                    <span className="whitespace-nowrap text-sm font-semibold text-gold-deep">
                       ₹{(item.base_price_cents / 100).toFixed(0)}+
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-ink-soft">
-                  {categoryName(item.category_id)}
-                </p>
+                <p className="text-xs text-ink-soft">{categoryName(item.category_id)}</p>
                 {item.description && (
-                  <p className="text-sm text-ink-soft line-clamp-2">
+                  <p className="line-clamp-2 text-sm text-ink-soft">
                     {item.description}
                   </p>
                 )}

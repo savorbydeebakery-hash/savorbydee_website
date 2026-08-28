@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerClient } from "@supabase/ssr";
 import { sendOrderConfirmation, sendStaffNotification } from "@/lib/email/send";
 import { validateCart, validateGuestInfo, validateDeliveryAddress } from "@/lib/cart/validation";
 import type { CartItem } from "@/lib/cart/types";
+
+/**
+ * Resolve the logged-in customer id from the request's auth cookies.
+ * Returns null for guest checkout.
+ */
+async function resolveCustomerId(request: NextRequest): Promise<string | null> {
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll() {
+            // Sessions are not modified here (read-only lookup).
+          },
+        },
+      }
+    );
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user?.id ?? null;
+  } catch (e) {
+    console.error("[api/orders] resolveCustomerId error:", e);
+    return null;
+  }
+}
+
 
 /**
  * POST /api/orders — Create a new order.
@@ -84,6 +116,9 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient();
 
+    // --- Resolve logged-in customer for account-linked orders ---
+    const customerId = await resolveCustomerId(request);
+
     // --- Idempotency check ---
     if (idempotencyKey) {
       const { data: existing } = await supabase
@@ -118,6 +153,7 @@ export async function POST(request: NextRequest) {
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
+        customer_id: customerId,
         human_id: humanId,
         kind: "standard",
         status: "pending",

@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Save, Check } from "lucide-react";
+import { Save, Check, Upload, X } from "lucide-react";
+import { uploadFile } from "@/lib/storage/upload-helper";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ interface SiteSettings {
   razorpay_active: boolean;
   kyc_pending_mode: boolean;
   upi_id: string | null;
+  hero_image_url: string | null;
 }
 
 const TABS = [
@@ -55,6 +57,9 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
+  const [heroUploading, setHeroUploading] = useState(false);
+  const [heroStaged, setHeroStaged] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchSettings = useCallback(async () => {
     const { data } = await supabase.from("site_settings").select("*").eq("id", 1).single();
@@ -70,13 +75,34 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     if (!settings) return;
     setSaving(true);
-    await supabase.from("site_settings").update(settings).eq("id", 1);
+    setSaveError(null);
+
+    // Send only the editable columns (id stays the target for .eq).
+    const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      id,
+      ...editable
+    } = settings;
+
+    const { error } = await supabase
+      .from("site_settings")
+      .update(editable)
+      .eq("id", 1);
+
     setSaving(false);
+
+    if (error) {
+      setSaveError(`Could not save: ${error.message}`);
+      setSaved(false);
+      return;
+    }
+
+    setHeroStaged(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => setSaved(false), 2500);
   };
 
-  const update = (field: keyof SiteSettings, value: string | number | boolean | string[] | Record<string, unknown>) => {
+  const update = (field: keyof SiteSettings, value: string | number | boolean | string[] | Record<string, unknown> | null) => {
     setSettings((prev) => prev ? { ...prev, [field]: value } : prev);
   };
 
@@ -96,6 +122,19 @@ export default function AdminSettingsPage() {
 
   const removeHoliday = (date: string) => {
     setSettings((prev) => prev ? { ...prev, holidays: prev.holidays.filter((d) => d !== date) } : prev);
+  };
+
+  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !settings) return;
+    setHeroUploading(true);
+    setSaveError(null);
+    const { url } = await uploadFile("site-assets", file, "hero");
+    if (url) {
+      setSettings({ ...settings, hero_image_url: url });
+      setHeroStaged(true);
+    }
+    setHeroUploading(false);
   };
 
   if (loading || !settings) return <div className="text-center py-20 text-ink-soft">Loading...</div>;
@@ -137,6 +176,35 @@ export default function AdminSettingsPage() {
           </div>
           <Input label="WhatsApp Number (with country code, no +)" value={settings.whatsapp_number} onChange={(e) => update("whatsapp_number", e.target.value)} />
           <Input label="Footer Text" value={settings.footer_text ?? ""} onChange={(e) => update("footer_text", e.target.value)} />
+
+          {/* Hero Image */}
+          <div className="border-t border-ink/8 pt-4">
+            <label className="mb-2 block text-sm font-medium text-ink">Hero Image</label>
+            <p className="mb-3 text-xs text-ink-faint">Background photo for the homepage hero section. Leave empty to use the default bakery photo.</p>
+            {settings.hero_image_url ? (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={settings.hero_image_url} alt="Hero preview" className="h-40 w-full rounded-xl object-cover" />
+                <button
+                  onClick={() => update("hero_image_url", null)}
+                  className="absolute right-2 top-2 rounded-full bg-ink/60 p-1 text-white hover:bg-red-500"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-ink/20 py-8 text-center hover:border-pink transition-colors">
+                <Upload size={24} className="text-ink-faint" />
+                <span className="text-sm text-ink-soft">{heroUploading ? "Uploading..." : "Click to upload hero image"}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleHeroUpload} disabled={heroUploading} />
+              </label>
+            )}
+            {heroStaged && (
+              <p className="mt-2 text-sm font-medium text-gold-deep">
+                Hero image staged — click <span className="font-semibold">Save</span> at the bottom to apply it.
+              </p>
+            )}
+          </div>
         </Card>
       )}
 
@@ -244,6 +312,27 @@ export default function AdminSettingsPage() {
           </div>
         </Card>
       )}
+
+      {/* Save bar — bottom of form */}
+      <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-ink/10 bg-white p-4 sm:flex-row sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-ink">Save changes</p>
+          <p className="text-xs text-ink-faint">Applies across all tabs (including hero image) to the live site.</p>
+        </div>
+        {saveError ? (
+          <p className="text-sm font-medium text-red-600">{saveError}</p>
+        ) : null}
+        <div className="flex items-center gap-3">
+          {heroStaged && (
+            <span className="rounded-lg bg-yellow-soft px-3 py-1 text-xs font-medium text-gold-deep">
+              Unsaved changes
+            </span>
+          )}
+          <Button onClick={handleSave} variant="primary" disabled={saving}>
+            {saved ? <><Check size={18} /> Saved!</> : <><Save size={18} /> {saving ? "Saving..." : "Save Changes"}</>}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

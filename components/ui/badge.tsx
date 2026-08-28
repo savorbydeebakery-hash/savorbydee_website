@@ -10,7 +10,7 @@ interface BadgeProps {
 }
 
 const colors: Record<Color, string> = {
-  pink: "bg-pink-soft text-pink border-pink/20",
+  pink: "bg-blush text-rose border-gold/25",
   mint: "bg-mint-soft text-mint border-mint/20",
   lavender: "bg-lavender-soft text-lavender border-lavender/20",
   peach: "bg-peach-soft text-peach border-peach/20",

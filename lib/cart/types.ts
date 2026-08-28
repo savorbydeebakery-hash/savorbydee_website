@@ -58,4 +58,7 @@ export interface MenuItemForCart {
   category_id: string;
   dietary_tags?: string[];
   daily_menu: boolean;
+  is_special?: boolean;
+  is_chefs_choice?: boolean;
+  is_bestseller?: boolean;
 }

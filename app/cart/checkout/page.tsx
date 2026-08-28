@@ -15,6 +15,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Minus, Plus, Trash2, MapPin, User, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type Step = "review" | "fulfillment" | "details" | "confirm";
 
@@ -29,6 +31,38 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Prefill guest details + delivery address from a logged-in profile.
+  useEffect(() => {
+    const prefill = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone, email, default_address, default_landmark")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setGuest((prev) => ({
+          name: prev.name || profile.full_name || "",
+          email: prev.email || profile.email || user.email || "",
+          phone: prev.phone || profile.phone || "",
+        }));
+        setDeliveryAddress((prev) => ({
+          address: prev.address || profile.default_address || "",
+          landmark: prev.landmark || profile.default_landmark || "",
+        }));
+      }
+    };
+
+    void prefill();
+  }, []);
+
 
   const cartValidation = validateCart(items);
   const noticeHours = getRequiredNoticeHours(items);
@@ -194,7 +228,7 @@ export default function CheckoutPage() {
                 </button>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-pink">{formatPrice(item.lineTotalCents)}</p>
+                <p className="font-semibold text-gold-deep">{formatPrice(item.lineTotalCents)}</p>
                 <button
                   onClick={() => removeFromCart(item.id)}
                   className="text-xs text-ink-faint hover:text-red-500 transition-colors"
@@ -374,7 +408,7 @@ export default function CheckoutPage() {
               ))}
               <div className="border-t border-ink/8 pt-3 flex justify-between">
                 <span className="font-semibold text-ink">Total</span>
-                <span className="font-bold text-pink text-lg">{formatPrice(totalCents)}</span>
+                <span className="font-bold text-gold-deep text-lg">{formatPrice(totalCents)}</span>
               </div>
             </div>
           </Card>

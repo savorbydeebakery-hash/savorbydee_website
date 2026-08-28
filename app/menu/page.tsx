@@ -3,15 +3,20 @@ import { Badge } from "@/components/ui/badge";
 import { MenuClient } from "@/components/menu-client";
 
 export const metadata = {
-  title: "Menu – SAVOR Bakery",
+  title: "Menu – Savor by Dee",
   description:
     "Browse our full menu of cakes, desserts, cookies, and savoury bakes. Pre-order online with 12 hours notice.",
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function MenuPage() {
+export default async function MenuPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tag?: string }>;
+}) {
   const supabase = await createClient();
+  const { tag } = await searchParams;
 
   const [{ data: categories }, { data: menuItems }] = await Promise.all([
     supabase
@@ -22,7 +27,7 @@ export default async function MenuPage() {
     supabase
       .from("menu_items")
       .select(
-        "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, requires_custom_notice, daily_menu"
+        "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, requires_custom_notice, daily_menu, is_special, is_chefs_choice, is_bestseller"
       )
       .eq("is_active", true)
       .order("sort_order"),
@@ -40,7 +45,11 @@ export default async function MenuPage() {
         </p>
       </div>
 
-      <MenuClient categories={categories ?? []} menuItems={menuItems ?? []} />
+      <MenuClient
+        categories={categories ?? []}
+        menuItems={menuItems ?? []}
+        tag={tag}
+      />
     </div>
   );
 }

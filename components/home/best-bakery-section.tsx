@@ -1,0 +1,105 @@
+"use client";
+
+import Link from "next/link";
+import { Star, Clock, MapPin, Award, Cake } from "lucide-react";
+import { Reveal } from "@/components/kinetic/reveal";
+import { KineticImage } from "@/components/kinetic/kinetic-image";
+
+interface Settings {
+  about_narrative?: string | null;
+  contact_phone?: string | null;
+  address_city?: string | null;
+  address_line1?: string | null;
+  google_maps_directions_url?: string | null;
+}
+
+interface BestBakerySectionProps {
+  photo?: string;
+  settings: Settings | null;
+}
+
+/**
+ * "Best Bakery in Shillong" — cinematic image on the LEFT, story + stats
+ * on the RIGHT. Uses real bakery data (Google rating, hours, address).
+ */
+export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
+  const narrative =
+    settings?.about_narrative ??
+    "Savor by Dee began with a simple love for baking — the warmth of a kitchen, the joy of sharing something made by hand. Every cake, every cookie, every savoury bite is crafted fresh to order, using quality ingredients and a whole lot of heart.";
+  const directions =
+    settings?.google_maps_directions_url ?? "https://maps.app.goo.gl/UTshwMiCXrRDXPW67";
+
+  const stats = [
+    { icon: Star, text: "4.7/5 on Google", accent: "bg-yellow-soft text-gold-deep" },
+    { icon: Clock, text: "Open Mon–Sat, 9AM–9PM", accent: "bg-mint-soft text-mint" },
+    { icon: MapPin, text: "Near Laban, Shillong", accent: "bg-pink-soft text-pink" },
+    { icon: Award, text: "Made fresh to order", accent: "bg-lavender-soft text-lavender" },
+  ];
+
+  return (
+    <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <Reveal className="grid grid-cols-1 items-center gap-8 md:grid-cols-2">
+        {/* Image — LEFT */}
+        <div className="relative">
+          <div className="overflow-hidden rounded-3xl">
+            <KineticImage
+              src={photo}
+              alt="Savor by Dee bakery"
+              aspect="aspect-[4/3]"
+            />
+          </div>
+          <div className="absolute -bottom-4 -right-2 hidden rounded-2xl bg-white p-4 shadow-lg sm:block">
+            <p className="text-3xl font-bold text-ink">4.7</p>
+            <div className="flex items-center gap-0.5 text-gold">
+              <Star size={14} fill="currentColor" />
+              <Star size={14} fill="currentColor" />
+              <Star size={14} fill="currentColor" />
+              <Star size={14} fill="currentColor" />
+              <Star size={14} fill="currentColor" className="opacity-40" />
+            </div>
+            <p className="text-xs text-ink-soft">Google rating</p>
+          </div>
+        </div>
+
+        {/* Story — RIGHT */}
+        <div>
+          <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-pink-soft px-3 py-1 text-xs font-semibold text-pink">
+            <Cake size={12} /> Artisanal Bakery
+          </p>
+          <h2 className="text-3xl font-bold text-ink sm:text-4xl mb-4">
+            Best Bakery in Shillong
+          </h2>
+          <p className="text-ink-soft leading-relaxed mb-6">{narrative}</p>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-8">
+            {stats.map((s) => (
+              <div key={s.text} className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${s.accent}`}>
+                  <s.icon size={18} />
+                </div>
+                <span className="text-sm font-medium text-ink">{s.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={directions}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl bg-pink px-5 py-2.5 text-sm font-semibold text-ink hover:bg-pink/90 transition-colors"
+            >
+              <MapPin size={16} /> Get Directions
+            </Link>
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:border-pink hover:text-pink transition-colors"
+            >
+              Our Story
+            </Link>
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}

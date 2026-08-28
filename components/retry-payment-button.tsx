@@ -130,7 +130,7 @@ export function RetryPaymentButton({
           contact: "",
         },
         theme: {
-          color: "#FFB5C5", // pastel pink
+          color: "#F6C7CF", // Strawberry Milk
         },
         modal: {
           ondismiss: () => {
