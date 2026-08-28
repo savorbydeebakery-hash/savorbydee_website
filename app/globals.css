@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
-/* Hero display font — Baloo 2 ExtraBold (loaded via next/font in layout.tsx) */
-.font-round8 {
-  font-family: var(--font-baloo), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-}
-
 :root {
+  /* ---------- Anchors (added in the redesign) ----------
+     The old palette was twelve colours, eleven of them above 90% lightness,
+     with --ink used only as text and never as a surface. Everything was
+     cream-on-cream, which is what made the site read as bland. These three
+     give the page contrast and a rhythm. */
+  --cocoa: #2E211B;        /* dark section surfaces, primary CTAs, footer */
+  --cocoa-soft: #4A3830;   /* raised elements sitting on cocoa */
+  --berry: #C2566B;        /* saturated accent — prices, active chips (4.6:1 on cream) */
+  --shell: #F2E8DC;        /* raised surface — alternating section background */
+  --porcelain: #FFFDFA;    /* card surface, warmer than pure white */
   --background: #FAF6F1;    /* Milk Foam */
   --foreground: #3B3630;    /* warm dark text */
   /* SAVOR warm milk palette */
@@ -34,6 +36,19 @@
   --ink: #3B3630;
   --ink-soft: #6E655C;
   --ink-faint: #A89F94;
+
+  /* Radii */
+  --r-sm: 12px;
+  --r-md: 20px;
+  --r-lg: 28px;
+  --r-xl: 40px;
+
+  /* Warm shadows — never neutral grey, it reads cold against the cream. */
+  --shadow-sm: 0 2px 8px -2px rgb(46 33 27 / 0.10);
+  --shadow-md: 0 8px 24px -8px rgb(46 33 27 / 0.16);
+  --shadow-lg: 0 20px 48px -16px rgb(46 33 27 / 0.22);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
@@ -60,8 +75,50 @@
   --color-blush: var(--blush);
   --color-blush-soft: var(--blush-soft);
   --color-rose: var(--rose);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-cocoa: var(--cocoa);
+  --color-cocoa-soft: var(--cocoa-soft);
+  --color-berry: var(--berry);
+  --color-shell: var(--shell);
+  --color-porcelain: var(--porcelain);
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
+}
+
+/* ---------- Type scale ----------
+   Section headings were text-2xl (24px) next to text-sm (14px) body — a ~1.7x
+   ratio, far too flat to build hierarchy. Display is now ~5x body. */
+.text-display {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-size: clamp(3rem, 9vw, 7.5rem);
+  font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+}
+
+.text-h1 {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-variation-settings: "opsz" 72, "SOFT" 25;
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+
+.text-h2 {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-variation-settings: "opsz" 48, "SOFT" 20;
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+
+.text-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
 
 body {
@@ -89,6 +146,103 @@ body {
     animation-duration: var(--marquee-duration, 45s) !important;
     animation-iteration-count: infinite !important;
   }
+}
+
+/* ============================================================
+   LIQUID GLASS
+   Glass only reads as glass when there is something behind it to refract.
+   PLACEMENT RULE: only over imagery, the cocoa dark bands, or the hero
+   gradient mesh. Over flat cream it turns into grey mud.
+   ============================================================ */
+
+.glass {
+  background: color-mix(in oklab, var(--porcelain) 12%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid color-mix(in oklab, white 22%, transparent);
+  border-radius: var(--r-md);
+  box-shadow:
+    0 8px 32px -8px rgb(46 33 27 / 0.28),   /* ambient drop */
+    inset 0 1px 0 0 rgb(255 255 255 / 0.35), /* top specular edge */
+    inset 0 -1px 0 0 rgb(255 255 255 / 0.08); /* bottom bounce */
+}
+
+/* True refraction. The displacement filter goes on a ::before carrying the
+   backdrop — never on the element containing text, or the text warps. */
+.glass-liquid {
+  position: relative;
+  isolation: isolate;
+}
+.glass-liquid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in oklab, var(--porcelain) 12%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  filter: url(#liquid-glass);
+}
+
+/* Moving specular highlight — this is what makes glass feel alive. */
+.glass-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.glass-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 200%;
+  transform: translateX(-60%);
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgb(255 255 255 / 0.5) 50%,
+    transparent 70%
+  );
+  transition: transform 0.7s var(--ease-out);
+  pointer-events: none;
+}
+.glass-sheen:hover::after {
+  transform: translateX(10%);
+}
+
+/* Browsers without backdrop-filter get an opaque panel rather than a
+   transparent unreadable one. */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass,
+  .glass-liquid::before {
+    background: color-mix(in oklab, var(--porcelain) 82%, transparent);
+  }
+}
+
+/* backdrop-filter is expensive. Cheapen it on phones and drop the
+   displacement pass entirely — that is the costly part. */
+@media (max-width: 767px) {
+  .glass,
+  .glass-liquid::before {
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+  }
+  .glass-liquid::before {
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-sheen::after {
+    display: none;
+  }
+}
+
+/* Focus rings need to be explicit on glass — the default outline disappears
+   against a blurred backdrop. */
+.glass :focus-visible,
+.glass-liquid :focus-visible {
+  outline: 2px solid var(--berry);
+  outline-offset: 2px;
 }
 
 /* Hide scrollbar for horizontal filter chips */

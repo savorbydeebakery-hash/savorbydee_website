@@ -38,7 +38,7 @@ export default async function MenuPage({
       {/* Header */}
       <div className="mb-8 text-center">
         <Badge color="pink" className="mb-3">Fresh to Order</Badge>
-        <h1 className="text-4xl font-bold text-ink mb-3">Our Menu</h1>
+        <h1 className="text-h1 text-ink mb-3">Our Menu</h1>
         <p className="text-ink-soft max-w-xl mx-auto">
           Every item is made fresh when you order. Please allow at least 12 hours
           for standard items.

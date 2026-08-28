@@ -160,7 +160,7 @@ export function RetryPaymentButton({
     return (
       <Card className="flex flex-col gap-4">
         <div className="flex items-center gap-2">
-          <AlertCircle className="text-yellow" size={20} />
+          <AlertCircle className="text-gold-deep" size={20} />
           <h3 className="font-semibold text-ink">Payment via UPI</h3>
         </div>
         <p className="text-sm text-ink-soft">
@@ -188,7 +188,7 @@ export function RetryPaymentButton({
     return (
       <Card className="flex flex-col items-center gap-3 py-8 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-mint-soft">
-          <Check className="text-mint" size={24} />
+          <Check className="text-cocoa" size={24} />
         </div>
         <h3 className="font-semibold text-ink">Payment Successful!</h3>
         <p className="text-sm text-ink-soft">Your order has been confirmed.</p>

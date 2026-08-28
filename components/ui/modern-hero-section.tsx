@@ -125,7 +125,7 @@ const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
 
         {/* Main Content */}
         <div className="container relative z-10 mx-auto px-4 text-center">
-          <h1 className="font-round8 text-5xl font-bold tracking-tight text-ink md:text-6xl lg:text-8xl">
+          <h1 className="text-display text-ink">
             {title}
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-ink-soft md:text-lg">
@@ -175,7 +175,7 @@ const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
           <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-16">
             {stats.map((stat) => (
               <div key={stat.label} className="text-center">
-                <p className="text-4xl font-bold tracking-tight text-pink">{stat.value}</p>
+                <p className="font-display text-4xl font-bold tracking-tight text-berry">{stat.value}</p>
                 <p className="mt-1 text-sm font-medium text-ink-soft">{stat.label}</p>
               </div>
             ))}

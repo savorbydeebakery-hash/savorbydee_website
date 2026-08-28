@@ -105,7 +105,7 @@ export default async function HomePage() {
         title={
           <>
             Cakes & Desserts{" "}
-            <span className="text-pink">Made Fresh to Order</span>
+            <span className="text-berry">Made Fresh to Order</span>
           </>
         }
         subtitle="From celebration cakes to everyday treats — every bake is crafted with quality ingredients and a whole lot of heart. Handcrafted in Shillong."
@@ -133,27 +133,36 @@ export default async function HomePage() {
       {/* Four big image tiles: Daily / Custom / Full / Specials */}
       <HomeTiles galleryPhotos={featuredPhotos.slice(7, 11)} />
 
-      {/* Chef's Choice (admin-curated) */}
-      <CurationRow
-        title="Chef's Choice"
-        subtitle="Handpicked by our bakers — the bakes we're proudest of."
-        items={chefsChoiceItems ?? []}
-        categories={categories ?? []}
-      />
+      {/* Chef's Choice (admin-curated) — raised band */}
+      <div className="bg-shell">
+        <CurationRow
+          eyebrow="Handpicked"
+          title="Chef's Choice"
+          subtitle="Handpicked by our bakers — the bakes we're proudest of."
+          items={chefsChoiceItems ?? []}
+          categories={categories ?? []}
+        />
+      </div>
 
       {/* Most Ordered (admin-curated bestsellers) */}
       <CurationRow
+        eyebrow="Customer favourites"
         title="Most Ordered"
         subtitle="The treats our customers keep coming back for."
         items={bestsellerItems ?? []}
         categories={categories ?? []}
       />
 
-      {/* Today's Menu (admin-curated) */}
-      <DailyMenu items={dailyItems ?? []} categories={categories ?? []} />
+      {/* Today's Menu (admin-curated) — raised band */}
+      <div className="bg-shell">
+        <DailyMenu items={dailyItems ?? []} categories={categories ?? []} />
+      </div>
 
-      {/* Infinite gallery marquee */}
-      <GalleryMarquee photos={allGalleryPhotos} />
+      {/* Infinite gallery marquee — DARK band. Glass and light props read
+          against this; it is the page's mid-scroll punctuation. */}
+      <div className="bg-cocoa">
+        <GalleryMarquee photos={allGalleryPhotos} />
+      </div>
 
       {/* Best Bakery in Shillong — image left, story right */}
       <BestBakerySection
@@ -161,20 +170,29 @@ export default async function HomePage() {
         settings={settings}
       />
 
-      {/* Custom cake CTA */}
+      {/* Custom cake CTA — DARK band with a glass panel. Glass needs something
+          behind it to refract; the gradient mesh is that something. */}
       <Reveal>
-        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="rounded-3xl bg-gradient-to-br from-lavender-soft to-pink-soft p-8 sm:p-12 text-center">
-            <Cake className="mx-auto mb-4 text-lavender" size={40} />
-            <h2 className="text-2xl font-bold text-ink sm:text-3xl mb-3">
-              Dreaming of a Custom Cake?
-            </h2>
-            <p className="mx-auto max-w-lg text-ink-soft mb-6">
-              Tell us your vision — flavors, design, decoration — and we&rsquo;ll craft
+        <section className="relative overflow-hidden bg-cocoa px-4 py-20 sm:px-6">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 opacity-70"
+            style={{
+              background:
+                "radial-gradient(60% 80% at 15% 20%, rgb(194 86 107 / 0.35), transparent 60%)," +
+                "radial-gradient(50% 70% at 85% 30%, rgb(247 216 204 / 0.22), transparent 60%)," +
+                "radial-gradient(70% 60% at 50% 100%, rgb(74 56 48 / 0.6), transparent 70%)",
+            }}
+          />
+          <div className="glass glass-liquid relative mx-auto max-w-3xl rounded-[var(--r-xl)] p-8 text-center sm:p-14">
+            <Cake className="mx-auto mb-4 text-blush" size={40} />
+            <h2 className="text-h2 mb-4 text-shell">Dreaming of a Custom Cake?</h2>
+            <p className="mx-auto mb-8 max-w-lg text-[#D8CCC0]">
+              Tell us your vision — flavours, design, decoration — and we&rsquo;ll craft
               something uniquely yours. Custom cakes need 5 days notice.
             </p>
             <Link href="/custom-cake">
-              <Button size="lg" variant="secondary">
+              <Button size="lg" variant="primary">
                 Start Your Inquiry <ArrowRight size={18} />
               </Button>
             </Link>
@@ -200,21 +218,28 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* How it works */}
-      <Reveal>
-        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <h2 className="text-center text-2xl font-semibold text-ink mb-8">How It Works</h2>
+      {/* How it works — raised band */}
+      <Reveal className="bg-shell">
+        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+          <p className="text-eyebrow mb-2 text-center text-berry">Three steps</p>
+          <h2 className="text-h2 mb-12 text-center text-ink">How It Works</h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
             {[
-              { step: "01", title: "Browse & Order", desc: "Pick your treats from our menu and add to cart.", color: "bg-pink-soft text-pink" },
-              { step: "02", title: "We Bake Fresh", desc: "Everything is made to order — no stale shelf stock.", color: "bg-mint-soft text-mint" },
-              { step: "03", title: "Pickup or Delivery", desc: "Choose a slot that works for you. We'll have it ready.", color: "bg-lavender-soft text-lavender" },
+              { step: "01", title: "Browse & Order", desc: "Pick your treats from our menu and add to cart." },
+              { step: "02", title: "We Bake Fresh", desc: "Everything is made to order — no stale shelf stock." },
+              { step: "03", title: "Pickup or Delivery", desc: "Choose a slot that works for you. We'll have it ready." },
             ].map((item) => (
-              <Card key={item.step} className="text-center">
-                <div className={`mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl ${item.color} text-lg font-bold`}>
+              <Card key={item.step} className="bg-porcelain text-center">
+                {/* Outlined display numeral — big type as ornament rather than
+                    another pastel chip. */}
+                <span
+                  aria-hidden="true"
+                  className="text-display mb-2 block text-[3.5rem] leading-none text-transparent"
+                  style={{ WebkitTextStroke: "1.5px var(--berry)" }}
+                >
                   {item.step}
-                </div>
-                <h3 className="font-semibold text-ink mb-1">{item.title}</h3>
+                </span>
+                <h3 className="mb-1 font-semibold text-ink">{item.title}</h3>
                 <p className="text-sm text-ink-soft">{item.desc}</p>
               </Card>
             ))}

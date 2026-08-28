@@ -33,11 +33,11 @@ export function DailyMenu({ items, categories }: DailyMenuProps) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <Badge color="pink" className="mb-2">Fresh to Order</Badge>
-          <h2 className="text-2xl font-semibold text-ink">Today&apos;s Menu</h2>
+          <h2 className="text-h2 text-ink">Today&apos;s Menu</h2>
         </div>
         <Link
           href="/menu"
-          className="inline-flex items-center gap-1 text-sm font-medium text-pink hover:gap-2 transition-all"
+          className="inline-flex items-center gap-1 text-sm font-medium text-berry hover:gap-2 transition-all"
         >
           View all <ArrowRight size={16} />
         </Link>

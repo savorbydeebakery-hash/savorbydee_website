@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Baloo_2 } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -8,20 +8,35 @@ import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { MotionProvider } from "@/components/motion-provider";
 import { SplashLoader } from "@/components/splash-loader";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+/**
+ * Display — Fraunces. Soft high-contrast serif; warm rather than cold, which
+ * is the register a bakery wants. `opsz` lets the same family go from 14px
+ * captions to 120px headlines without looking stretched; SOFT rounds the
+ * terminals slightly; WONK enables the angled italic-ish forms.
+ * `wght` is always included and must NOT be listed in `axes`.
+ */
+const fraunces = Fraunces({
+  variable: "--font-display",
   subsets: ["latin"],
+  axes: ["SOFT", "WONK", "opsz"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+/**
+ * Body/UI — Plus Jakarta Sans. Geometric-humanist with slightly rounded
+ * terminals; the closest Google-hosted match to General Sans.
+ *
+ * SWAP POINT: to use General Sans instead, drop GeneralSans-Variable.woff2
+ * into public/fonts/ and replace this with next/font/local:
+ *   const sans = localFont({
+ *     src: "../public/fonts/GeneralSans-Variable.woff2",
+ *     variable: "--font-sans", weight: "200 700", display: "swap",
+ *   });
+ */
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
-});
-
-const baloo2 = Baloo_2({
-  variable: "--font-baloo",
-  subsets: ["latin"],
-  weight: "800",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -40,9 +55,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${baloo2.variable} h-full antialiased`}
+      className={`${fraunces.variable} ${jakarta.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-white">
+      <body className="flex min-h-full flex-col bg-background">
+        {/* Liquid-glass refraction filter. Defined once, referenced by
+            .glass-liquid via filter: url(#liquid-glass). */}
+        <svg aria-hidden="true" className="absolute h-0 w-0" focusable="false">
+          <filter id="liquid-glass" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.008 0.008"
+              numOctaves={2}
+              seed={7}
+              result="noise"
+            />
+            <feGaussianBlur in="noise" stdDeviation="3" result="softNoise" />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="softNoise"
+              scale="14"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </svg>
+
         <SplashLoader />
         <MotionProvider>
           <ScrollToTop />

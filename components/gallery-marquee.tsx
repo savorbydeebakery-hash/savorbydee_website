@@ -31,12 +31,13 @@ export function GalleryMarquee({ photos }: GalleryMarqueeProps) {
 
   return (
     <Reveal>
-      <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <h2 className="mb-6 text-2xl font-semibold text-ink">From the Bakery</h2>
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <p className="text-eyebrow mb-2 text-blush">Straight from the oven</p>
+        <h2 className="mb-6 text-h2 text-shell">From the Bakery</h2>
         <div className="group relative overflow-hidden">
-          {/* Fade edges */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-white to-transparent" />
+          {/* Fade edges — cocoa, to match the dark band this now sits on. */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-cocoa to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-cocoa to-transparent" />
 
           <div
             className="flex w-max gap-4 marquee-track"

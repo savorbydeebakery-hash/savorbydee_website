@@ -67,7 +67,7 @@ export default function CustomCakePage() {
     return (
       <div className="mx-auto max-w-md px-4 py-20 text-center sm:px-6">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-mint-soft">
-          <Check className="text-mint" size={36} />
+          <Check className="text-cocoa" size={36} />
         </div>
         <h1 className="text-2xl font-bold text-ink mb-2">Inquiry Submitted! 🎂</h1>
         <p className="text-ink-soft mb-6">
@@ -84,9 +84,9 @@ export default function CustomCakePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <div className="text-center mb-8">
-        <Cake className="mx-auto mb-4 text-lavender" size={40} />
+        <Cake className="mx-auto mb-4 text-cocoa" size={40} />
         <Badge color="lavender" className="mb-3">5 Days Advance Notice</Badge>
-        <h1 className="text-3xl font-bold text-ink mb-3">Custom Cake Inquiry</h1>
+        <h1 className="text-h1 text-ink mb-3">Custom Cake Inquiry</h1>
         <p className="text-ink-soft max-w-lg mx-auto">
           Dreaming of something special? Tell us your vision and we&rsquo;ll craft it for you.
           Custom cakes need at least 5 days notice.

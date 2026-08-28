@@ -114,7 +114,7 @@ function LoginForm() {
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-soft">
-            <Cake className="text-pink" size={28} />
+            <Cake className="text-berry" size={28} />
           </div>
           <h1 className="text-2xl font-bold text-ink">SAVOR</h1>
           <p className="text-sm text-ink-soft mt-1">
@@ -139,7 +139,7 @@ function LoginForm() {
             type="button"
             onClick={() => { setMode("signin"); setError(null); setMessage(null); }}
             className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition-colors ${
-              mode === "signin" ? "bg-white text-pink shadow-sm" : "text-ink-soft"
+              mode === "signin" ? "bg-white text-berry shadow-sm" : "text-ink-soft"
             }`}
           >
             <LogIn size={15} /> Sign In
@@ -148,7 +148,7 @@ function LoginForm() {
             type="button"
             onClick={() => { setMode("signup"); setError(null); setMessage(null); }}
             className={`flex items-center justify-center gap-1.5 rounded-lg py-2 transition-colors ${
-              mode === "signup" ? "bg-white text-pink shadow-sm" : "text-ink-soft"
+              mode === "signup" ? "bg-white text-berry shadow-sm" : "text-ink-soft"
             }`}
           >
             <UserPlus size={15} /> Create Account
@@ -207,7 +207,7 @@ function LoginForm() {
         )}
 
         <div className="mt-6 text-center">
-          <Link href="/" className="text-sm text-ink-faint hover:text-pink transition-colors">
+          <Link href="/" className="text-sm text-ink-faint hover:text-berry transition-colors">
             ← Back to website
           </Link>
         </div>

@@ -81,7 +81,7 @@ export function MenuClient({ categories, menuItems, tag }: MenuClientProps) {
       {/* Tag heading */}
       {tag && tagTitles[tag] && (
         <div className="mb-6 text-center">
-          <h2 className="text-2xl font-semibold text-ink">{tagTitles[tag]}</h2>
+          <h2 className="text-h2 text-ink">{tagTitles[tag]}</h2>
           <p className="text-sm text-ink-soft mt-1">
             {taggedItems.length} item{taggedItems.length === 1 ? "" : "s"}
           </p>
@@ -140,7 +140,7 @@ export function MenuClient({ categories, menuItems, tag }: MenuClientProps) {
       {/* Menu sections */}
       {visibleSections.map((cat) => (
         <section key={cat.id} className="mb-12" data-category-section={cat.id}>
-          <h2 className="mb-5 text-2xl font-semibold text-ink">{cat.name}</h2>
+          <h2 className="mb-5 text-h2 text-ink">{cat.name}</h2>
           <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cat.items.map((item) => (
               <RevealItem key={item.id}>

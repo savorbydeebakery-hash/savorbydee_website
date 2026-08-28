@@ -74,8 +74,8 @@ export default function FindMyOrderPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <div className="text-center mb-8">
-        <Search className="mx-auto mb-4 text-pink" size={40} />
-        <h1 className="text-3xl font-bold text-ink mb-2">Find My Order</h1>
+        <Search className="mx-auto mb-4 text-berry" size={40} />
+        <h1 className="text-h1 text-ink mb-2">Find My Order</h1>
         <p className="text-ink-soft">
           Enter your order ID, email, and phone to track your order.
         </p>
@@ -126,7 +126,7 @@ export default function FindMyOrderPage() {
           <Card>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <Package className="text-pink" size={20} />
+                <Package className="text-berry" size={20} />
                 <div>
                   <p className="font-bold text-ink">{order.human_id}</p>
                   <p className="text-xs text-ink-faint">{order.guest_name}</p>

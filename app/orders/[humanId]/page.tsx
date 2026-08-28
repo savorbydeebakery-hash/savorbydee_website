@@ -94,7 +94,7 @@ export default function OrderConfirmationPage({
     return (
       <div className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
         <div className="animate-pulse">
-          <CheckCircle2 className="mx-auto mb-4 text-mint" size={48} />
+          <CheckCircle2 className="mx-auto mb-4 text-cocoa" size={48} />
           <p className="text-ink-soft">Loading your order...</p>
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function OrderConfirmationPage({
     return (
       <div className="mx-auto max-w-md px-4 py-20 sm:px-6">
         <div className="text-center mb-8">
-          <Search className="mx-auto mb-4 text-pink" size={40} />
+          <Search className="mx-auto mb-4 text-berry" size={40} />
           <h1 className="text-2xl font-bold text-ink mb-2">Find Your Order</h1>
           <p className="text-sm text-ink-soft">
             Enter your email and phone to view order {humanId}
@@ -162,13 +162,13 @@ export default function OrderConfirmationPage({
       {/* Success header */}
       <div className="text-center mb-8">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-mint-soft">
-          <CheckCircle2 className="text-mint" size={36} />
+          <CheckCircle2 className="text-cocoa" size={36} />
         </div>
-        <h1 className="text-3xl font-bold text-ink mb-2">Order Confirmed! 🎂</h1>
+        <h1 className="text-h1 text-ink mb-2">Order Confirmed! 🎂</h1>
         <p className="text-ink-soft">Your order has been received.</p>
         <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-pink-soft px-4 py-2">
           <span className="text-sm text-ink-faint">Order ID:</span>
-          <span className="font-bold text-pink">{order.human_id}</span>
+          <span className="font-bold text-berry">{order.human_id}</span>
         </div>
       </div>
 
@@ -176,7 +176,7 @@ export default function OrderConfirmationPage({
       <Card className="mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Package className="text-pink" size={20} />
+            <Package className="text-berry" size={20} />
             <div>
               <p className="text-xs text-ink-faint">Status</p>
               <Badge color={statusColors[order.status] ?? "neutral"}>

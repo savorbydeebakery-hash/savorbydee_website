@@ -54,7 +54,7 @@ export function Header() {
             <span className="text-2xl font-bold tracking-tight text-ink">
               SAVOR
             </span>
-            <span className="hidden text-xs font-medium text-pink sm:inline">
+            <span className="hidden text-xs font-medium text-berry sm:inline">
               bakery
             </span>
           </Link>
@@ -68,7 +68,7 @@ export function Header() {
                 className={clsx(
                   "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   pathname === link.href
-                    ? "bg-pink-soft text-pink"
+                    ? "bg-pink-soft text-berry"
                     : "text-ink-soft hover:bg-pink-soft/50 hover:text-ink"
                 )}
               >
@@ -138,7 +138,7 @@ export function Header() {
                 <Link
                   href="/account"
                   onClick={() => setMobileOpen(false)}
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-pink"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-berry"
                 >
                   My Account
                 </Link>
@@ -146,7 +146,7 @@ export function Header() {
                 <Link
                   href={loginHref}
                   onClick={() => setMobileOpen(false)}
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-pink"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-berry"
                 >
                   Log In
                 </Link>
@@ -159,7 +159,7 @@ export function Header() {
                   className={clsx(
                     "rounded-xl px-4 py-3 text-sm font-medium transition-colors",
                     pathname === link.href
-                      ? "bg-pink-soft text-pink"
+                      ? "bg-pink-soft text-berry"
                       : "text-ink-soft hover:bg-pink-soft/50"
                   )}
                 >

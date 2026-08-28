@@ -111,7 +111,7 @@ export async function PromoBanner({
         <div className="bg-gradient-to-br from-pink-soft via-lavender-soft to-mint-soft px-6 py-16 sm:py-20">
           <div className="mx-auto max-w-4xl text-center">
             <Badge color="pink" className="mb-4">Featured</Badge>
-            <h2 className="text-3xl font-bold text-ink sm:text-4xl mb-3">
+            <h2 className="text-h2 text-ink mb-3">
               {banner.title}
             </h2>
             {banner.body_text && (

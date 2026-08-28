@@ -19,6 +19,8 @@ interface MenuCategory {
 interface CurationRowProps {
   title: string;
   subtitle: string;
+  /** Small uppercase kicker above the title. */
+  eyebrow?: string;
   items: MenuItemForCart[];
   categories: MenuCategory[];
 }
@@ -28,7 +30,13 @@ interface CurationRowProps {
  * Cards show image, name, price + Add to Cart via ItemDetailModal.
  * Hides entirely when no items are flagged.
  */
-export function CurationRow({ title, subtitle, items, categories }: CurationRowProps) {
+export function CurationRow({
+  title,
+  subtitle,
+  eyebrow,
+  items,
+  categories,
+}: CurationRowProps) {
   const [selectedItem, setSelectedItem] = useState<MenuItemForCart | null>(null);
 
   if (!items || items.length === 0) return null;
@@ -39,12 +47,15 @@ export function CurationRow({ title, subtitle, items, categories }: CurationRowP
     <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-ink">{title}</h2>
-          <p className="text-sm text-ink-soft mt-1">{subtitle}</p>
+          {eyebrow && (
+            <p className="text-eyebrow mb-2 text-berry">{eyebrow}</p>
+          )}
+          <h2 className="text-h2 text-ink">{title}</h2>
+          <p className="text-sm text-ink-soft mt-2 max-w-md">{subtitle}</p>
         </div>
         <Link
           href={title === "Most Ordered" ? "/menu?tag=bestseller" : "/menu?tag=chefs-choice"}
-          className="inline-flex items-center gap-1 text-sm font-medium text-pink hover:gap-2 transition-all whitespace-nowrap"
+          className="inline-flex items-center gap-1 text-sm font-medium text-berry hover:gap-2 transition-all whitespace-nowrap"
         >
           View all <ArrowRight size={16} />
         </Link>

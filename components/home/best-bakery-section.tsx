@@ -31,9 +31,9 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
 
   const stats = [
     { icon: Star, text: "4.7/5 on Google", accent: "bg-yellow-soft text-gold-deep" },
-    { icon: Clock, text: "Open Mon–Sat, 9AM–9PM", accent: "bg-mint-soft text-mint" },
-    { icon: MapPin, text: "Near Laban, Shillong", accent: "bg-pink-soft text-pink" },
-    { icon: Award, text: "Made fresh to order", accent: "bg-lavender-soft text-lavender" },
+    { icon: Clock, text: "Open Mon–Sat, 9AM–9PM", accent: "bg-mint-soft text-cocoa" },
+    { icon: MapPin, text: "Near Laban, Shillong", accent: "bg-pink-soft text-berry" },
+    { icon: Award, text: "Made fresh to order", accent: "bg-lavender-soft text-cocoa" },
   ];
 
   return (
@@ -51,7 +51,7 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
           </div>
           <div className="absolute -bottom-4 -right-2 hidden rounded-2xl bg-white p-4 shadow-lg sm:block">
             <p className="text-3xl font-bold text-ink">4.7</p>
-            <div className="flex items-center gap-0.5 text-gold">
+            <div className="flex items-center gap-0.5 text-gold-deep">
               <Star size={14} fill="currentColor" />
               <Star size={14} fill="currentColor" />
               <Star size={14} fill="currentColor" />
@@ -64,10 +64,10 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
 
         {/* Story — RIGHT */}
         <div>
-          <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-pink-soft px-3 py-1 text-xs font-semibold text-pink">
+          <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-pink-soft px-3 py-1 text-xs font-semibold text-berry">
             <Cake size={12} /> Artisanal Bakery
           </p>
-          <h2 className="text-3xl font-bold text-ink sm:text-4xl mb-4">
+          <h2 className="text-h2 text-ink mb-4">
             Best Bakery in Shillong
           </h2>
           <p className="text-ink-soft leading-relaxed mb-6">{narrative}</p>
@@ -94,7 +94,7 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
             </Link>
             <Link
               href="/about"
-              className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:border-pink hover:text-pink transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:border-pink hover:text-berry transition-colors"
             >
               Our Story
             </Link>

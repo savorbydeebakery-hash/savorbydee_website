@@ -123,7 +123,7 @@ export default function AccountPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
-        <Loader2 className="animate-spin text-pink" size={28} />
+        <Loader2 className="animate-spin text-berry" size={28} />
         <p className="text-ink-soft">Loading your account…</p>
       </div>
     );
@@ -133,7 +133,7 @@ export default function AccountPage() {
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-ink">My Account</h1>
+          <h1 className="text-h1 text-ink">My Account</h1>
           <p className="text-ink-soft">Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""} 👋</p>
         </div>
         <Button variant="outline" onClick={handleLogout}>
@@ -150,7 +150,7 @@ export default function AccountPage() {
       {/* Profile */}
       <Card className="mb-6 p-6">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-ink">
-          <User size={18} className="text-pink" /> Profile & Delivery Details
+          <User size={18} className="text-berry" /> Profile & Delivery Details
         </h2>
         {profile && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -206,7 +206,7 @@ export default function AccountPage() {
       {/* Order history */}
       <Card className="p-6">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-ink">
-          <Package size={18} className="text-pink" /> Order History
+          <Package size={18} className="text-berry" /> Order History
         </h2>
         {orders.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
@@ -227,7 +227,7 @@ export default function AccountPage() {
                   <Link
                     href={`/orders/${order.human_id}?email=${encodeURIComponent(profile?.email ?? "")}&phone=${encodeURIComponent(profile?.phone ?? "")}`}
                   >
-                    <p className="font-semibold text-ink hover:text-pink">{order.human_id}</p>
+                    <p className="font-semibold text-ink hover:text-berry">{order.human_id}</p>
                   </Link>
                   <p className="text-xs text-ink-faint">
                     {new Date(order.created_at).toLocaleString("en-IN", {

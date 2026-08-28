@@ -82,7 +82,7 @@ export default async function GalleryPage() {
       {/* Static gallery grid for accessibility and SEO */}
       {allImages.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <h2 className="mb-6 text-2xl font-semibold text-ink">All Photos</h2>
+          <h2 className="mb-6 text-h2 text-ink">All Photos</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {allImages.map((img, i) => (
               <div

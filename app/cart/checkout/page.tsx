@@ -162,7 +162,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <h1 className="text-3xl font-bold text-ink mb-2">Checkout</h1>
+      <h1 className="text-h1 text-ink mb-2">Checkout</h1>
 
       {/* Step indicator */}
       <div className="mb-8 flex items-center gap-2">
@@ -274,7 +274,7 @@ export default function CheckoutPage() {
                     : "border-ink/15 bg-white hover:border-pink"
                 }`}
               >
-                <MapPin className="mb-2 text-pink" size={20} />
+                <MapPin className="mb-2 text-berry" size={20} />
                 <p className="font-semibold text-ink">Pickup</p>
                 <p className="text-xs text-ink-soft">Collect from our bakery</p>
               </button>
@@ -286,7 +286,7 @@ export default function CheckoutPage() {
                     : "border-ink/15 bg-white hover:border-pink"
                 }`}
               >
-                <MapPin className="mb-2 text-mint" size={20} />
+                <MapPin className="mb-2 text-cocoa" size={20} />
                 <p className="font-semibold text-ink">Delivery</p>
                 <p className="text-xs text-ink-soft">We&rsquo;ll bring it to you</p>
               </button>
@@ -322,7 +322,7 @@ export default function CheckoutPage() {
         <div className="flex flex-col gap-6">
           <div>
             <h2 className="text-lg font-semibold text-ink mb-3 flex items-center gap-2">
-              <User size={20} className="text-pink" /> Your Details
+              <User size={20} className="text-berry" /> Your Details
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
@@ -353,7 +353,7 @@ export default function CheckoutPage() {
           {fulfillment === "delivery" && (
             <div>
               <h2 className="text-lg font-semibold text-ink mb-3 flex items-center gap-2">
-                <MapPin size={20} className="text-mint" /> Delivery Address
+                <MapPin size={20} className="text-cocoa" /> Delivery Address
               </h2>
               <div className="flex flex-col gap-4">
                 <Textarea

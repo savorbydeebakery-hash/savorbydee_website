@@ -46,7 +46,7 @@ export default async function AboutPage() {
       {/* Hero */}
       <section className="text-center mb-16">
         <Badge color="pink" className="mb-4">Our Story</Badge>
-        <h1 className="text-4xl font-bold text-ink sm:text-5xl mb-6">
+        <h1 className="text-h1 text-ink mb-6">
           About {bakeryName}
         </h1>
         <p className="mx-auto max-w-2xl text-lg leading-relaxed text-ink-soft">
@@ -57,7 +57,7 @@ export default async function AboutPage() {
       {/* Gallery grid */}
       {gallery && gallery.length > 0 && (
         <section className="mb-16">
-          <h2 className="text-2xl font-semibold text-ink mb-6">Gallery</h2>
+          <h2 className="text-h2 text-ink mb-6">Gallery</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
             {gallery.map((photo, i) => (
               <div
@@ -87,28 +87,28 @@ export default async function AboutPage() {
         <Card className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold text-ink">Visit & Contact</h2>
           <div className="flex items-start gap-3">
-            <MapPin className="mt-0.5 text-pink" size={20} />
+            <MapPin className="mt-0.5 text-berry" size={20} />
             <div>
               <p className="text-sm text-ink">{addressLine1}</p>
               <p className="text-sm text-ink-soft">{addressCity}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Phone className="text-pink" size={20} />
+            <Phone className="text-berry" size={20} />
             <a
               href={`tel:${phone.replace(/\s/g, "")}`}
-              className="text-sm text-ink hover:text-pink transition-colors"
+              className="text-sm text-ink hover:text-berry transition-colors"
             >
               {phone}
             </a>
           </div>
           <div className="flex items-center gap-3">
-            <MessageCircle className="text-pink" size={20} />
+            <MessageCircle className="text-berry" size={20} />
             <a
               href={`https://wa.me/${whatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-ink hover:text-pink transition-colors"
+              className="text-sm text-ink hover:text-berry transition-colors"
             >
               WhatsApp us
             </a>
@@ -139,7 +139,7 @@ export default async function AboutPage() {
           ) : (
             <div className="flex h-[300px] items-center justify-center bg-pink-soft">
               <div className="text-center">
-                <MapPin className="mx-auto mb-2 text-pink" size={32} />
+                <MapPin className="mx-auto mb-2 text-berry" size={32} />
                 <p className="text-sm text-ink-soft">Map will appear here</p>
               </div>
             </div>

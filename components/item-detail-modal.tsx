@@ -170,7 +170,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                           onClick={() => handleAddAddon(addon.name)}
                           className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
                             selected
-                              ? "border-mint bg-mint-soft text-mint"
+                              ? "border-mint bg-mint-soft text-cocoa"
                               : "border-ink/15 bg-white text-ink-soft hover:border-mint"
                           }`}
                         >
@@ -257,7 +257,7 @@ function SelectionGroup({
             onClick={() => onSelect(opt.value)}
             className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
               selected === opt.value
-                ? "border-pink bg-pink-soft text-pink"
+                ? "border-pink bg-pink-soft text-berry"
                 : "border-ink/15 bg-white text-ink-soft hover:border-pink"
             }`}
           >
