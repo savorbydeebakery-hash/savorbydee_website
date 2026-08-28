@@ -269,14 +269,47 @@ you need the performance floor fixed before you pile motion and WebGL on top of 
 
 ---
 
-## PHASE 0 — Safety & Baseline
+## PHASE 0 — Safety & Baseline  ✅ COMPLETE (2026-08-29, Opus)
+
+> **Sonnet: Phase 0 is already done. Start at Phase 1.**
+>
+> What was done, in this order (the key had to be stripped *before* the commit,
+> otherwise the checkpoint would have written the secret into git history permanently):
+>
+> 1. Stripped the hardcoded service-role key from `scripts/upload-gallery-images.ts`
+>    → now reads `process.env`. Re-scanned all tracked + untracked files: clean.
+> 2. Checkpointed 60 uncommitted files to `master` as `ea88237` — this is your
+>    **rollback point**. `git checkout master` restores the pre-redesign state.
+> 3. Branched `redesign/liquid-glass`.
+> 4. Installed: `gsap@3.15` `@gsap/react@2.1` `lenis@1.3` `three@0.185`
+>    `@react-three/fiber@9.7` `@react-three/drei@10.7` `@types/three` `tsx@4.23`.
+>    R3F 9.7 peer-requires `react >=19 <19.3`; project has 19.2.8 ✓
+> 5. Recorded baseline (commit `f53802e`):
+>
+> | Gate | Baseline |
+> |---|---|
+> | `tsc --noEmit` | 0 errors |
+> | `eslint .` | 0 errors, **9 warnings** |
+> | `vitest run` | **48/48** passing |
+> | `opennextjs-cloudflare build` | OK — server handler **5.11 MB**, assets **2.2 MB** |
+>
+> Compare against these numbers at every later gate. The 9 lint warnings are:
+> 7 × `no-img-element` in `modern-hero-section.tsx` (Phase 1/5 removes these),
+> 1 unused `y` prop in `reveal.tsx` (Phase 3 rewrites this file), and
+> 1 anonymous-default-export in `open-next.config.ts` (pre-existing, leave alone).
+> **Warnings should go down, never up.**
+>
+> ⚠️ **Still outstanding — user action:** the exposed service-role key must be
+> **rotated in the Supabase dashboard**. It sat in plaintext on disk. Removing it
+> from the file does not invalidate it.
+
+<details>
+<summary>Original Phase 0 instructions (for reference)</summary>
 
 **P0.1 — Branch.**
 ```bash
 git checkout -b redesign/liquid-glass
 ```
-Do **not** commit the existing uncommitted work as part of your changes unless the user
-asks. Leave it in the working tree.
 
 **P0.2 — Purge the leaked service-role key.**
 In `scripts/upload-gallery-images.ts`, replace lines 5–8 with:
@@ -302,6 +335,8 @@ npm i -D @types/three
 
 **P0.4 — Baseline build.** Run the §0.2 gate plus `npx opennextjs-cloudflare build`.
 Record the current bundle size so you can compare at the end.
+
+</details>
 
 ---
 
