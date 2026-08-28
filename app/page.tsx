@@ -6,14 +6,18 @@ import { HeroCollage } from "@/components/ui/modern-hero-section";
 import { DailyMenu } from "@/components/daily-menu";
 import { GalleryMarquee } from "@/components/gallery-marquee";
 import { Reveal } from "@/components/kinetic/reveal";
-import { KineticImage } from "@/components/kinetic/kinetic-image";
+import { SmartImage } from "@/components/kinetic/smart-image";
 import { HomeTiles } from "@/components/home/home-tiles";
 import { CurationRow } from "@/components/home/curation-row";
 import { BestBakerySection } from "@/components/home/best-bakery-section";
 import Link from "next/link";
 import { ArrowRight, Cake, ShoppingBag } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+// ISR via the KV incremental cache (NEXT_INC_CACHE_KV, see wrangler.jsonc).
+// Was force-dynamic, which meant seven Supabase round-trips to Tokyo on every
+// single request. 60s is fresh enough for the sold-out toggle, which is
+// re-validated server-side at checkout regardless.
+export const revalidate = 60;
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -41,16 +45,23 @@ export default async function HomePage() {
       .select("id, name")
       .eq("is_active", true)
       .order("sort_order"),
+    // Bounded deliberately: this query had no limit and fed a 3x-duplicated
+    // marquee, so ~100 gallery rows became ~300 image slots on the homepage.
+    // The page only ever indexes up to featuredPhotos[16].
     supabase
       .from("gallery_photos")
       .select("id, image_url, caption")
       .eq("is_active", true)
-      .order("sort_order"),
+      .order("sort_order")
+      .limit(24),
+    // Only used to harvest image_url for the hero collage (needs 7).
     supabase
       .from("menu_items")
       .select("id, name, image_url")
       .eq("is_active", true)
-      .order("sort_order"),
+      .not("image_url", "is", null)
+      .order("sort_order")
+      .limit(12),
     supabase
       .from("menu_items")
       .select(SELECT_FIELDS)
@@ -177,7 +188,12 @@ export default async function HomePage() {
           <Reveal className="scattered-strip">
             {featuredPhotos.slice(12, 17).map((photo, i) => (
               <div key={photo.id} className={`tile ${i < 4 ? "" : "hidden sm:block"}`}>
-                <KineticImage src={photo.image_url} alt={photo.caption ?? "SAVOR bakery"} aspect="aspect-[4/3]" />
+                <SmartImage
+                  src={photo.image_url}
+                  alt={photo.caption ?? "SAVOR bakery"}
+                  aspect="aspect-[4/3]"
+                  sizes="(max-width: 640px) 50vw, 300px"
+                />
               </div>
             ))}
           </Reveal>

@@ -2,7 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { Reveal } from "@/components/kinetic/reveal";
-import { KineticImage } from "@/components/kinetic/kinetic-image";
+import { SmartImage } from "@/components/kinetic/smart-image";
 
 interface GalleryPhoto {
   id: string;
@@ -22,8 +22,12 @@ interface GalleryMarqueeProps {
 export function GalleryMarquee({ photos }: GalleryMarqueeProps) {
   if (!photos || photos.length === 0) return null;
 
+  // Cap the source before duplicating: the track is rendered 3x for a seamless
+  // loop, so every extra photo costs three DOM nodes. 12 is more than enough to
+  // fill the viewport at 288px per tile.
   const loopCount = 3;
-  const track: GalleryPhoto[] = Array.from({ length: loopCount }, () => photos).flat();
+  const source = photos.slice(0, 12);
+  const track: GalleryPhoto[] = Array.from({ length: loopCount }, () => source).flat();
 
   return (
     <Reveal>
@@ -44,12 +48,13 @@ export function GalleryMarquee({ photos }: GalleryMarqueeProps) {
               <div
                 key={`${photo.id}-${i}`}
                 className="h-48 w-72 flex-shrink-0 overflow-hidden rounded-2xl"
-                aria-hidden={i >= photos.length}
+                aria-hidden={i >= source.length}
               >
-                <KineticImage
+                <SmartImage
                   src={photo.image_url}
-                  alt={i < photos.length ? (photo.caption ?? "SAVOR bakery") : ""}
+                  alt={i < source.length ? (photo.caption ?? "SAVOR bakery") : ""}
                   aspect="aspect-[16/10]"
+                  sizes="288px"
                 />
               </div>
             ))}

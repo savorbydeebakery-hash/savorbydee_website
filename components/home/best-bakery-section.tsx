@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Star, Clock, MapPin, Award, Cake } from "lucide-react";
 import { Reveal } from "@/components/kinetic/reveal";
-import { KineticImage } from "@/components/kinetic/kinetic-image";
+import { SmartImage } from "@/components/kinetic/smart-image";
 
 interface Settings {
   about_narrative?: string | null;
@@ -42,10 +42,11 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
         {/* Image — LEFT */}
         <div className="relative">
           <div className="overflow-hidden rounded-3xl">
-            <KineticImage
+            <SmartImage
               src={photo}
               alt="Savor by Dee bakery"
               aspect="aspect-[4/3]"
+              sizes="(max-width: 768px) 100vw, 560px"
             />
           </div>
           <div className="absolute -bottom-4 -right-2 hidden rounded-2xl bg-white p-4 shadow-lg sm:block">

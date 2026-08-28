@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { ParallaxGallery } from "@/components/ui/3d-parallax-unfurling-gallery";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,11 @@ export const metadata = {
     "Explore the visual story of Savor by Dee - handcrafted cakes, desserts, and savoury bakes from Shillong.",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
+
+// Every image here is rendered twice — once in the parallax gallery, once in
+// the static grid below it — so the source list is bounded.
+const MAX_GALLERY_IMAGES = 48;
 
 export default async function GalleryPage() {
   const supabase = await createClient();
@@ -21,12 +26,15 @@ export default async function GalleryPage() {
       .from("gallery_photos")
       .select("id, image_url, caption")
       .eq("is_active", true)
-      .order("sort_order"),
+      .order("sort_order")
+      .limit(MAX_GALLERY_IMAGES),
     supabase
       .from("menu_items")
       .select("id, name, image_url")
       .eq("is_active", true)
-      .order("sort_order"),
+      .not("image_url", "is", null)
+      .order("sort_order")
+      .limit(24),
   ]);
 
   const galleryImages = (galleryPhotos ?? []).map((p) => ({
@@ -81,12 +89,12 @@ export default async function GalleryPage() {
                 key={i}
                 className="group relative aspect-square overflow-hidden rounded-2xl bg-pink-soft"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={img.src}
                   alt={img.alt}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 276px"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               </div>
             ))}

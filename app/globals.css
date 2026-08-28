@@ -236,6 +236,23 @@ body {
   animation: kinetic-word-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ---------- Hero collage float ----------
+   Was an inline <style> inside modern-hero-section.tsx, which re-injected the
+   rule on every render. Lives here now. */
+@keyframes float-up {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  }
+  50% {
+    transform: translateY(-15px);
+    box-shadow: 0 35px 60px -15px rgb(0 0 0 / 0.3);
+  }
+}
+.animate-float-up {
+  animation: float-up 6s ease-in-out infinite;
+}
+
 /* ---------- Hero floating accent blobs (CSS-only, SSR-safe) ---------- */
 @keyframes float-a {
   0%, 100% { transform: translateY(0) rotate(0deg); }

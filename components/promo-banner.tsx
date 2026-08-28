@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 
@@ -75,11 +76,13 @@ export async function PromoBanner({
     <section className="relative overflow-hidden">
       {banner.poster_image_url ? (
         <div className="relative h-[400px] sm:h-[500px]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={banner.poster_image_url}
             alt={banner.title}
-            className="h-full w-full object-cover"
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-ink/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">

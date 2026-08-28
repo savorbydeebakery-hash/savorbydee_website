@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,11 +64,12 @@ export default async function AboutPage() {
                 key={i}
                 className="group relative aspect-square overflow-hidden rounded-2xl bg-pink-soft"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={photo.image_url}
                   alt={photo.caption ?? ""}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 276px"
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 {photo.caption && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-ink/70 to-transparent p-3">

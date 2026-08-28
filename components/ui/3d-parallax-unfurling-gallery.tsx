@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useMemo, useState, useCallback } from "react";
+import Image from "next/image";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 
 interface ParallaxImage {
@@ -17,13 +18,13 @@ interface ImageCardProps {
 const ImageCard = ({ src, alt, onLoad }: ImageCardProps) => {
   return (
     <div className="w-full h-[200px] sm:h-[300px] md:h-[400px] flex-shrink-0 bg-pink-soft transition-transform duration-300 hover:scale-[1.02] cursor-pointer relative will-change-transform backface-hidden preserve-3d rounded-2xl overflow-hidden">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={src}
         alt={alt ?? "Gallery asset"}
-        loading="lazy"
+        fill
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 320px"
         onLoad={onLoad}
-        className="w-full h-full object-cover opacity-80 hover:opacity-100 transition-opacity duration-300"
+        className="object-cover opacity-80 transition-opacity duration-300 hover:opacity-100"
       />
     </div>
   );
@@ -119,13 +120,13 @@ export function ParallaxGallery({
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {shuffledImages.map((img, i) => (
-            <div key={i} className="aspect-square overflow-hidden rounded-2xl bg-pink-soft">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+            <div className="relative aspect-square overflow-hidden rounded-2xl bg-pink-soft" key={i}>
+              <Image
                 src={img.src}
                 alt={img.alt ?? "Gallery"}
-                loading="lazy"
-                className="h-full w-full object-cover"
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 276px"
+                className="object-cover"
               />
             </div>
           ))}

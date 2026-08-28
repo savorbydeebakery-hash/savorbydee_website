@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { RevealGroup, RevealItem } from "@/components/kinetic/reveal";
-import { KineticImage } from "@/components/kinetic/kinetic-image";
+import { SmartImage } from "@/components/kinetic/smart-image";
 
 interface TilePhoto {
   id: string;
@@ -42,10 +42,11 @@ export function HomeTiles({ galleryPhotos }: HomeTilesProps) {
               className="group relative block aspect-[4/3] overflow-hidden rounded-[16px]"
             >
               <div className="absolute inset-0">
-                <KineticImage
+                <SmartImage
                   src={pick(tile.key)}
                   alt={tile.label}
                   aspect="aspect-[4/3]"
+                  sizes="(max-width: 640px) 50vw, 560px"
                 />
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/15 to-transparent" />

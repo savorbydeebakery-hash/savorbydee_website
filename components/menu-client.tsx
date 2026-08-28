@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { RevealGroup, RevealItem } from "@/components/kinetic/reveal";
-import { KineticImage } from "@/components/kinetic/kinetic-image";
+import { SmartImage } from "@/components/kinetic/smart-image";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
 interface MenuCategory {
@@ -151,7 +151,7 @@ export function MenuClient({ categories, menuItems, tag }: MenuClientProps) {
                   data-item-name={item.name.toLowerCase()}
                 >
                   {item.image_url && (
-                    <KineticImage src={item.image_url} alt={item.name} />
+                    <SmartImage src={item.image_url} alt={item.name} />
                   )}
                   <div className="flex flex-1 flex-col gap-2">
                     <div className="flex items-start justify-between gap-2">

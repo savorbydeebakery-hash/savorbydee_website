@@ -8,7 +8,7 @@ export const metadata = {
     "Browse our full menu of cakes, desserts, cookies, and savoury bakes. Pre-order online with 12 hours notice.",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function MenuPage({
   searchParams,

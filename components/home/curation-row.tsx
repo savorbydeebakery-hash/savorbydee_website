@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { RevealGroup, RevealItem } from "@/components/kinetic/reveal";
-import { KineticImage } from "@/components/kinetic/kinetic-image";
+import { SmartImage } from "@/components/kinetic/smart-image";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
 interface MenuCategory {
@@ -55,7 +55,7 @@ export function CurationRow({ title, subtitle, items, categories }: CurationRowP
           <RevealItem key={item.id}>
             <Card hover className="flex flex-col gap-3">
               {item.image_url && (
-                <KineticImage src={item.image_url} alt={item.name} />
+                <SmartImage src={item.image_url} alt={item.name} />
               )}
               <div className="flex flex-1 flex-col gap-1">
                 <div className="flex items-start justify-between gap-2">
