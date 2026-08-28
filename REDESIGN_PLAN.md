@@ -5,6 +5,82 @@
 
 ---
 
+## STATUS — Phases 0-5 complete (2026-08-29, Opus)
+
+Branch `redesign/liquid-glass`. Rollback point: `git checkout master` (`ea88237`).
+
+| Phase | State | Commit |
+|---|---|---|
+| 0 Safety & baseline | ✅ | `f53802e` |
+| 1 Image pipeline | ✅ | `40d2b7d` |
+| 2 Design system | ✅ | `59bacb8` |
+| 3 Motion infra | ✅ | `a5cd9b4` |
+| 4 3D props | ✅ | `a5cd9b4` |
+| 5 Hero | ✅ | `a5cd9b4` |
+| 6 Section redesign | ⬜ partial — rhythm + footer + How It Works done in P2; tiles/rows/menu cards remain |
+| 7 Menu page | ⬜ not started |
+| 8 Polish & verification | ⬜ not started |
+
+**Current gates:** tsc 0 errors · eslint 0 errors / 1 warning (baseline was 9) ·
+vitest 56/56 (baseline 48) · OpenNext build OK · **Playwright 9/9**
+
+**Measured result of Phase 1** (real client photo, `gallery/Bento cakes 5.jpg`):
+
+| | Before | After |
+|---|---|---|
+| Card image | 1,270,698 B | 42,384 B (−96.7%) |
+| Hero image | 1,270,698 B | 76,360 B (−94.0%) |
+| Homepage `<img>` | ~600 | 54 |
+| Raw (untransformed) URLs in `<img>` | all | 0 |
+
+### ⚠️ Outstanding — needs the user, not the executor
+
+1. **Rotate the Supabase service-role key.** It sat in plaintext in
+   `scripts/upload-gallery-images.ts`. Removed from the file in P0.2, but
+   removal does not invalidate it.
+2. **Run `npm run fix:image-cache`.** Written in P1.4 but never executed — it
+   needs a live service-role key. Until it runs, every stored object still
+   carries `Cache-Control: no-cache`, so even at 42 KB each image re-downloads
+   from Tokyo on every visit. **This is the other half of the image win.**
+
+### Deferred, with reasons
+
+- **ISR (`export const revalidate`)** — reverted to `force-dynamic` on `/`,
+  `/menu`, `/gallery`. ISR dispatches background revalidation through the
+  configured queue and `open-next.config.ts` uses `memoryQueue`, which
+  revalidates inside the same worker invocation. Symptom: the shell returns 200
+  but the RSC stream never resolves, so the page renders as a permanent loading
+  skeleton, with `Uncaught Error: The Workers runtime canceled this request
+  because it detected that your Worker's code had hung`. Re-enabling needs real
+  Cloudflare Queues wired into `open-next.config.ts`.
+- **General Sans** — Fontshare, not Google, so `next/font/google` cannot load
+  it. Shipped Plus Jakarta Sans; the swap point is commented in
+  `app/layout.tsx`.
+- **P5.3 WebGL hero centrepiece** — deps installed (`three`,
+  `@react-three/fiber`, `@react-three/drei`) but the R3F canvas is not built.
+  The hero's gradient mesh + glass stat cards already carry the effect; add the
+  torus only if it earns its 180 KB.
+- **P3.3 Lenis smooth scroll** — not wired. Native scroll + ScrollTrigger reads
+  fine; Lenis is a polish item with real modal/sticky-header risk.
+
+### Gotchas learned the hard way
+
+- **A leftover `wrangler dev` respawns `workerd` and locks `.open-next`**,
+  causing `EPERM` on the next build. Kill the *parent* node process, not the
+  workerd children:
+  `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -match 'wrangler' } | ForEach-Object { taskkill /PID $_.ProcessId /T /F }`
+- **The Claude browser pane does not composite when it is not displayed**, so
+  JS is throttled and React hydration never completes — the page looks stuck on
+  `loading.tsx` with `window.__next_f` empty. This is an artifact of the tool,
+  not a bug in the app. **Trust Playwright over the pane.**
+- **The E2E suite is the real gate.** Two specs failed on a strict-mode
+  violation because the Sign In/Sign Up tab toggle in the uncommitted homepage
+  WIP made `/sign in/i` match two buttons. Fixed by scoping to
+  `locator("form")`. Verify blame with `git show <ref>:<file>` before assuming
+  you caused a failure.
+
+---
+
 ## 0. Read This First (Executor Briefing)
 
 You are redesigning an existing, **working** Next.js 16 bakery site. The backend, cart
