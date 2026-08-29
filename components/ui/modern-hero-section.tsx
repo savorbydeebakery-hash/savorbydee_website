@@ -178,6 +178,7 @@ const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
           if (typeof ref === "function") ref(node as never);
           else if (ref) (ref as React.RefObject<HTMLElement | null>).current = node;
         }}
+        data-contrast-ground="cocoa"
         className={cn("relative w-full overflow-hidden py-20 font-sans sm:py-32", className)}
         {...props}
       >
@@ -194,7 +195,7 @@ const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
           className="hero-mesh absolute inset-0 opacity-90"
           style={{
             background:
-              "radial-gradient(55% 65% at 18% 22%, rgb(194 86 107 / 0.55), transparent 62%)," +
+              "radial-gradient(55% 65% at 18% 22%, color-mix(in oklab, var(--berry) 60%, transparent), transparent 62%)," +
               "radial-gradient(50% 60% at 82% 28%, rgb(247 216 204 / 0.32), transparent 62%)," +
               "radial-gradient(65% 70% at 60% 88%, rgb(154 134 196 / 0.28), transparent 66%)," +
               "radial-gradient(80% 60% at 50% 50%, rgb(74 56 48 / 0.5), transparent 75%)",

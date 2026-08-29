@@ -50,7 +50,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-shell/10 pt-6 text-center">
-          <p className="text-xs text-shell/50">
+          <p className="text-xs text-shell/65">
             © {year} Savor by Dee. All rights reserved. Made with 🧡 in Shillong.
           </p>
         </div>

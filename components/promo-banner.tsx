@@ -73,7 +73,7 @@ export async function PromoBanner({
 
   // Homepage hero: full-width banner with optional poster image
   return (
-    <section className="relative overflow-hidden">
+    <section data-contrast-ground="cocoa" className="relative overflow-hidden">
       {banner.poster_image_url ? (
         <div className="relative h-[400px] sm:h-[500px]">
           <Image
@@ -84,7 +84,7 @@ export async function PromoBanner({
             priority
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-ink/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-cocoa/90 via-cocoa/40 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
             <div className="mx-auto max-w-6xl">
               <Badge color="pink" className="mb-3">Featured</Badge>

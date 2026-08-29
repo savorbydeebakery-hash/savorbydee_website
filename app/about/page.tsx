@@ -72,8 +72,14 @@ export default async function AboutPage() {
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 {photo.caption && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-ink/70 to-transparent p-3">
-                    <p className="text-xs text-white">{photo.caption}</p>
+                  // Scrim deepened to cocoa/90: at ink/70 over a light photo
+                  // the caption measured 1.19:1. data-contrast-ground tells the
+                  // audit what is actually painted behind the text.
+                  <div
+                    data-contrast-ground="cocoa"
+                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cocoa/95 via-cocoa/70 to-transparent p-3 pt-8"
+                  >
+                    <p className="text-xs font-medium text-shell">{photo.caption}</p>
                   </div>
                 )}
               </div>

@@ -135,10 +135,13 @@ export function MenuClient({ categories, menuItems, tag }: MenuClientProps) {
         <section key={cat.id} className="mb-16" data-category-section={cat.id}>
           {/* Heading with a hairline rule running to the edge — cheap, and it
               gives each category a clear top boundary. */}
-          <div className="mb-6 flex items-baseline gap-4">
-            <h2 className="text-h2 whitespace-nowrap text-ink">{cat.name}</h2>
-            <span aria-hidden="true" className="h-px flex-1 bg-ink/12" />
-            <span className="text-eyebrow whitespace-nowrap text-ink-faint">
+          {/* The h2 must NOT be whitespace-nowrap: at text-h2's 32px floor a
+              name like "Cupcakes, Muffins & Brownies" is ~480px wide and blew
+              the 375px viewport out by 189px. */}
+          <div className="mb-6 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <h2 className="text-h2 text-ink">{cat.name}</h2>
+            <span aria-hidden="true" className="hidden h-px flex-1 bg-ink/12 sm:block" />
+            <span className="text-eyebrow whitespace-nowrap text-ink-soft">
               {cat.items.length} item{cat.items.length === 1 ? "" : "s"}
             </span>
           </div>

@@ -48,6 +48,7 @@ export function HomeTiles({ galleryPhotos }: HomeTilesProps) {
           <RevealItem key={tile.key} className={tile.span}>
             <Link
               href={tile.href}
+              data-contrast-ground="cocoa"
               className={`group relative block ${tile.aspect} overflow-hidden rounded-[var(--r-xl)]`}
             >
               {/* Image scales inside a fixed frame — the frame stays put, which

@@ -8,7 +8,12 @@
      give the page contrast and a rhythm. */
   --cocoa: #2E211B;        /* dark section surfaces, primary CTAs, footer */
   --cocoa-soft: #4A3830;   /* raised elements sitting on cocoa */
-  --berry: #C2566B;        /* saturated accent — prices, active chips (4.6:1 on cream) */
+  /* Deepened from #C2566B after a computed-contrast audit. The lighter value
+     measured 4.03:1 on cream — fine for headings, a fail for the 12-14px
+     eyebrows and nav labels it was actually used on — and white-on-berry was a
+     marginal 4.31:1. This value clears AA everywhere it appears:
+       on cream    5.33:1      on pink-soft  4.81:1      white on it  5.74:1 */
+  --berry: #A8455A;        /* saturated accent — prices, active chips, CTAs */
   --shell: #F2E8DC;        /* raised surface — alternating section background */
   --porcelain: #FFFDFA;    /* card surface, warmer than pure white */
   --background: #FAF6F1;    /* Milk Foam */

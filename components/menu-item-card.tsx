@@ -60,7 +60,7 @@ export function MenuItemCard({
         {/* Price as a glass chip over the image — glass over imagery is the
             placement rule's happy path. */}
         {!item.is_sold_out && (
-          <span className="glass absolute bottom-3 right-3 rounded-full px-3 py-1 text-sm font-semibold text-white">
+          <span data-contrast-ground="cocoa" className="glass absolute bottom-3 right-3 rounded-full px-3 py-1 text-sm font-semibold text-white">
             {price}
           </span>
         )}
@@ -73,7 +73,7 @@ export function MenuItemCard({
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         {categoryName && (
-          <p className="text-eyebrow text-ink-faint">{categoryName}</p>
+          <p className="text-eyebrow text-ink-soft">{categoryName}</p>
         )}
         <h3 className="font-display text-lg font-semibold leading-snug text-ink">
           {item.name}

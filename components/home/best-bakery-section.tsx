@@ -54,7 +54,7 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
           </div>
           {/* Glass, overlapping the image corner — glass over imagery is the
               placement rule's happy path. */}
-          <div className="glass glass-liquid absolute -bottom-5 -right-3 hidden rounded-[var(--r-md)] p-4 sm:block">
+          <div data-contrast-ground="cocoa" className="glass glass-liquid absolute -bottom-5 -right-3 hidden rounded-[var(--r-md)] p-4 sm:block">
             <p className="font-display text-3xl font-bold text-white">4.7</p>
             <div className="flex items-center gap-0.5 text-blush">
               <Star size={14} fill="currentColor" />

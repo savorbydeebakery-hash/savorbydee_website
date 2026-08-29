@@ -36,13 +36,13 @@ export default async function MenuPage({
     <div>
       {/* Compact dark hero band — gives the menu page a top edge instead of
           starting cold on cream, and matches the homepage rhythm. */}
-      <section className="relative overflow-hidden bg-cocoa px-4 py-16 sm:px-6 sm:py-20">
+      <section data-contrast-ground="cocoa" className="relative overflow-hidden bg-cocoa px-4 py-16 sm:px-6 sm:py-20">
         <div
           aria-hidden="true"
           className="hero-mesh pointer-events-none absolute inset-0 opacity-80"
           style={{
             background:
-              "radial-gradient(55% 70% at 20% 25%, rgb(194 86 107 / 0.45), transparent 62%)," +
+              "radial-gradient(55% 70% at 20% 25%, color-mix(in oklab, var(--berry) 50%, transparent), transparent 62%)," +
               "radial-gradient(50% 60% at 80% 30%, rgb(247 216 204 / 0.25), transparent 62%)," +
               "radial-gradient(70% 60% at 50% 100%, rgb(74 56 48 / 0.55), transparent 72%)",
           }}

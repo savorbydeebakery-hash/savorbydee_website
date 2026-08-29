@@ -128,7 +128,9 @@ export default async function HomePage() {
         title={
           <>
             Cakes & Desserts{" "}
-            <span className="text-berry">Made Fresh to Order</span>
+            {/* blush, not berry — the hero ground is cocoa now, where berry
+                measures 2.71:1 and fails even the large-text threshold. */}
+            <span className="text-blush">Made Fresh to Order</span>
           </>
         }
         subtitle="From celebration cakes to everyday treats — every bake is crafted with quality ingredients and a whole lot of heart. Handcrafted in Shillong."
@@ -210,13 +212,13 @@ export default async function HomePage() {
       {/* Custom cake CTA — DARK band with a glass panel. Glass needs something
           behind it to refract; the gradient mesh is that something. */}
       <PropField>
-        <section className="relative overflow-hidden bg-cocoa px-4 py-20 sm:px-6">
+        <section data-contrast-ground="cocoa" className="relative overflow-hidden bg-cocoa px-4 py-20 sm:px-6">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 opacity-70"
             style={{
               background:
-                "radial-gradient(60% 80% at 15% 20%, rgb(194 86 107 / 0.35), transparent 60%)," +
+                "radial-gradient(60% 80% at 15% 20%, color-mix(in oklab, var(--berry) 40%, transparent), transparent 60%)," +
                 "radial-gradient(50% 70% at 85% 30%, rgb(247 216 204 / 0.22), transparent 60%)," +
                 "radial-gradient(70% 60% at 50% 100%, rgb(74 56 48 / 0.6), transparent 70%)",
             }}
