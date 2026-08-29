@@ -9,7 +9,7 @@ import { SmartImage } from "@/components/kinetic/smart-image";
 import { HomeTiles } from "@/components/home/home-tiles";
 import { CurationRow } from "@/components/home/curation-row";
 import { BestBakerySection } from "@/components/home/best-bakery-section";
-import { ScrollWorld } from "@/components/three/scroll-world";
+import { ScrollVideoSection } from "@/components/scroll-video-section";
 import { PropField } from "@/components/props/prop-field";
 import {
   Macaron,
@@ -169,10 +169,36 @@ export default async function HomePage() {
         <HomeTiles galleryPhotos={featuredPhotos.slice(7, 11)} />
       </PropField>
 
-      {/* Pinned scroll flight. Sits here because the page previously went flat
-          right after the tiles: four grids in a row with nothing to break them.
-          This is the mid-page set piece. */}
-      <ScrollWorld />
+      {/* Four pinned, scroll-scrubbed sections. One clip each, deliberately not
+          chained: a section owning its own clip means there are no seams to
+          match, and each clip only loads as its own section approaches.
+          Until the clips exist these render their posters, which are the
+          Nano Banana Pro stills, so the section works today. */}
+      <ScrollVideoSection
+        eyebrow="How it works"
+        title="Nothing is baked until you order it"
+        body="Every cake, cheesecake and tray of brownies goes into the oven after the order comes in. That is why we ask for notice."
+        poster="/scroll-world/scene-1.jpg"
+        align="left"
+      />
+      <ScrollVideoSection
+        title="Straight into the oven"
+        body="Small batches, baked to order through the day. Nothing sits on a shelf waiting to be sold."
+        poster="/scroll-world/scene-2.jpg"
+        align="right"
+      />
+      <ScrollVideoSection
+        title="Finished by hand"
+        body="Tea cakes, cheesecakes, cupcakes, brownies, high tea nibbles, desserts and frosted sponge cakes."
+        poster="/scroll-world/scene-3.jpg"
+        align="left"
+      />
+      <ScrollVideoSection
+        title="Ready when you are"
+        body="Choose a pickup slot or have it delivered across Shillong. We box it the way it should arrive."
+        poster="/scroll-world/scene-4.jpg"
+        align="right"
+      />
 
       {/* Chef's Choice (admin-curated) — raised band */}
       <PropField className="bg-shell">
