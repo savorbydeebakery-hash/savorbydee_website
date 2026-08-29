@@ -4,8 +4,13 @@ import { defineConfig, devices } from "@playwright/test";
  * T6.7: Playwright E2E config.
  * baseURL: staging URL for E2E, or localhost:3000 for local.
  * Override via env: E2E_BASE_URL
+ *
+ * `||`, not `??`. An unset GitHub Actions variable expands to an empty string
+ * rather than being absent, so `??` kept it and every page.goto failed with
+ * "Cannot navigate to invalid URL". The webServer check below is a truthy
+ * check, so `||` also keeps the two in agreement.
  */
-const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const baseURL = process.env.E2E_BASE_URL || "http://localhost:3000";
 
 export default defineConfig({
   testDir: "./e2e",
