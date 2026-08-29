@@ -141,7 +141,6 @@ export default async function HomePage() {
         categories={categories ?? []}
         itemCount={itemCount ?? 0}
         noticeDays={settings?.custom_cake_notice_days ?? 5}
-        photo={photos[0]?.image_url}
       />
 
       {/* 5. Reviews. Appended after the four sections the brief numbered, so

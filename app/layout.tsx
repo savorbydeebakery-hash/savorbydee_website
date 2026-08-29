@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
@@ -26,6 +26,17 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
   display: "swap",
 });
+
+/**
+ * Belt and braces with the CSS `color-scheme: light` in globals.css. The CSS
+ * property is what actually opts the page out of Chrome Android's auto-dark
+ * algorithm; this emits the matching <meta name="color-scheme"> so the browser
+ * knows before stylesheets have loaded, which avoids a dark first paint.
+ */
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#ffffff",
+};
 
 export const metadata: Metadata = {
   title: "Savor by Dee | Handcrafted Cakes & Desserts in Shillong",

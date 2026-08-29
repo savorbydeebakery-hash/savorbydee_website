@@ -222,6 +222,17 @@
    `@import "tailwindcss"` puts utilities inside a cascade layer, and an
    unlayered rule like this one beats any layered rule regardless of
    specificity. The utility was being applied and losing silently. */
+/* This site has one palette and no dark variant. Saying so is not cosmetic:
+   without a declared color-scheme, Chrome on Android applies its automatic
+   dark theme and force-inverts the whole page — which is exactly what was
+   happening on the client's phone, where the cream card and white panels came
+   back as near-black. Declaring `light` opts the document out of that
+   algorithm, and also keeps form controls, scrollbars and the address bar in
+   light UA styling. Set on :root so it applies before any paint. */
+:root {
+  color-scheme: light;
+}
+
 body {
   background: var(--bk-bg);
   color: var(--bk-fg);

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { SmartImage } from "@/components/kinetic/smart-image";
 import { SectionHead } from "@/components/home/section-head";
 
 interface MenuCategory {
@@ -25,14 +24,12 @@ export function CatalogueSplit({
   categories,
   itemCount,
   noticeDays,
-  photo,
 }: {
   categories: MenuCategory[];
   /** Live count, so the panel never claims a catalogue size it does not have. */
   itemCount: number;
   /** From site_settings, not hardcoded — the client changes this in admin. */
   noticeDays: number;
-  photo?: string;
 }) {
   return (
     <section className="mx-auto mt-8 w-full max-w-[var(--bk-page-width)] px-4 md:mt-14 md:px-6">
@@ -69,26 +66,19 @@ export function CatalogueSplit({
           </Link>
         </div>
 
-        {/* ---------- Custom Order ---------- */}
+        {/* ---------- Custom Order ----------
+            Text only. This half is a single decision, not a browse, so it does
+            not need a picture to make the point — and the one it carried was
+            pulled from the gallery, which meant it advertised a cake we had
+            already baked for somebody else on the panel asking you to design
+            your own. The two halves still finish level: the grid stretches
+            them and md:mt-auto pins both CTAs to the bottom edge. */}
         <div className="flex flex-col overflow-hidden rounded-[var(--bk-r-block)] border border-bk-border bg-bk-pink-soft p-4 md:p-6">
           <SectionHead title="Custom Order" href="/custom-cake" linkLabel="Enquire" />
           <p className="-mt-1 mb-4 text-sm leading-relaxed text-bk-muted md:mb-5">
             Tell us the flavours, the design and the occasion, and we will bake
             it to order. Custom cakes need {noticeDays} days notice.
           </p>
-
-          {photo && (
-            <div className="overflow-hidden rounded-[var(--bk-r-inner)]">
-              <SmartImage
-                src={photo}
-                alt=""
-                aspect="aspect-[16/10]"
-                sizes="(max-width: 1024px) 92vw, 640px"
-                fit="cover"
-                className="rounded-[var(--bk-r-inner)] bg-bk-bg-3"
-              />
-            </div>
-          )}
 
           <Link
             href="/custom-cake"
