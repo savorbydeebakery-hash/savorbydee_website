@@ -2,12 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { MenuItemCard } from "@/components/menu-item-card";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { RevealGroup, RevealItem } from "@/components/kinetic/reveal";
-import { SmartImage } from "@/components/kinetic/smart-image";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
 interface MenuCategory {
@@ -21,15 +18,6 @@ interface MenuClientProps {
   menuItems: MenuItemForCart[];
   tag?: string;
 }
-
-const dietaryColors: Record<string, "mint" | "lavender" | "sky" | "yellow"> = {
-  egg: "yellow",
-  eggless: "mint",
-  vegan: "lavender",
-  "gluten-free": "sky",
-  "sugar-free": "lavender",
-  "nut-free": "sky",
-};
 
 const tagTitles: Record<string, string> = {
   daily: "Today's Menu",
@@ -143,60 +131,12 @@ export function MenuClient({ categories, menuItems, tag }: MenuClientProps) {
           <h2 className="mb-5 text-h2 text-ink">{cat.name}</h2>
           <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cat.items.map((item) => (
-              <RevealItem key={item.id}>
-                <Card
-                  hover
-                  className="menu-item-card flex flex-col gap-3"
-                  data-item-id={item.id}
-                  data-item-name={item.name.toLowerCase()}
-                >
-                  {item.image_url && (
-                    <SmartImage src={item.image_url} alt={item.name} />
-                  )}
-                  <div className="flex flex-1 flex-col gap-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold text-ink">{item.name}</h3>
-                      {item.is_sold_out ? (
-                        <Badge color="neutral">Sold Out</Badge>
-                      ) : (
-                        <span className="whitespace-nowrap text-sm font-semibold text-gold-deep">
-                          ₹{(item.base_price_cents / 100).toFixed(0)}+
-                        </span>
-                      )}
-                    </div>
-                    {item.description && (
-                      <p className="line-clamp-2 text-sm text-ink-soft">
-                        {item.description}
-                      </p>
-                    )}
-                    {item.dietary_tags && item.dietary_tags.length > 0 && (
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {item.dietary_tags.map((tag: string) => (
-                          <Badge
-                            key={tag}
-                            color={dietaryColors[tag.toLowerCase()] ?? "neutral"}
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <div className="mt-auto pt-2">
-                      <Button
-                        size="sm"
-                        variant={item.is_sold_out ? "ghost" : "primary"}
-                        disabled={item.is_sold_out}
-                        className="w-full"
-                        data-item-id={item.id}
-                        data-item-name={item.name}
-                        data-item-price={item.base_price_cents}
-                        onClick={() => setSelectedItem(item)}
-                      >
-                        {item.is_sold_out ? "Unavailable" : "Add to Cart"}
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
+              <RevealItem key={item.id} className="h-full">
+                <MenuItemCard
+                  item={item}
+                  onSelect={setSelectedItem}
+                  showDietaryTags
+                />
               </RevealItem>
             ))}
           </RevealGroup>

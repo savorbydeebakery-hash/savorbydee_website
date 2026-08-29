@@ -171,7 +171,7 @@ export default function CheckoutPage() {
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
                 step === s
-                  ? "bg-pink text-white"
+                  ? "bg-berry text-white"
                   : ["review", "fulfillment", "details", "confirm"].indexOf(step) > i
                   ? "bg-mint text-ink"
                   : "bg-ink/10 text-ink-faint"

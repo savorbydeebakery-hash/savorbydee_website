@@ -1,6 +1,5 @@
 "use client";
 
-import type { CSSProperties } from "react";
 import { Reveal } from "@/components/kinetic/reveal";
 import { SmartImage } from "@/components/kinetic/smart-image";
 
@@ -15,51 +14,77 @@ interface GalleryMarqueeProps {
 }
 
 /**
- * Infinite auto-scroll marquee. Renders nothing when empty.
- * Track is duplicated 3x and translated via CSS keyframes for a seamless loop.
- * Pauses on hover / focus. Duplicated items are hidden from a11y tree.
+ * Two counter-scrolling rows. A single row reads as a generic logo strip; two
+ * moving against each other reads as designed and fills the dark band properly.
+ *
+ * Each row's track is duplicated 3x and translated by -33.333% for a seamless
+ * loop. Duplicates are hidden from the a11y tree.
+ *
+ * The source list is capped before duplicating — every extra photo costs three
+ * DOM nodes per row, and this used to be fed ~100 unbounded rows.
  */
+
+const PER_ROW = 8;
+const LOOP = 3;
+
+function Row({
+  photos,
+  reverse = false,
+  duration,
+}: {
+  photos: GalleryPhoto[];
+  reverse?: boolean;
+  duration: string;
+}) {
+  if (photos.length === 0) return null;
+  const track = Array.from({ length: LOOP }, () => photos).flat();
+
+  return (
+    <div
+      className={`marquee-track flex w-max gap-4 ${reverse ? "marquee-reverse" : ""}`}
+      style={{ ["--marquee-duration" as string]: duration }}
+      onMouseEnter={(e) => e.currentTarget.classList.add("marquee-paused")}
+      onMouseLeave={(e) => e.currentTarget.classList.remove("marquee-paused")}
+    >
+      {track.map((photo, i) => (
+        <div
+          key={`${photo.id}-${i}`}
+          className="h-44 w-72 flex-shrink-0 overflow-hidden rounded-[var(--r-md)]"
+          aria-hidden={i >= photos.length}
+        >
+          <SmartImage
+            src={photo.image_url}
+            alt={i < photos.length ? (photo.caption ?? "SAVOR bakery") : ""}
+            aspect="aspect-[16/10]"
+            sizes="288px"
+            className="rounded-[var(--r-md)]"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function GalleryMarquee({ photos }: GalleryMarqueeProps) {
   if (!photos || photos.length === 0) return null;
 
-  // Cap the source before duplicating: the track is rendered 3x for a seamless
-  // loop, so every extra photo costs three DOM nodes. 12 is more than enough to
-  // fill the viewport at 288px per tile.
-  const loopCount = 3;
-  const source = photos.slice(0, 12);
-  const track: GalleryPhoto[] = Array.from({ length: loopCount }, () => source).flat();
+  const source = photos.slice(0, PER_ROW * 2);
+  const topRow = source.slice(0, PER_ROW);
+  const bottomRow = source.slice(PER_ROW) .length > 0 ? source.slice(PER_ROW) : topRow;
 
   return (
     <Reveal>
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
         <p className="text-eyebrow mb-2 text-blush">Straight from the oven</p>
-        <h2 className="mb-6 text-h2 text-shell">From the Bakery</h2>
-        <div className="group relative overflow-hidden">
-          {/* Fade edges — cocoa, to match the dark band this now sits on. */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-cocoa to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-cocoa to-transparent" />
+        <h2 className="text-h2 mb-8 text-shell">From the Bakery</h2>
 
-          <div
-            className="flex w-max gap-4 marquee-track"
-            style={{ "--loop-count": loopCount } as CSSProperties}
-            onMouseEnter={(e) => (e.currentTarget as HTMLElement).classList.add("marquee-paused")}
-            onMouseLeave={(e) => (e.currentTarget as HTMLElement).classList.remove("marquee-paused")}
-          >
-            {track.map((photo, i) => (
-              <div
-                key={`${photo.id}-${i}`}
-                className="h-48 w-72 flex-shrink-0 overflow-hidden rounded-2xl"
-                aria-hidden={i >= source.length}
-              >
-                <SmartImage
-                  src={photo.image_url}
-                  alt={i < source.length ? (photo.caption ?? "SAVOR bakery") : ""}
-                  aspect="aspect-[16/10]"
-                  sizes="288px"
-                />
-              </div>
-            ))}
-          </div>
+        <div className="relative space-y-4 overflow-hidden">
+          {/* Fade edges — cocoa, matching the dark band. */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-cocoa to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-cocoa to-transparent" />
+
+          <Row photos={topRow} duration="52s" />
+          <Row photos={bottomRow} duration="64s" reverse />
         </div>
       </section>
     </Reveal>

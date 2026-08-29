@@ -15,11 +15,20 @@ interface HomeTilesProps {
   galleryPhotos: TilePhoto[];
 }
 
+/**
+ * Asymmetric bento rather than a flat 2x2 — a symmetrical grid of four equal
+ * tiles is the single most template-looking layout there is. Tile 1 and 4 span
+ * two columns; 2 and 3 stack beside them.
+ */
 const TILES = [
-  { href: "/menu?tag=daily", label: "Daily Menu", sub: "Fresh to order", key: 0 },
-  { href: "/custom-cake", label: "Custom Order", sub: "Made just for you", key: 1 },
-  { href: "/menu", label: "Full Menu", sub: "Everything we bake", key: 2 },
-  { href: "/menu?tag=specials", label: "Specials", sub: "Seasonal treats", key: 3 },
+  { href: "/menu?tag=daily", label: "Daily Menu", sub: "Fresh to order", key: 0,
+    span: "sm:col-span-2", aspect: "aspect-[16/10]", sizes: "(max-width: 640px) 100vw, 740px" },
+  { href: "/custom-cake", label: "Custom Order", sub: "Made just for you", key: 1,
+    span: "", aspect: "aspect-[4/5]", sizes: "(max-width: 640px) 100vw, 366px" },
+  { href: "/menu", label: "Full Menu", sub: "Everything we bake", key: 2,
+    span: "", aspect: "aspect-[4/5]", sizes: "(max-width: 640px) 100vw, 366px" },
+  { href: "/menu?tag=specials", label: "Specials", sub: "Seasonal treats", key: 3,
+    span: "sm:col-span-2", aspect: "aspect-[16/10]", sizes: "(max-width: 640px) 100vw, 740px" },
 ];
 
 /**
@@ -34,30 +43,31 @@ export function HomeTiles({ galleryPhotos }: HomeTilesProps) {
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       {/* 2x2 symmetrical grid, ~16px radius, ~24px gaps */}
-      <RevealGroup className="grid grid-cols-2 gap-6 lg:gap-8">
+      <RevealGroup className="grid grid-cols-1 gap-5 sm:grid-cols-3 lg:gap-6">
         {TILES.map((tile) => (
-          <RevealItem key={tile.key}>
+          <RevealItem key={tile.key} className={tile.span}>
             <Link
               href={tile.href}
-              className="group relative block aspect-[4/3] overflow-hidden rounded-[16px]"
+              className={`group relative block ${tile.aspect} overflow-hidden rounded-[var(--r-xl)]`}
             >
-              <div className="absolute inset-0">
+              {/* Image scales inside a fixed frame — the frame stays put, which
+                  is the bit that reads as expensive. */}
+              <div className="absolute inset-0 transition-transform duration-700 ease-[var(--ease-out)] group-hover:scale-[1.06] motion-reduce:group-hover:scale-100">
                 <SmartImage
                   src={pick(tile.key)}
                   alt={tile.label}
-                  aspect="aspect-[4/3]"
-                  sizes="(max-width: 640px) 50vw, 560px"
+                  aspect="h-full w-full"
+                  sizes={tile.sizes}
+                  className="h-full rounded-none"
                 />
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-ink/15 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-5">
-                <p className="text-xs font-medium uppercase tracking-wide text-white/80">
-                  {tile.sub}
-                </p>
-                <h3 className="mt-1 text-xl font-bold text-white sm:text-2xl">
+              <div className="absolute inset-0 bg-gradient-to-t from-cocoa/85 via-cocoa/25 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
+                <p className="text-eyebrow text-blush">{tile.sub}</p>
+                <h3 className="font-display mt-1 text-2xl font-semibold text-shell sm:text-3xl">
                   {tile.label}
                 </h3>
-                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-pink px-3 py-1 text-xs font-semibold text-ink transition-transform group-hover:gap-2">
+                <span className="glass glass-sheen mt-3 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-white transition-all group-hover:gap-2.5">
                   Order Now <ArrowRight size={12} />
                 </span>
               </div>

@@ -6,6 +6,7 @@ import { Menu, ShoppingBag, X, User, LogIn } from "lucide-react";
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 import { createClient } from "@/lib/supabase/client";
+import { useCart } from "@/lib/cart/store";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -21,6 +22,16 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<{ email?: string } | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { totalItems } = useCart();
+
+  // Transparent over the hero, glass once past it.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 80);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -47,7 +58,14 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-ink/8 bg-white/90 backdrop-blur-md">
+      <header
+        className={clsx(
+          "sticky top-0 z-40 transition-[background-color,border-color,backdrop-filter] duration-300",
+          scrolled
+            ? "border-b border-ink/8 bg-porcelain/85 backdrop-blur-md"
+            : "border-b border-transparent bg-transparent"
+        )}
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
@@ -105,12 +123,17 @@ export function Header() {
               aria-label="Cart"
             >
               <ShoppingBag size={22} />
-              <span
-                id="cart-badge"
-                className="absolute -right-0.5 -top-0.5 hidden h-4 min-w-4 items-center justify-center rounded-full bg-pink px-1 text-[10px] font-bold text-white"
-              >
-                0
-              </span>
+              {/* Was a hardcoded "0" inside a permanently `hidden` span — the
+                  badge never rendered and never reflected the cart. */}
+              {totalItems > 0 && (
+                <span
+                  id="cart-badge"
+                  aria-label={`${totalItems} item${totalItems === 1 ? "" : "s"} in cart`}
+                  className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-berry px-1 text-[10px] font-bold text-white"
+                >
+                  {totalItems}
+                </span>
+              )}
             </Link>
 
             {/* Mobile menu toggle */}

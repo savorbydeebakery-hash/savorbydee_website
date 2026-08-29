@@ -269,6 +269,12 @@ body {
   will-change: transform;
 }
 
+/* Second row travels the other way — two rows moving against each other read
+   as designed; a single row reads as a generic logo strip. */
+.marquee-track.marquee-reverse {
+  animation-direction: reverse;
+}
+
 .marquee-track.marquee-paused {
   animation-play-state: paused;
 }

@@ -29,6 +29,8 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
   const directions =
     settings?.google_maps_directions_url ?? "https://maps.app.goo.gl/UTshwMiCXrRDXPW67";
 
+  // Icon foregrounds come from the ink/berry/cocoa ramp — the pale tokens are
+  // surfaces and were previously invisible when used as the icon colour.
   const stats = [
     { icon: Star, text: "4.7/5 on Google", accent: "bg-yellow-soft text-gold-deep" },
     { icon: Clock, text: "Open Mon–Sat, 9AM–9PM", accent: "bg-mint-soft text-cocoa" },
@@ -41,30 +43,33 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
       <Reveal className="grid grid-cols-1 items-center gap-8 md:grid-cols-2">
         {/* Image — LEFT */}
         <div className="relative">
-          <div className="overflow-hidden rounded-3xl">
+          <div className="overflow-hidden rounded-[var(--r-xl)]">
             <SmartImage
               src={photo}
               alt="Savor by Dee bakery"
               aspect="aspect-[4/3]"
               sizes="(max-width: 768px) 100vw, 560px"
+              className="rounded-[var(--r-xl)]"
             />
           </div>
-          <div className="absolute -bottom-4 -right-2 hidden rounded-2xl bg-white p-4 shadow-lg sm:block">
-            <p className="text-3xl font-bold text-ink">4.7</p>
-            <div className="flex items-center gap-0.5 text-gold-deep">
+          {/* Glass, overlapping the image corner — glass over imagery is the
+              placement rule's happy path. */}
+          <div className="glass glass-liquid absolute -bottom-5 -right-3 hidden rounded-[var(--r-md)] p-4 sm:block">
+            <p className="font-display text-3xl font-bold text-white">4.7</p>
+            <div className="flex items-center gap-0.5 text-blush">
               <Star size={14} fill="currentColor" />
               <Star size={14} fill="currentColor" />
               <Star size={14} fill="currentColor" />
               <Star size={14} fill="currentColor" />
               <Star size={14} fill="currentColor" className="opacity-40" />
             </div>
-            <p className="text-xs text-ink-soft">Google rating</p>
+            <p className="text-xs text-[#D8CCC0]">Google rating</p>
           </div>
         </div>
 
         {/* Story — RIGHT */}
         <div>
-          <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-pink-soft px-3 py-1 text-xs font-semibold text-berry">
+          <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-berry/10 px-3 py-1 text-eyebrow text-berry">
             <Cake size={12} /> Artisanal Bakery
           </p>
           <h2 className="text-h2 text-ink mb-4">
@@ -88,13 +93,13 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
               href={directions}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-pink px-5 py-2.5 text-sm font-semibold text-ink hover:bg-pink/90 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-cocoa px-5 py-2.5 text-sm font-semibold text-shell transition-colors hover:bg-cocoa-soft"
             >
               <MapPin size={16} /> Get Directions
             </Link>
             <Link
               href="/about"
-              className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:border-pink hover:text-berry transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl border border-ink/15 bg-porcelain px-5 py-2.5 text-sm font-semibold text-ink hover:border-berry hover:text-berry transition-colors"
             >
               Our Story
             </Link>

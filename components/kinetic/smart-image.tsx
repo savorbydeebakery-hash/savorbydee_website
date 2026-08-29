@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { Cake } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * Aspect-boxed image with a shimmer skeleton and a load-in reveal
@@ -39,7 +40,11 @@ export function SmartImage({
   if (!src) {
     return (
       <div
-        className={`${aspect} flex items-center justify-center overflow-hidden rounded-2xl bg-pink-soft text-ink-faint ${className}`}
+        className={cn(
+          aspect,
+          "flex items-center justify-center overflow-hidden rounded-2xl bg-pink-soft text-ink-faint",
+          className
+        )}
       >
         <Cake size={28} />
       </div>
@@ -48,7 +53,11 @@ export function SmartImage({
 
   return (
     <div
-      className={`${aspect} relative overflow-hidden rounded-2xl bg-pink-soft ${className}`}
+      className={cn(
+        aspect,
+        "relative overflow-hidden rounded-2xl bg-pink-soft",
+        className
+      )}
     >
       {!loaded && <div className="skeleton absolute inset-0 z-10" />}
 

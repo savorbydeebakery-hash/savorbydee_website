@@ -31,7 +31,7 @@ export async function PromoBanner({
   // Site-wide strip: minimal banner
   if (position === "site_wide_strip") {
     return (
-      <div className="bg-pink px-4 py-2 text-center">
+      <div className="bg-berry px-4 py-2 text-center">
         <p className="text-sm font-medium text-white">
           {banner.title}
           {banner.cta_text && banner.cta_link && (
@@ -99,7 +99,7 @@ export async function PromoBanner({
               {banner.cta_text && banner.cta_link && (
                 <a
                   href={banner.cta_link}
-                  className="inline-flex items-center gap-2 rounded-xl bg-pink px-6 py-3 text-sm font-semibold text-white hover:bg-pink/90 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl bg-berry px-6 py-3 text-sm font-semibold text-white hover:bg-berry/90 transition-colors"
                 >
                   {banner.cta_text} →
                 </a>
@@ -122,7 +122,7 @@ export async function PromoBanner({
             {banner.cta_text && banner.cta_link && (
               <a
                 href={banner.cta_link}
-                className="inline-flex items-center gap-2 rounded-xl bg-pink px-6 py-3 text-sm font-semibold text-white hover:bg-pink/90 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-berry px-6 py-3 text-sm font-semibold text-white hover:bg-berry/90 transition-colors"
               >
                 {banner.cta_text} →
               </a>
