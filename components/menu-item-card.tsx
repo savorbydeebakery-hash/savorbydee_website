@@ -40,6 +40,7 @@ export function MenuItemCard({
   sizes?: string;
 }) {
   const price = `₹${(item.base_price_cents / 100).toFixed(0)}+`;
+  const hasImage = Boolean(item.image_url);
 
   return (
     <article
@@ -47,37 +48,59 @@ export function MenuItemCard({
       data-item-id={item.id}
       data-item-name={item.name.toLowerCase()}
     >
-      {/* 4:5 portrait crop — taller cards read as more premium than 4:3, and
-          it matches the editorial reference. */}
-      <div className="relative">
-        <SmartImage
-          src={item.image_url}
-          alt={item.name}
-          aspect="aspect-[4/5]"
-          sizes={sizes}
-          className="rounded-none"
-        />
-        {/* Price as a glass chip over the image — glass over imagery is the
-            placement rule's happy path. */}
-        {!item.is_sold_out && (
-          <span data-contrast-ground="cocoa" className="glass absolute bottom-3 right-3 rounded-full px-3 py-1 text-sm font-semibold text-white">
-            {price}
-          </span>
-        )}
-        {item.is_sold_out && (
-          <span className="absolute bottom-3 right-3 rounded-full bg-cocoa/90 px-3 py-1 text-xs font-semibold text-shell">
-            Sold Out
-          </span>
-        )}
-      </div>
+      {/* Image area only when there IS an image. Most menu items have no
+          photo (the client launched text-only), and unconditionally rendering
+          a 4:5 box turned the menu into a wall of empty placeholders — the
+          pre-Phase-6 cards were conditional and this restores that.
+          4:5 portrait reads as more premium than 4:3 when a photo exists. */}
+      {hasImage && (
+        <div className="relative">
+          <SmartImage
+            src={item.image_url}
+            alt={item.name}
+            aspect="aspect-[4/5]"
+            sizes={sizes}
+            className="rounded-none"
+          />
+          {/* Price as a glass chip over the image — glass over imagery is the
+              placement rule's happy path. */}
+          {!item.is_sold_out && (
+            <span
+              data-contrast-ground="cocoa"
+              className="glass absolute bottom-3 right-3 rounded-full px-3 py-1 text-sm font-semibold text-white"
+            >
+              {price}
+            </span>
+          )}
+          {item.is_sold_out && (
+            <span className="absolute bottom-3 right-3 rounded-full bg-cocoa/90 px-3 py-1 text-xs font-semibold text-shell">
+              Sold Out
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         {categoryName && (
           <p className="text-eyebrow text-ink-soft">{categoryName}</p>
         )}
-        <h3 className="font-display text-lg font-semibold leading-snug text-ink">
-          {item.name}
-        </h3>
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-display text-lg font-semibold leading-snug text-ink">
+            {item.name}
+          </h3>
+          {/* Without an image there is no glass chip, so the price goes here. */}
+          {!hasImage && (
+            <span
+              className={
+                item.is_sold_out
+                  ? "whitespace-nowrap rounded-full bg-ink/8 px-2.5 py-0.5 text-xs font-semibold text-ink-soft"
+                  : "whitespace-nowrap text-sm font-semibold text-berry"
+              }
+            >
+              {item.is_sold_out ? "Sold Out" : price}
+            </span>
+          )}
+        </div>
         {item.description && (
           <p className="line-clamp-2 text-sm text-ink-soft">{item.description}</p>
         )}
