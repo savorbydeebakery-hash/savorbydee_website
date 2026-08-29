@@ -1,6 +1,6 @@
 # Veo 3.1 + Nano Banana Pro workflow
 
-5 images, then 5 clips. Nano Banana Pro builds the world, Veo moves the camera
+5 images, then 4 clips. Nano Banana Pro builds the world, Veo moves the camera
 through it.
 
 The `--start-image` / `--end-image` flags in `scroll-world-prompts.md` are
@@ -62,7 +62,7 @@ the edges. No text, no logos, no lettering.
 
 ---
 
-## Step 3 — Veo 3.1 Frames to Video: 5 clips
+## Step 3 — Veo 3.1 Frames to Video: 4 clips
 
 In Flow, choose **Frames to Video**, upload the two frames, paste the prompt.
 **16:9, 8 seconds, 1080p.**
