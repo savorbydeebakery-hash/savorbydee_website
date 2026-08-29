@@ -1,9 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useSyncExternalStore } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
+import { Reveal } from "@/components/kinetic/reveal";
+import { PropField } from "@/components/props/prop-field";
+import { Macaron, Cherry, CakeSlice } from "@/components/props/pastry-props";
 
 const Scene = dynamic(() => import("./scroll-world-scene"), {
   ssr: false,
@@ -23,8 +26,10 @@ const Scene = dynamic(() => import("./scroll-world-scene"), {
  * Progress is written to a ref, never state: state would re-render on every
  * scroll frame.
  *
- * Below 1024px or under reduced motion the canvas never mounts and the
- * captions render as a normal stacked section, so the content is identical.
+ * Below 768px or under reduced motion the canvas never mounts. The fallback is
+ * a designed section in its own right, not a text dump: gradient mesh, grain,
+ * oversized outlined numerals, CSS-3D pastry props and scroll reveals. Phones
+ * only ever see that branch, so it has to stand on its own.
  */
 
 const BEATS = [
@@ -45,19 +50,34 @@ const BEATS = [
 export function ScrollWorld() {
   const section = useRef<HTMLElement>(null);
   const progress = useRef(0);
-  const [immersive, setImmersive] = useState(false);
 
-  useEffect(() => {
-    // Deferred out of the synchronous effect body: setting state inline there
-    // triggers a cascading render, and it also lets the pinned canvas wait
-    // until after first paint rather than competing with it.
-    const id = window.setTimeout(() => {
-      const big = window.matchMedia("(min-width: 1024px)").matches;
-      const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      setImmersive(big && motion);
-    }, 0);
-    return () => window.clearTimeout(id);
+  // matchMedia is external state, so it is read with useSyncExternalStore
+  // rather than an effect + setState.
+  //
+  // The previous version scheduled a setTimeout in an effect and cleared it on
+  // cleanup. Under Strict Mode (on in `next dev`, off in production) React
+  // mounts, cleans up, then mounts again, and that race left `immersive` false
+  // forever in dev while production worked, which is the worst kind of bug to
+  // chase. This also picks up viewport resizes, which the effect version never
+  // did: dragging a window past 768px now enables the flight.
+  const subscribe = useCallback((onChange: () => void) => {
+    const width = window.matchMedia("(min-width: 768px)");
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    width.addEventListener("change", onChange);
+    motion.addEventListener("change", onChange);
+    return () => {
+      width.removeEventListener("change", onChange);
+      motion.removeEventListener("change", onChange);
+    };
   }, []);
+
+  const immersive = useSyncExternalStore(
+    subscribe,
+    () =>
+      window.matchMedia("(min-width: 768px)").matches &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false // server: always the fallback, so SSR markup is stable
+  );
 
   useGSAP(
     () => {
@@ -66,7 +86,7 @@ export function ScrollWorld() {
 
       const mm = gsap.matchMedia();
 
-      mm.add("(min-width: 1024px) and (prefers-reduced-motion: no-preference)", () => {
+      mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
         const captions = gsap.utils.toArray<HTMLElement>("[data-beat]", el);
 
         const st = ScrollTrigger.create({
@@ -125,6 +145,7 @@ export function ScrollWorld() {
     <section
       ref={section}
       data-contrast-ground="cocoa"
+      data-immersive={String(immersive)}
       className="relative overflow-hidden bg-cocoa"
     >
       {immersive ? (
@@ -156,15 +177,49 @@ export function ScrollWorld() {
           </div>
         </div>
       ) : (
-        // Same content, no canvas, no pin.
-        <div className="mx-auto max-w-2xl space-y-12 px-4 py-20 sm:px-6">
-          {BEATS.map((beat) => (
-            <div key={beat.title}>
-              <h2 className="text-h2 text-shell">{beat.title}</h2>
-              <p className="mt-3 text-[#D8CCC0]">{beat.body}</p>
-            </div>
-          ))}
-        </div>
+        <PropField className="py-20">
+          {/* Same gradient mesh + grain as the hero, so the band is lit rather
+              than a flat brown slab. */}
+          <div
+            aria-hidden="true"
+            className="hero-mesh pointer-events-none absolute inset-0 opacity-70"
+            style={{
+              background:
+                "radial-gradient(55% 45% at 15% 15%, color-mix(in oklab, var(--berry) 50%, transparent), transparent 60%)," +
+                "radial-gradient(45% 40% at 85% 45%, rgb(232 175 124 / 0.22), transparent 62%)," +
+                "radial-gradient(60% 50% at 45% 95%, rgb(246 199 207 / 0.16), transparent 66%)",
+            }}
+          />
+          <div aria-hidden="true" className="hero-grain absolute inset-0" />
+
+          <Macaron size={72} x="82%" y="6%" depth={0.6} className="hidden sm:block" />
+          <Cherry size={40} x="8%" y="44%" depth={0.4} className="hidden sm:block" />
+          <CakeSlice size={72} x="86%" y="78%" depth={0.75} className="hidden sm:block" />
+
+          <div className="relative mx-auto max-w-3xl px-4 sm:px-6">
+            {BEATS.map((beat, i) => (
+              <Reveal key={beat.title} delay={i * 0.08}>
+                <div
+                  className={`grid grid-cols-[auto_1fr] items-start gap-x-5 gap-y-2 py-10 sm:gap-x-8 ${
+                    i > 0 ? "border-t border-shell/12" : ""
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="font-display text-[2.75rem] font-semibold leading-none text-transparent sm:text-[4.5rem]"
+                    style={{ WebkitTextStroke: "1.5px var(--blush)" }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="text-h2 text-shell">{beat.title}</h2>
+                    <p className="mt-3 max-w-prose text-[#D8CCC0]">{beat.body}</p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </PropField>
       )}
     </section>
   );

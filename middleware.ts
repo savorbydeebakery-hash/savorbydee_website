@@ -9,13 +9,13 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
+     * - _next (ALL Next internals: static chunks, image optimizer, and in
+     *   development the HMR websocket and Turbopack chunk endpoints)
      * - favicon.ico (favicon)
      * - public assets
      * - api/webhooks (public webhook endpoints)
      * - api/cron (public cron endpoint, protected by CRON_SECRET)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/webhooks|api/cron).*)",
+    "/((?!_next|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/webhooks|api/cron).*)",
   ],
 };
