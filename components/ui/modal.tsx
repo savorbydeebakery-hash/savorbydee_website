@@ -46,12 +46,12 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-ink/30 backdrop-blur-sm"
+        className="absolute inset-0 bg-cocoa/50 backdrop-blur-md"
         onClick={onClose}
       />
       <div
         className={clsx(
-          "relative z-10 w-full rounded-2xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto",
+          "relative z-10 max-h-[90vh] w-full overflow-y-auto rounded-[var(--r-lg)] bg-porcelain shadow-[var(--shadow-lg)]",
           sizes[size]
         )}
         role="dialog"

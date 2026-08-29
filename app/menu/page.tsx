@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { Badge } from "@/components/ui/badge";
 import { MenuClient } from "@/components/menu-client";
 
 export const metadata = {
@@ -34,22 +33,38 @@ export default async function MenuPage({
   ]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-      {/* Header */}
-      <div className="mb-8 text-center">
-        <Badge color="pink" className="mb-3">Fresh to Order</Badge>
-        <h1 className="text-h1 text-ink mb-3">Our Menu</h1>
-        <p className="text-ink-soft max-w-xl mx-auto">
-          Every item is made fresh when you order. Please allow at least 12 hours
-          for standard items.
-        </p>
-      </div>
+    <div>
+      {/* Compact dark hero band — gives the menu page a top edge instead of
+          starting cold on cream, and matches the homepage rhythm. */}
+      <section className="relative overflow-hidden bg-cocoa px-4 py-16 sm:px-6 sm:py-20">
+        <div
+          aria-hidden="true"
+          className="hero-mesh pointer-events-none absolute inset-0 opacity-80"
+          style={{
+            background:
+              "radial-gradient(55% 70% at 20% 25%, rgb(194 86 107 / 0.45), transparent 62%)," +
+              "radial-gradient(50% 60% at 80% 30%, rgb(247 216 204 / 0.25), transparent 62%)," +
+              "radial-gradient(70% 60% at 50% 100%, rgb(74 56 48 / 0.55), transparent 72%)",
+          }}
+        />
+        <div aria-hidden="true" className="hero-grain absolute inset-0" />
+        <div className="relative mx-auto max-w-3xl text-center">
+          <p className="text-eyebrow mb-3 text-blush">Fresh to order</p>
+          <h1 className="text-h1 text-shell">Our Menu</h1>
+          <p className="mx-auto mt-4 max-w-xl text-[#D8CCC0]">
+            Every item is made fresh when you order. Please allow at least 12
+            hours for standard items.
+          </p>
+        </div>
+      </section>
 
-      <MenuClient
-        categories={categories ?? []}
-        menuItems={menuItems ?? []}
-        tag={tag}
-      />
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <MenuClient
+          categories={categories ?? []}
+          menuItems={menuItems ?? []}
+          tag={tag}
+        />
+      </div>
     </div>
   );
 }

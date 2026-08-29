@@ -76,59 +76,72 @@ export function MenuClient({ categories, menuItems, tag }: MenuClientProps) {
         </div>
       )}
 
-      {/* Search bar */}
-      <div className="mb-8 flex justify-center">
-        <div className="relative w-full max-w-md">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
-            size={18}
-          />
-          <input
-            type="text"
-            id="menu-search"
-            placeholder="Search cakes, cookies, desserts..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-xl border border-ink/15 bg-white py-2.5 pl-10 pr-4 text-sm text-ink placeholder:text-ink-faint focus:border-pink focus:outline-none focus:ring-2 focus:ring-pink/20 transition-colors"
-          />
+      {/* Sticky filter bar. `top-16` clears the sticky header.
+          Solid rather than glass on purpose: this sits over flat cream, where
+          the placement rule in globals.css says glass reads as grey mud. */}
+      <div className="sticky top-16 z-30 -mx-4 mb-10 border-y border-ink/8 bg-background/90 px-4 py-4 backdrop-blur-md sm:-mx-6 sm:px-6">
+        <div className="mb-4 flex justify-center">
+          <div className="relative w-full max-w-md">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
+              size={18}
+            />
+            <input
+              type="text"
+              id="menu-search"
+              placeholder="Search cakes, cookies, desserts..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full rounded-full border border-ink/15 bg-porcelain py-2.5 pl-10 pr-4 text-sm text-ink transition-colors placeholder:text-ink-faint focus:border-berry focus:outline-none focus:ring-2 focus:ring-berry/25"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Category filter chips */}
-      <div className="mb-10 flex flex-wrap justify-center gap-2">
-        <button
-          type="button"
-          className={`filter-chip rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-            activeCategory === "all"
-              ? "border-gold bg-gold-soft text-gold-deep"
-              : "border-ink/15 bg-white text-ink-soft hover:border-gold hover:text-gold-deep"
-          }`}
-          data-category="all"
-          onClick={() => setActiveCategory("all")}
-        >
-          All
-        </button>
-        {categories.map((cat) => (
+        {/* Category chips — horizontally scrollable on narrow screens rather
+            than wrapping into a four-line block. */}
+        <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible">
           <button
-            key={cat.id}
             type="button"
-            className={`filter-chip rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-              activeCategory === cat.id
-                ? "border-gold bg-gold-soft text-gold-deep"
-                : "border-ink/15 bg-white text-ink-soft hover:border-gold hover:text-gold-deep"
+            className={`filter-chip flex-shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeCategory === "all"
+                ? "border-berry bg-berry text-white"
+                : "border-ink/15 bg-porcelain text-ink-soft hover:border-berry hover:text-berry"
             }`}
-            data-category={cat.id}
-            onClick={() => setActiveCategory(cat.id)}
+            data-category="all"
+            onClick={() => setActiveCategory("all")}
           >
-            {cat.name}
+            All
           </button>
-        ))}
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              className={`filter-chip flex-shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                activeCategory === cat.id
+                  ? "border-berry bg-berry text-white"
+                  : "border-ink/15 bg-porcelain text-ink-soft hover:border-berry hover:text-berry"
+              }`}
+              data-category={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Menu sections */}
       {visibleSections.map((cat) => (
-        <section key={cat.id} className="mb-12" data-category-section={cat.id}>
-          <h2 className="mb-5 text-h2 text-ink">{cat.name}</h2>
+        <section key={cat.id} className="mb-16" data-category-section={cat.id}>
+          {/* Heading with a hairline rule running to the edge — cheap, and it
+              gives each category a clear top boundary. */}
+          <div className="mb-6 flex items-baseline gap-4">
+            <h2 className="text-h2 whitespace-nowrap text-ink">{cat.name}</h2>
+            <span aria-hidden="true" className="h-px flex-1 bg-ink/12" />
+            <span className="text-eyebrow whitespace-nowrap text-ink-faint">
+              {cat.items.length} item{cat.items.length === 1 ? "" : "s"}
+            </span>
+          </div>
           <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cat.items.map((item) => (
               <RevealItem key={item.id} className="h-full">
