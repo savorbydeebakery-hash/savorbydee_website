@@ -15,6 +15,7 @@
     "deploy:production": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env production",
     "cf-typegen": "wrangler types",
     "check:seams": "node scripts/check-seams.mjs",
+    "assign:menu-images": "tsx --env-file=.dev.vars scripts/assign-menu-images.ts",
     "fix:image-cache": "tsx --env-file=.dev.vars scripts/fix-image-cache.ts",
     "e2e": "playwright test"
   },
