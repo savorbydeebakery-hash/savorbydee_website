@@ -2,7 +2,7 @@
 
 Save the generated bakery photo here as:
 
-    bakery-items.png
+    bakery-items.jpg
 
 Expected: wide (about 16:9), off-white background, products grouped to the
 RIGHT half with empty space on the left. The hero places the headline over that

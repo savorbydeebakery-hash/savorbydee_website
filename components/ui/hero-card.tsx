@@ -8,7 +8,7 @@ import { gsap } from "@/lib/motion/gsap";
 import { HeroBackdrop } from "@/components/three/hero-backdrop";
 import { CakeSlice, HeartHandshakeIcon } from "@/components/ui/hero-icons";
 
-const HERO_IMAGE = "/hero/bakery-items.png";
+const HERO_IMAGE = "/hero/bakery-items.jpg";
 
 /**
  * Hero, following the client's reference composition:
@@ -103,7 +103,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
           <HeroBackdrop className="absolute inset-0 opacity-90" />
         </div>
 
-        <div className="relative mx-auto max-w-[1400px] overflow-hidden rounded-[28px] bg-porcelain shadow-[0_40px_120px_-40px_rgb(46_33_27_/_0.45)] sm:rounded-[40px]">
+        <div className="relative mx-auto max-w-[1400px] overflow-hidden rounded-[28px] bg-paper shadow-[0_40px_120px_-40px_rgb(46_33_27_/_0.45)] sm:rounded-[40px]">
           <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[1fr_1.05fr] lg:gap-6 lg:px-16 lg:py-12">
             {/* Copy */}
             <div className="relative z-10">
@@ -160,7 +160,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
             {/* Product photography. Its own grid column, so copy can never
                 sit over the food: the two never share space by construction,
                 not by tuning offsets. */}
-            <div className="relative h-[280px] sm:h-[400px] lg:h-[520px]">
+            <div className="relative aspect-[16/9] w-full">
               <div data-hero-photo-wrap className="absolute inset-0">
                 <Image
                   src={HERO_IMAGE}
@@ -170,13 +170,13 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
                   sizes="(max-width: 1024px) 100vw, 720px"
                   // object-right: when the frame is cropped at narrow widths it
                   // gives up its empty left margin first, never the food.
-                  className="object-contain object-right"
+                  className="photo-feather object-contain object-right"
                 />
               </div>
 
-              <ScriptLabel text="Layer cake" className="left-[1%] top-[2%]" path="M0,32 Q70,2 148,18" />
-              <ScriptLabel text="Macaron" className="bottom-[3%] left-[0%]" path="M0,28 Q66,4 140,22" />
-              <ScriptLabel text="Croissant" className="right-[1%] top-[6%]" path="M12,0 Q28,50 14,110" vertical />
+              <ScriptLabel text="Layer cake" className="left-[8%] top-[6%]" path="M0,32 Q70,2 148,18" />
+              <ScriptLabel text="Macaron" className="bottom-[12%] left-[4%]" path="M0,28 Q66,4 140,22" />
+              <ScriptLabel text="Croissant" className="right-[2%] top-[22%]" path="M12,0 Q28,50 14,110" vertical />
             </div>
           </div>
         </div>

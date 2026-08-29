@@ -16,6 +16,10 @@
   --berry: #A8455A;        /* saturated accent — prices, active chips, CTAs */
   --shell: #F2E8DC;        /* raised surface — alternating section background */
   --porcelain: #FFFDFA;    /* card surface, warmer than pure white */
+  /* Sampled from the hero photograph's own background (#F9F6EF / #F7F6F0).
+     The hero card uses this so the photo has no visible rectangular edge
+     against it; on porcelain the seam was plainly visible. */
+  --paper: #F8F6EF;
   --background: #FAF6F1;    /* Milk Foam */
   --foreground: #3B3630;    /* warm dark text */
   /* SAVOR warm milk palette */
@@ -85,6 +89,7 @@
   --color-berry: var(--berry);
   --color-shell: var(--shell);
   --color-porcelain: var(--porcelain);
+  --color-paper: var(--paper);
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-display), ui-serif, Georgia, serif;
 }
@@ -473,4 +478,20 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .kenburns { animation: none; }
+}
+
+/* ---------- Hero photo edge feather ----------
+   The hero photograph's own background is not flat (#F9F6EF at one corner,
+   #F7F6F0 at the other), so no single card colour can match it and a faint
+   rectangle shows at the seam. Fading the outer few percent to transparent
+   removes the edge regardless of how close the two grounds are. */
+.photo-feather {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent 0, #000 6%, #000 94%, transparent 100%),
+    linear-gradient(to bottom, transparent 0, #000 7%, #000 93%, transparent 100%);
+  mask-composite: intersect;
 }
