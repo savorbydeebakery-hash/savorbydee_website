@@ -5,86 +5,52 @@
 
 ---
 
-## STATUS — ALL PHASES COMPLETE (2026-08-29, Opus)
+## STATUS — complete (2026-08-29)
 
-Branch `redesign/liquid-glass`. Rollback point: `git checkout master` (`ea88237`).
+Branch `redesign/liquid-glass`, 26 commits. `master` is untouched at `ea88237`
+and remains the rollback point.
 
-| Phase | State | Commit |
-|---|---|---|
-| 0 Safety & baseline | ✅ | `f53802e` |
-| 1 Image pipeline | ✅ | `40d2b7d` |
-| 2 Design system | ✅ | `59bacb8` |
-| 3 Motion infra | ✅ | `a5cd9b4` |
-| 4 3D props | ✅ | `a5cd9b4` |
-| 5 Hero | ✅ | `a5cd9b4` |
-| 6 Section redesign | ✅ | `c2216ef` |
-| 7 Menu page | ✅ | `b06412d` |
-| 8 Polish & verification | ✅ | `e0fe383` |
+All nine phases done, plus the work that came after: WebGL hero backdrop and
+glass torus, scroll-scrubbed video sections, travelling macaron, card-on-field
+hero, CI pipeline.
 
-**Final gates:** tsc 0 errors · eslint 0 errors / 1 warning (baseline 9) ·
-vitest 56/56 (baseline 48) · OpenNext build OK ·
-**Playwright 14/14** (9 functional + 5 audit)
+**Gates:** tsc 0 · eslint 0 errors / 1 warning (baseline 9) · vitest 56/56
+(baseline 48) · OpenNext build OK · **Playwright 14/14**
 
-`e2e/a11y-audit.spec.ts` is now part of the suite — it checks computed contrast
-and horizontal overflow across four pages at three viewports, plus a
-reduced-motion assertion. Keep it green.
+### Done since the original plan
 
-**Measured result of Phase 1** (real client photo, `gallery/Bento cakes 5.jpg`):
+| | |
+|---|---|
+| Images | 1.27MB uncached -> 42KB WebP with `max-age=31536000`. 129 objects re-stamped. |
+| Menu images | 0/76 -> 57/76. 19 savouries left text-only on purpose. |
+| Motion | 3 scroll-scrubbed video sections, travelling macaron, 3D grid rises, card tilt, velocity-skewed marquee, scroll progress |
+| Hero | rebuilt to the client reference: light card on a live shader field |
+| CI | `.github/workflows/deploy.yml`, check -> deploy -> verify |
 
-| | Before | After |
-|---|---|---|
-| Card image | 1,270,698 B | 42,384 B (−96.7%) |
-| Hero image | 1,270,698 B | 76,360 B (−94.0%) |
-| Homepage `<img>` | ~600 | 54 |
-| Raw (untransformed) URLs in `<img>` | all | 0 |
+### Blocked on the user, not on code
 
-### ⚠️ Outstanding — needs the user, not the executor
-
-1. **Rotate the Supabase service-role key.** It sat in plaintext in
-   `scripts/upload-gallery-images.ts`. Removed from the file in P0.2, but
-   removal does not invalidate it.
-2. **Run `npm run fix:image-cache`.** Written in P1.4 but never executed — it
-   needs a live service-role key. Until it runs, every stored object still
-   carries `Cache-Control: no-cache`, so even at 42 KB each image re-downloads
-   from Tokyo on every visit. **This is the other half of the image win.**
+1. **Git push is rejected.** `jeremygideonbareh` is not a collaborator on
+   `savorbydeebakery-hash/savorbydee_website` (403). 26 commits waiting.
+   Fix: add the account as a collaborator, or `gh auth login` as the owner.
+2. **Cloudflare deploy needs auth.** `wrangler whoami` reports not
+   authenticated and no `CLOUDFLARE_API_TOKEN` exists. `wrangler login` is an
+   interactive browser flow.
+3. **Rotate the Supabase service-role key.** It sat in plaintext in
+   `scripts/upload-gallery-images.ts`. Removing it did not invalidate it.
+4. **CI secrets** need setting once, listed in `.github/workflows/README.md`.
 
 ### Deferred, with reasons
 
-- **ISR (`export const revalidate`)** — reverted to `force-dynamic` on `/`,
-  `/menu`, `/gallery`. ISR dispatches background revalidation through the
-  configured queue and `open-next.config.ts` uses `memoryQueue`, which
-  revalidates inside the same worker invocation. Symptom: the shell returns 200
-  but the RSC stream never resolves, so the page renders as a permanent loading
-  skeleton, with `Uncaught Error: The Workers runtime canceled this request
-  because it detected that your Worker's code had hung`. Re-enabling needs real
-  Cloudflare Queues wired into `open-next.config.ts`.
-- **General Sans** — Fontshare, not Google, so `next/font/google` cannot load
-  it. Shipped Plus Jakarta Sans; the swap point is commented in
-  `app/layout.tsx`.
-- **P5.3 WebGL hero centrepiece** — deps installed (`three`,
-  `@react-three/fiber`, `@react-three/drei`) but the R3F canvas is not built.
-  The hero's gradient mesh + glass stat cards already carry the effect; add the
-  torus only if it earns its 180 KB.
-- **P3.3 Lenis smooth scroll** — not wired. Native scroll + ScrollTrigger reads
-  fine; Lenis is a polish item with real modal/sticky-header risk.
-
-### Gotchas learned the hard way
-
-- **A leftover `wrangler dev` respawns `workerd` and locks `.open-next`**,
-  causing `EPERM` on the next build. Kill the *parent* node process, not the
-  workerd children:
-  `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -match 'wrangler' } | ForEach-Object { taskkill /PID $_.ProcessId /T /F }`
-- **The Claude browser pane does not composite when it is not displayed**, so
-  JS is throttled and React hydration never completes — the page looks stuck on
-  `loading.tsx` with `window.__next_f` empty. This is an artifact of the tool,
-  not a bug in the app. **Trust Playwright over the pane.**
-- **The E2E suite is the real gate.** Two specs failed on a strict-mode
-  violation because the Sign In/Sign Up tab toggle in the uncommitted homepage
-  WIP made `/sign in/i` match two buttons. Fixed by scoping to
-  `locator("form")`. Verify blame with `git show <ref>:<file>` before assuming
-  you caused a failure.
-
----
+- **ISR** stays `force-dynamic`. Re-enabling needs real Cloudflare Queues; with
+  `memoryQueue` the worker hangs and the page renders a permanent skeleton.
+- **`next dev` does not hydrate** in this workspace. Turbopack 403s on
+  `/_next/static/chunks/*`; `--webpack` fixes those but an HMR websocket
+  handshake failure remains. Use `wrangler dev` for visual checks.
+- **General Sans** needs the woff2 in `public/fonts/`; Plus Jakarta Sans ships.
+- **Mobile 9:16 clips** not generated. Video sections are desktop-only.
+- **Fraunces** is on the anti-slop skill's banned list but was the client's
+  pick, so it stays.
+- **One unused clip** (`_unused/`, the fantasy-village one) cannot be salvaged.
 
 ## 0. Read This First (Executor Briefing)
 
