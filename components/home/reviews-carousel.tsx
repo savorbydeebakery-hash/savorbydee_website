@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Star, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
-import { SectionHead } from "@/components/home/section-head";
 
 export interface Review {
   id: string;
@@ -30,7 +29,16 @@ const INTERVAL_MS = 5000;
  * The timer is keyed on `index`, so any manual navigation restarts the full
  * 5s dwell rather than advancing early on a timer that was already half spent.
  */
-export function ReviewsCarousel({ reviews }: { reviews: Review[] }) {
+export function ReviewsCarousel({
+  reviews,
+  title = "What Customers Say",
+  /** Headline rating shown beside the title, e.g. 4.6. */
+  rating,
+}: {
+  reviews: Review[];
+  title?: string;
+  rating?: number;
+}) {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [held, setHeld] = useState(false);
@@ -72,7 +80,21 @@ export function ReviewsCarousel({ reviews }: { reviews: Review[] }) {
 
   return (
     <section className="mx-auto mt-8 w-full max-w-[var(--bk-page-width)] px-4 md:mt-14 md:px-6">
-      <SectionHead title="What Customers Say" />
+      <div className="mb-3 flex items-baseline gap-2.5 md:mb-5">
+        <h2 className="bk-section-title text-bk-fg">{title}</h2>
+        {rating != null && (
+          <span className="inline-flex items-baseline gap-1 text-sm font-medium text-bk-fg md:text-base">
+            {rating.toFixed(1)}
+            <Star
+              size={14}
+              fill="currentColor"
+              className="translate-y-px text-bk-pink"
+              aria-hidden="true"
+            />
+            <span className="sr-only">out of 5</span>
+          </span>
+        )}
+      </div>
 
       <div
         role="group"

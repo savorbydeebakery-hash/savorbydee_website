@@ -112,10 +112,18 @@ export default async function HomePage() {
       {/* 1. Hero — unchanged from the existing build, minus the proof badges. */}
       <HeroCard />
 
-      {/* 2. Gallery */}
+      {/* 2. Testimonials, directly under the hero. Still hides itself entirely
+             while the reviews table is empty. */}
+      <ReviewsCarousel
+        reviews={reviews ?? []}
+        title="Indulgence Approved"
+        rating={4.6}
+      />
+
+      {/* 3. Gallery */}
       <GalleryRail photos={photos} />
 
-      {/* 3. Daily | Specials */}
+      {/* 4. Daily | Specials */}
       <MenuSplit
         left={{
           title: "Daily Menu",
@@ -136,16 +144,12 @@ export default async function HomePage() {
         }}
       />
 
-      {/* 4. Full Menu | Custom Order */}
+      {/* 5. Full Menu | Custom Order */}
       <CatalogueSplit
         categories={categories ?? []}
         itemCount={itemCount ?? 0}
         noticeDays={settings?.custom_cake_notice_days ?? 5}
       />
-
-      {/* 5. Reviews. Appended after the four sections the brief numbered, so
-             that order is untouched. Hides itself when there are none. */}
-      <ReviewsCarousel reviews={reviews ?? []} />
     </div>
   );
 }

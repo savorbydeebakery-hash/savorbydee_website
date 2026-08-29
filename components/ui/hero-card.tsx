@@ -95,30 +95,42 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
         </div>
 
         <div className="relative mx-auto max-w-[1400px] overflow-hidden rounded-[28px] bg-white shadow-[0_40px_120px_-40px_rgb(46_33_27_/_0.45)] sm:rounded-[40px]">
-          <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[0.9fr_1.45fr] lg:gap-10 lg:py-12 lg:pl-16 lg:pr-6">
+          <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[1.1fr_1.3fr] lg:gap-10 lg:py-12 lg:pl-16 lg:pr-6">
             {/* Copy */}
             <div className="relative z-10">
-              <h1 className="text-display text-ink">
-                <span className="block overflow-hidden pb-[0.06em]">
+              {/* Sized down from .text-display (which topped out at 7.5rem).
+                  That was tuned for a 13-character line; these run to 32, and
+                  at display scale the first one alone needed ~1700px. Each
+                  data-line block is still its own overflow-hidden mask, so the
+                  line-by-line GSAP reveal is unchanged. */}
+              <h1 className="font-display text-[clamp(1.5rem,2.45vw,2.15rem)] font-medium leading-[1.16] tracking-[-0.035em] text-ink">
+                <span className="block overflow-hidden pb-[0.08em]">
                   <span data-line className="block">
-                    The <span className="text-berry">happiness</span>
+                    Savor the Art of <span className="text-berry">Indulgence</span>
                   </span>
                 </span>
-                <span className="block overflow-hidden pb-[0.06em]">
+                <span className="block overflow-hidden pb-[0.08em]">
                   <span data-line className="block">
-                    <span className="text-berry">inside</span> every
+                    Handcrafted, Heartfelt, <span className="text-berry">Heavenly</span>
                   </span>
                 </span>
-                <span className="block overflow-hidden pb-[0.06em]">
-                  <span data-line className="block">
-                    little <span className="text-berry">crumb</span>
+                <span className="block overflow-hidden pb-[0.08em]">
+                  <span
+                    data-line
+                    className="mt-2 block text-[0.44em] font-semibold uppercase tracking-[0.2em] text-ink-soft"
+                  >
+                    Savor By Dee
                   </span>
                 </span>
               </h1>
 
-              <p data-hero-sub className="mt-6 max-w-sm text-base leading-relaxed text-ink-soft">
-                From the first crackle of crust to the soft crumb inside, every bake
-                is made fresh to order in Shillong.
+              {/* max-w-md, not max-w-sm: this replaced a two-line sentence with
+                  a 48-word paragraph, and at 24rem it ran to nine lines. */}
+              <p data-hero-sub className="mt-6 max-w-md text-[0.95rem] leading-relaxed text-ink-soft">
+                At our artisanal bakery, we don&rsquo;t just bake &mdash; we craft edible
+                art. From fluffy brioche buns that pull apart like clouds to decadent
+                cakes layered with luxury, each creation is handmade with passion,
+                precision, and a sprinkle of magic.
               </p>
 
               <div data-hero-cta className="mt-8 flex flex-wrap items-center gap-7">
