@@ -7,6 +7,7 @@ import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/motion/gsap";
 import { HeroBackdrop } from "@/components/three/hero-backdrop";
 import { CakeSlice, HeartHandshakeIcon } from "@/components/ui/hero-icons";
+import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
 
 const HERO_IMAGE = "/hero/bakery-items.jpg";
 
@@ -98,9 +99,13 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
 
   return (
     <section ref={scope} className={className}>
-      <div className="relative bg-blush px-3 py-3 sm:px-5 sm:py-5">
+      <div className="relative bg-blush px-3 pb-24 pt-3 sm:px-5 sm:pb-32 sm:pt-5">
         <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
           <HeroBackdrop className="absolute inset-0 opacity-90" />
+          {/* The field used to stop dead at the card's edge, leaving a hard
+              pink band. It now runs past the card and dissolves into the page
+              background, so the hero has no seam under it. */}
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-background" />
         </div>
 
         <div className="relative mx-auto max-w-[1400px] overflow-hidden rounded-[28px] bg-paper shadow-[0_40px_120px_-40px_rgb(46_33_27_/_0.45)] sm:rounded-[40px]">
@@ -131,11 +136,10 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
               </p>
 
               <div data-hero-cta className="mt-8 flex flex-wrap items-center gap-7">
-                <Link
-                  href="/menu"
-                  className="inline-flex items-center rounded-full bg-berry px-8 py-3.5 text-sm font-semibold text-white shadow-[var(--shadow-md)] transition-all hover:bg-berry/90"
-                >
-                  Order now
+                <Link href="/menu" aria-label="Order now">
+                  <InteractiveHoverButton className="px-8 py-3.5 text-sm">
+                    Order now
+                  </InteractiveHoverButton>
                 </Link>
                 <Link
                   href="/menu"

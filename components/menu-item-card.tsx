@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SmartImage } from "@/components/kinetic/smart-image";
+import { Lens } from "@/components/magicui/lens";
 import { useTilt } from "@/lib/motion/use-tilt";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
@@ -60,7 +61,10 @@ export function MenuItemCard({
         <div className="relative">
           {/* contain, not cover: these are phone photos with off-centre
               subjects and a hard crop was removing the cake. bg-shell gives the
-              letterboxing a deliberate tint rather than bare white. */}
+              letterboxing a deliberate tint rather than bare white.
+              Lens lets the customer look closer at the decoration, which on a
+              cake menu is the thing they actually want to inspect. */}
+          <Lens zoomFactor={1.7} lensSize={130} ariaLabel="Zoom into the photo">
           <SmartImage
             src={item.image_url}
             alt={item.name}
@@ -69,6 +73,7 @@ export function MenuItemCard({
             fit="contain"
             className="rounded-none bg-shell"
           />
+          </Lens>
           {/* Price as a glass chip over the image — glass over imagery is the
               placement rule's happy path. */}
           {!item.is_sold_out && (

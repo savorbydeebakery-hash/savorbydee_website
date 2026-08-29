@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/cart/math";
+import { Confetti } from "@/components/magicui/confetti";
 import { CheckCircle2, Package, MapPin, Clock, Search } from "lucide-react";
 import Link from "next/link";
 
@@ -160,6 +161,19 @@ export default function OrderConfirmationPage({
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       {/* Success header */}
+      {/* One burst on arrival. This is the single genuinely celebratory moment
+          in the whole flow, and it fires once rather than looping. */}
+      <Confetti
+        className="pointer-events-none fixed inset-0 z-50"
+        options={{
+          particleCount: 90,
+          spread: 70,
+          origin: { y: 0.35 },
+          colors: ["#A8455A", "#F6C7CF", "#E8AF7C", "#F2E8DC"],
+          disableForReducedMotion: true,
+        }}
+      />
+
       <div className="text-center mb-8">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-mint-soft">
           <CheckCircle2 className="text-cocoa" size={36} />

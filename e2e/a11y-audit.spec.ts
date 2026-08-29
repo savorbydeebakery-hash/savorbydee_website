@@ -27,7 +27,7 @@ const auditContrast = `(() => {
   // Where text sits over an image or a gradient painted by an absolutely
   // positioned SIBLING, no amount of ancestor-walking finds the real ground.
   // Those containers declare it explicitly via data-contrast-ground.
-  const GROUNDS = { cocoa:[46,33,27,1], cream:[250,246,241,1], shell:[242,232,220,1], porcelain:[255,253,250,1] };
+  const GROUNDS = { cocoa:[46,33,27,1], cream:[250,246,241,1], shell:[242,232,220,1], porcelain:[255,253,250,1], berry:[168,69,90,1] };
   const opaqueBg=el=>{
     let e=el;
     while(e&&e!==document.documentElement){

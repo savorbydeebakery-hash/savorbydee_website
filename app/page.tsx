@@ -11,6 +11,7 @@ import { CurationRow } from "@/components/home/curation-row";
 import { BestBakerySection } from "@/components/home/best-bakery-section";
 import { ScrollVideoSection } from "@/components/scroll-video-section";
 import { TravelingMacaron } from "@/components/three/traveling-macaron";
+import { DotPattern } from "@/components/magicui/dot-pattern";
 import { PropField } from "@/components/props/prop-field";
 import {
   Macaron,
@@ -139,7 +140,9 @@ export default async function HomePage() {
       <HeroCard images={heroImages} />
 
       {/* Four big image tiles: Daily / Custom / Full / Specials */}
-      <PropField>
+      {/* Pulled up into the hero's fading field so the two sections share a
+          ground instead of butting against each other. */}
+      <PropField className="-mt-20 sm:-mt-28">
         <Cherry size={44} x="50%" y="46%" depth={0.5} className="hidden lg:block" />
         <HomeTiles galleryPhotos={featuredPhotos.slice(7, 11)} />
       </PropField>
@@ -163,7 +166,13 @@ export default async function HomePage() {
       />
 
       {/* Chef's Choice (admin-curated) — raised band */}
-      <PropField className="bg-shell">
+      <PropField className="relative bg-shell">
+        <DotPattern
+          width={26}
+          height={26}
+          cr={1.1}
+          className="pointer-events-none absolute inset-0 fill-ink/[0.07] [mask-image:radial-gradient(560px_circle_at_center,white,transparent)]"
+        />
         <Macaron size={72} x="3%" y="16%" depth={0.45} className="hidden lg:block" />
         <ChocolateCurl size={58} x="94%" y="70%" depth={0.8} className="hidden lg:block" />
         <CurationRow
@@ -285,8 +294,14 @@ export default async function HomePage() {
           template-looking feature layout there is. Now an asymmetric editorial
           list: oversized outlined numerals in a narrow left rail, copy in a
           wide right column, hairline between steps instead of card chrome. */}
-      <Reveal className="bg-shell">
-        <section className="mx-auto max-w-5xl px-4 py-20 sm:px-6">
+      <Reveal className="relative bg-shell">
+        <DotPattern
+          width={26}
+          height={26}
+          cr={1.1}
+          className="pointer-events-none absolute inset-0 fill-ink/[0.07] [mask-image:radial-gradient(640px_circle_at_center,white,transparent)]"
+        />
+        <section className="relative mx-auto max-w-5xl px-4 py-20 sm:px-6">
           <h2 className="text-h2 mb-14 max-w-xl text-ink">
             Three steps, no surprises
           </h2>

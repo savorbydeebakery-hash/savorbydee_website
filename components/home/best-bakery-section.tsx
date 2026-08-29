@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Star, Clock, MapPin, Award, Cake } from "lucide-react";
 import { Reveal } from "@/components/kinetic/reveal";
 import { SmartImage } from "@/components/kinetic/smart-image";
+import { NumberTicker } from "@/components/magicui/number-ticker";
 
 interface Settings {
   about_narrative?: string | null;
@@ -56,7 +57,9 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
           {/* Glass, overlapping the image corner — glass over imagery is the
               placement rule's happy path. */}
           <div data-contrast-ground="cocoa" className="glass glass-liquid absolute -bottom-5 -right-3 hidden rounded-[var(--r-md)] p-4 sm:block">
-            <p className="font-display text-3xl font-bold text-white">4.7</p>
+            <p className="font-display text-3xl font-bold text-white">
+              <NumberTicker value={4.7} decimalPlaces={1} className="text-white" />
+            </p>
             <div className="flex items-center gap-0.5 text-blush">
               <Star size={14} fill="currentColor" />
               <Star size={14} fill="currentColor" />
