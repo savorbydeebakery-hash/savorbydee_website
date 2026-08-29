@@ -1,5 +1,15 @@
 # Savor by Dee — scroll-world asset prompts
 
+> **UPDATED for Veo 3.1 + Nano Banana Pro.**
+> The `--start-image` / `--end-image` flags below are Higgsfield CLI syntax and
+> do not apply to Veo. Veo 3.1 has native first-and-last-frame interpolation,
+> which is a better fit: it pins BOTH ends of each connector instead of hoping a
+> clip ends on the right motion. See `docs/veo-nano-banana-workflow.md` for the
+> translated pipeline. The style preamble and scene descriptions below are still
+> the source of truth for look and palette.
+
+
+
 Generate in this order. Every clip must start from the previous clip's **last
 frame**, or the seams will visibly jump.
 
