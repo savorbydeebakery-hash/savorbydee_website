@@ -22,9 +22,10 @@ const INTERVAL_MS = 5000;
  * touch users — so there is an explicit toggle. Hover and keyboard focus also
  * pause, but as a convenience on top of the control, not instead of it.
  *
- * Rotation additionally stops when:
- *   - the visitor prefers reduced motion (it never starts)
- *   - the tab is hidden, so a backgrounded page is not burning timers
+ * Rotation additionally:
+ *   - starts paused when the visitor prefers reduced motion, but the Play
+ *     button still works from there — see the note on the interval effect
+ *   - stops while the tab is hidden, so a backgrounded page burns no timers
  *
  * The timer is keyed on `index`, so any manual navigation restarts the full
  * 5s dwell rather than advancing early on a timer that was already half spent.
@@ -56,8 +57,15 @@ export function ReviewsCarousel({
     if (reduced.current) setPlaying(false);
   }, []);
 
+  // NOTE: `reduced` is deliberately NOT consulted here. It sets the initial
+  // value of `playing` above and nothing else. Gating the interval on it too
+  // made the Play button a dead control for anyone with reduced motion on:
+  // visible, focusable, label flipping to "Pause", and no rotation. Reduced
+  // motion should decide the DEFAULT, not veto an explicit request to play.
+  // The slide transition still carries motion-reduce:transition-none, so a
+  // visitor who opts in gets instant cuts rather than a sliding animation.
   useEffect(() => {
-    if (!playing || held || count < 2 || reduced.current) return;
+    if (!playing || held || count < 2) return;
 
     const tick = () => setIndex((i) => (i + 1) % count);
     let id = window.setInterval(tick, INTERVAL_MS);
