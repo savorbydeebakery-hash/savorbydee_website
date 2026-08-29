@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { MenuClient } from "@/components/menu-client";
+import { PropField } from "@/components/props/prop-field";
+import { Macaron, Cherry, Sprinkles } from "@/components/props/pastry-props";
 
 export const metadata = {
   title: "Menu – Savor by Dee",
@@ -58,13 +60,16 @@ export default async function MenuPage({
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <PropField className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+        <Macaron size={68} x="-2%" y="6%" depth={0.5} className="hidden xl:block" />
+        <Sprinkles size={120} x="94%" y="22%" depth={0.7} className="hidden xl:block" />
+        <Cherry size={40} x="-1%" y="62%" depth={0.35} className="hidden xl:block" />
         <MenuClient
           categories={categories ?? []}
           menuItems={menuItems ?? []}
           tag={tag}
         />
-      </div>
+      </PropField>
     </div>
   );
 }

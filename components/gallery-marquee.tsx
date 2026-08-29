@@ -1,5 +1,8 @@
 "use client";
 
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
 import { Reveal } from "@/components/kinetic/reveal";
 import { SmartImage } from "@/components/kinetic/smart-image";
 
@@ -66,6 +69,40 @@ function Row({
 }
 
 export function GalleryMarquee({ photos }: GalleryMarqueeProps) {
+  const wrap = useRef<HTMLDivElement>(null);
+
+  // Scroll velocity leans the rows. The tiles are already travelling on a CSS
+  // loop; skewing them by how fast the PAGE is moving couples the two, so the
+  // marquee feels attached to the scroll rather than running independently of
+  // it. Clamped, because an unclamped velocity skew looks broken on a flick.
+  useGSAP(
+    () => {
+      const el = wrap.current;
+      if (!el) return;
+      const rows = gsap.utils.toArray<HTMLElement>(".marquee-track", el);
+      if (rows.length === 0) return;
+
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const setters = rows.map((r) =>
+          gsap.quickTo(r, "skewX", { duration: 0.6, ease: "power3.out" })
+        );
+        const st = ScrollTrigger.create({
+          trigger: el,
+          start: "top bottom",
+          end: "bottom top",
+          onUpdate: (self) => {
+            const skew = gsap.utils.clamp(-9, 9, self.getVelocity() / -260);
+            setters.forEach((set, i) => set(i % 2 === 0 ? skew : -skew));
+          },
+        });
+        return () => st.kill();
+      });
+      return () => mm.revert();
+    },
+    { scope: wrap }
+  );
+
   if (!photos || photos.length === 0) return null;
 
   const source = photos.slice(0, PER_ROW * 2);
@@ -77,7 +114,7 @@ export function GalleryMarquee({ photos }: GalleryMarqueeProps) {
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
         <h2 className="text-h2 mb-8 text-shell">From the Bakery</h2>
 
-        <div className="relative space-y-4 overflow-hidden">
+        <div ref={wrap} className="relative space-y-4 overflow-hidden">
           {/* Fade edges — cocoa, matching the dark band. */}
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-cocoa to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-cocoa to-transparent" />

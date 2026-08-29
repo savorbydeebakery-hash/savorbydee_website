@@ -7,6 +7,9 @@ import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/lib/cart/store";
+import { ScrollProgress } from "@/components/layout/scroll-progress";
+import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "@/lib/motion/gsap";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -26,11 +29,18 @@ export function Header() {
   const { totalItems } = useCart();
 
   // Transparent over the hero, glass once past it.
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 80);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+  //
+  // Was a raw window scroll listener, which fires on every scroll frame with no
+  // batching and competes with the pinned sections. ScrollTrigger batches all
+  // scroll work into one rAF pass, so this rides along with the rest.
+  useGSAP(() => {
+    const st = ScrollTrigger.create({
+      start: 80,
+      onUpdate: (self) => setScrolled(self.progress > 0 || self.scroll() > 80),
+      onToggle: (self) => setScrolled(self.isActive),
+    });
+    setScrolled(window.scrollY > 80);
+    return () => st.kill();
   }, []);
 
   useEffect(() => {
@@ -66,6 +76,7 @@ export function Header() {
             : "border-b border-transparent bg-transparent"
         )}
       >
+        <ScrollProgress />
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>

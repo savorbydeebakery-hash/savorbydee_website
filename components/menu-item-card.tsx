@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SmartImage } from "@/components/kinetic/smart-image";
+import { useTilt } from "@/lib/motion/use-tilt";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
 /**
@@ -41,9 +42,11 @@ export function MenuItemCard({
 }) {
   const price = `₹${(item.base_price_cents / 100).toFixed(0)}+`;
   const hasImage = Boolean(item.image_url);
+  const tilt = useTilt<HTMLElement>(6);
 
   return (
     <article
+      ref={tilt}
       className="menu-item-card group flex h-full flex-col overflow-hidden rounded-[var(--r-lg)] border border-ink/8 bg-porcelain transition-[transform,box-shadow,border-color] duration-300 ease-[var(--ease-out)] hover:-translate-y-1 hover:border-berry/25 hover:shadow-[var(--shadow-lg)] motion-reduce:hover:translate-y-0"
       data-item-id={item.id}
       data-item-name={item.name.toLowerCase()}

@@ -116,13 +116,38 @@ export function RevealGroup({
       const mm = gsap.matchMedia();
 
       mm.add("(prefers-reduced-motion: no-preference)", () => {
+        // 3D rise rather than a flat fade: cards tip up from below the plane
+        // and settle. Perspective lives on the container so all children share
+        // one vanishing point, otherwise each card gets its own and the group
+        // reads as unrelated pieces rather than one surface.
+        gsap.set(el, { perspective: 900 });
+        gsap.set(items, { transformOrigin: "50% 100%" });
+
         gsap.from(items, {
-          y: 32,
+          y: 56,
+          z: -120,
+          rotateX: -14,
           opacity: 0,
-          duration: 0.8,
+          duration: 0.9,
           ease: EASE,
           stagger,
           scrollTrigger: { trigger: el, start: REVEAL_START, once: true },
+        });
+
+        // Then a light scroll-linked drift so the grid keeps moving after it
+        // has arrived, instead of freezing the moment it lands.
+        items.forEach((item, i) => {
+          const depth = 0.25 + ((i % 3) * 0.18);
+          gsap.to(item, {
+            y: -26 * depth,
+            ease: "none",
+            scrollTrigger: {
+              trigger: el,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: 1.2,
+            },
+          });
         });
       });
 

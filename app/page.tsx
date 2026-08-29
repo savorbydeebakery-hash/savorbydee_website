@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { PromoBanner } from "@/components/promo-banner";
 import { Button } from "@/components/ui/button";
-import { HeroCollage } from "@/components/ui/modern-hero-section";
+import { HeroCard } from "@/components/ui/hero-card";
 import { DailyMenu } from "@/components/daily-menu";
 import { GalleryMarquee } from "@/components/gallery-marquee";
 import { Reveal } from "@/components/kinetic/reveal";
@@ -10,6 +10,7 @@ import { HomeTiles } from "@/components/home/home-tiles";
 import { CurationRow } from "@/components/home/curation-row";
 import { BestBakerySection } from "@/components/home/best-bakery-section";
 import { ScrollVideoSection } from "@/components/scroll-video-section";
+import { TravelingMacaron } from "@/components/three/traveling-macaron";
 import { PropField } from "@/components/props/prop-field";
 import {
   Macaron,
@@ -19,7 +20,7 @@ import {
   CakeSlice,
 } from "@/components/props/pastry-props";
 import Link from "next/link";
-import { ArrowRight, Cake, ShoppingBag } from "lucide-react";
+import { ArrowRight, Cake } from "lucide-react";
 
 // NOTE: this was briefly `export const revalidate = 60` to avoid seven Supabase
 // round-trips to Tokyo per request. That engages OpenNext's ISR path, which
@@ -117,64 +118,25 @@ export default async function HomePage() {
     ...(menuItems ?? []).filter((item) => item.image_url).map((item) => item.image_url!),
   ].slice(0, 7);
 
-  const heroBackground = featuredPhotos[11]?.image_url ?? featuredPhotos[0]?.image_url;
 
   // These were invented: "500+ Happy Customers", "1000+ Custom Cakes
   // Delivered", and a "4.9★" rating that contradicted the 4.7 shown in the
   // Best Bakery section further down the same page. Invented metrics on a real
   // business's site are a liability, not a design flourish. Replaced with
   // things that are actually true and verifiable, rating aligned to 4.7.
-  const stats = [
-    { value: "4.7★", label: "on Google" },
-    { value: "Mon-Sat", label: "9am to 9pm" },
-    { value: "100%", label: "made to order" },
-  ];
 
   return (
     <div>
+      <TravelingMacaron />
+
       {/* Hero promo banner */}
       <PromoBanner position="homepage_hero" />
 
-      {/* Hero — floating image collage. Props sit behind the collage; the two
-          macarons are the deepest so they drift most as the hero scrolls out.
-          Sprinkles are hidden below sm to respect the 3-props-on-mobile cap. */}
-      <PropField travel={200}>
-      <Macaron size={92} x="6%" y="18%" depth={0.75} className="hidden sm:block" />
-      <Macaron size={64} x="88%" y="62%" depth={0.35} />
-      <Sprinkles size={150} x="78%" y="12%" depth={0.55} className="hidden sm:block" />
-      <HeroCollage
-        title={
-          <>
-            Cakes & Desserts{" "}
-            {/* blush, not berry — the hero ground is cocoa now, where berry
-                measures 2.71:1 and fails even the large-text threshold. */}
-            <span className="text-blush">Made Fresh to Order</span>
-          </>
-        }
-        subtitle="Every bake is made to order in Shillong, with good ingredients and no shortcuts."
-        stats={stats}
-        images={heroImages}
-        backgroundImage={heroBackground}
-      />
-      </PropField>
-
-      {/* CTA buttons */}
-      {/* The hero is dark now, so the old -mt-8 overlap would have dropped these
-          onto the cocoa edge. They sit cleanly on cream instead. */}
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <div className="relative z-10 flex flex-wrap justify-center gap-3">
-          <Link href="/menu">
-            <Button size="lg" variant="cocoa">
-              <ShoppingBag size={18} /> Browse Menu
-            </Button>
-          </Link>
-          <Link href="/custom-cake">
-            <Button size="lg" variant="outline">
-              <Cake size={18} /> Custom Cake Inquiry
-            </Button>
-          </Link>
-        </div>
-      </section>
+      {/* Hero: light card on a live shader field. Layout follows the client's
+          reference; palette stays pastel pink. The old centred collage is gone,
+          along with the separate CTA row beneath it, since the card carries its
+          own calls to action. */}
+      <HeroCard images={heroImages} />
 
       {/* Four big image tiles: Daily / Custom / Full / Specials */}
       <PropField>
