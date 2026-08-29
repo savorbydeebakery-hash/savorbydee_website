@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/motion/gsap";
 import { HeroGlass } from "@/components/three/hero-glass";
+import { HeroBackdrop } from "@/components/three/hero-backdrop";
 import { cn } from "@/lib/utils";
 
 interface HeroCollageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
@@ -202,6 +203,11 @@ const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
               "radial-gradient(80% 60% at 50% 50%, rgb(74 56 48 / 0.5), transparent 75%)",
           }}
         />
+
+        {/* 1b. Interactive shader field, layered over the CSS mesh. The mesh
+               stays as the always-painted floor, so phones, reduced motion and
+               the pre-chunk moment all still look right. */}
+        <HeroBackdrop className="absolute inset-0" />
 
         {/* 2. Photo */}
         {backgroundImage && (

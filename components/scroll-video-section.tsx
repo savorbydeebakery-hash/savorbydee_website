@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
 
@@ -46,6 +46,64 @@ export function ScrollVideoSection({
   const video = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
 
+  const [blobSrc, setBlobSrc] = useState<string | null>(null);
+
+  /**
+   * Fetch the clip and hand the element a blob: URL instead of the network URL.
+   *
+   * Seeking a streamed <video> needs HTTP range requests, and the Cloudflare
+   * Workers asset server does not serve them: no Accept-Ranges header, and a
+   * Range request comes back 200 with the whole body rather than 206. The
+   * browser therefore refuses every seek and currentTime stays pinned at 0,
+   * silently. A blob: URL is fully in memory, so it is seekable frame to frame.
+   *
+   * Clips are ~1.7MB, so buffering the whole thing is cheap. The fetch is
+   * deferred until the section is within 1.5 viewports, so nothing downloads
+   * for a visitor who never scrolls this far.
+   */
+  useEffect(() => {
+    if (!src) return;
+    const el = section.current;
+    if (!el) return;
+    if (!window.matchMedia("(min-width: 768px)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let url: string | null = null;
+    let cancelled = false;
+
+    const io = new IntersectionObserver(
+      async ([entry]) => {
+        if (!entry.isIntersecting) return;
+        io.disconnect();
+        try {
+          const res = await fetch(src);
+          if (!res.ok) return;
+          const blob = await res.blob();
+          if (cancelled) return;
+          url = URL.createObjectURL(blob);
+          setBlobSrc(url);
+        } catch {
+          // Leave the poster in place; the section still reads correctly.
+        }
+      },
+      { rootMargin: "150% 0px" }
+    );
+    io.observe(el);
+
+    return () => {
+      cancelled = true;
+      io.disconnect();
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [src]);
+
+  // preload can finish BEFORE hydration attaches onLoadedMetadata, in which
+  // case the event never fires and the video stays at opacity 0 forever.
+  useEffect(() => {
+    const v = video.current;
+    if (v && v.readyState >= 1) setReady(true);
+  }, [blobSrc]);
+
   useGSAP(
     () => {
       const el = section.current;
@@ -63,7 +121,8 @@ export function ScrollVideoSection({
           pin: true,
           scrub: 1,
           onUpdate: (self) => {
-            const v = video.current;
+            el.dataset.progress = self.progress.toFixed(3);
+            const v = video.current ?? el.querySelector("video");
             // readyState >= 1 means metadata (and therefore duration) exists.
             if (!v || v.readyState < 1 || !Number.isFinite(v.duration)) return;
             const t = self.progress * v.duration;
@@ -120,10 +179,10 @@ export function ScrollVideoSection({
         } ${src ? "" : "kenburns"}`}
       />
 
-      {src && (
+      {src && blobSrc && (
         <video
           ref={video}
-          src={src}
+          src={blobSrc}
           poster={poster}
           muted
           playsInline

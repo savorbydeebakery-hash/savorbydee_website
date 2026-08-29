@@ -169,35 +169,22 @@ export default async function HomePage() {
         <HomeTiles galleryPhotos={featuredPhotos.slice(7, 11)} />
       </PropField>
 
-      {/* Four pinned, scroll-scrubbed sections. One clip each, deliberately not
-          chained: a section owning its own clip means there are no seams to
-          match, and each clip only loads as its own section approaches.
-          Until the clips exist these render their posters, which are the
-          Nano Banana Pro stills, so the section works today. */}
+      {/* Two pinned, scroll-scrubbed sections. Two strong clips beat four
+          mixed ones: only two of the four generated clips were usable, and
+          padding the sequence with still-only sections would have put warm
+          realistic footage next to flat pastel dioramas.
+
+          Both clips were re-encoded with a dense GOP (23 keyframes instead of
+          1) via scripts/prep-scroll-video.mjs. Source clips had a single
+          keyframe for the whole 8s, so every seek decoded from frame 0 and the
+          scrub stuttered. */}
       <ScrollVideoSection
         eyebrow="How it works"
         title="Nothing is baked until you order it"
         body="Every cake, cheesecake and tray of brownies goes into the oven after the order comes in. That is why we ask for notice."
-        poster="/scroll-world/scene-1.jpg"
+        src="/scroll-world/bakery-arrival.mp4"
+        poster="/scroll-world/bakery-arrival.jpg"
         align="left"
-      />
-      <ScrollVideoSection
-        title="Straight into the oven"
-        body="Small batches, baked to order through the day. Nothing sits on a shelf waiting to be sold."
-        poster="/scroll-world/scene-2.jpg"
-        align="right"
-      />
-      <ScrollVideoSection
-        title="Finished by hand"
-        body="Tea cakes, cheesecakes, cupcakes, brownies, high tea nibbles, desserts and frosted sponge cakes."
-        poster="/scroll-world/scene-3.jpg"
-        align="left"
-      />
-      <ScrollVideoSection
-        title="Ready when you are"
-        body="Choose a pickup slot or have it delivered across Shillong. We box it the way it should arrive."
-        poster="/scroll-world/scene-4.jpg"
-        align="right"
       />
 
       {/* Chef's Choice (admin-curated) — raised band */}
@@ -220,6 +207,14 @@ export default async function HomePage() {
         subtitle="The treats our customers keep coming back for."
         items={bestsellerItems ?? []}
         categories={categories ?? []}
+      />
+
+      <ScrollVideoSection
+        title="Ready when you are"
+        body="Choose a pickup slot or have it delivered across Shillong. We box it the way it should arrive."
+        src="/scroll-world/bakery-counter.mp4"
+        poster="/scroll-world/bakery-counter.jpg"
+        align="right"
       />
 
       {/* Today's Menu (admin-curated) — raised band */}
