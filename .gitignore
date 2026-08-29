@@ -63,3 +63,6 @@ next-env.d.ts
 /supabase/.temp/
 
 /lint-json.txt
+
+# local screenshots from verification runs
+.shots/

@@ -22,7 +22,7 @@ import * as THREE from "three";
 const CRUST = "#C98A3E";
 const CRUST_DEEP = "#9A6127";
 const CRUMB = "#F2D9A8";
-const GLAZE = "#E8AF7C";
+const GLAZE = "#D9A566";
 
 /** Radius profile so tubes taper at both tips instead of ending as cylinders. */
 function taper(t: number, max: number, sharpness = 1) {
@@ -54,8 +54,13 @@ function Croissant({ hover }: { hover: React.RefObject<number> }) {
       for (let j = 0; j <= 20; j++) {
         const idx = i * 21 + j;
         tmp.fromBufferAttribute(pos, idx).sub(centre).setLength(r).add(centre);
-        // Flute the surface so it reads as rolled layers, not a smooth sausage.
-        const flute = 1 + Math.sin(j / 21 * Math.PI * 2 * 7) * 0.045;
+        // Two frequencies: fine flutes around the tube, plus a slower bulge
+        // ALONG it so the croissant has visible segments rather than being one
+        // smooth banana.
+        const flute =
+          1 +
+          Math.sin((j / 21) * Math.PI * 2 * 7) * 0.04 +
+          Math.sin(t * Math.PI * 2 * 5) * 0.075;
         tmp.sub(centre).multiplyScalar(flute).add(centre);
         pos.setXYZ(idx, tmp.x, tmp.y, tmp.z);
       }
@@ -73,7 +78,7 @@ function Croissant({ hover }: { hover: React.RefObject<number> }) {
   });
 
   return (
-    <group ref={ref} position={[1.35, 0.15, 0]} rotation={[0.2, 0, -0.5]} scale={0.92}>
+    <group ref={ref} position={[1.55, 0.55, 0]} rotation={[0.2, 0, -0.5]} scale={0.86}>
       <mesh geometry={geo} castShadow>
         <meshStandardMaterial color={CRUST} roughness={0.62} metalness={0.02} />
       </mesh>
@@ -85,35 +90,64 @@ function Loaf({ hover }: { hover: React.RefObject<number> }) {
   const ref = useRef<THREE.Group>(null);
 
   const body = useMemo(() => {
-    // Lathe an ellipse: gives a rounded loaf with proper end caps.
+    // A batard is fat through the middle with BLUNT ends. Plain sin() lathes to
+    // a pointed spindle, which is what made this read as an almond. Raising the
+    // exponent flattens the shoulders and rounds the tips.
     const profile: THREE.Vector2[] = [];
-    for (let i = 0; i <= 32; i++) {
-      const t = i / 32;
-      profile.push(new THREE.Vector2(Math.sin(t * Math.PI) * 0.62, t * 2.4 - 1.2));
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40;
+      const r = Math.pow(Math.sin(t * Math.PI), 0.42) * 0.72;
+      profile.push(new THREE.Vector2(r, t * 2.1 - 1.05));
     }
-    return new THREE.LatheGeometry(profile, 48);
+    return new THREE.LatheGeometry(profile, 56);
   }, []);
 
   useFrame((state, delta) => {
     const g = ref.current;
     if (!g) return;
-    g.rotation.y += delta * 0.22;
-    g.rotation.z = -0.35 + Math.sin(state.clock.elapsedTime * 0.5) * 0.06 + hover.current * 0.2;
-    g.position.y = 0.9 + Math.sin(state.clock.elapsedTime * 0.6 + 1) * 0.08;
+    void delta;
+    // Rock, do not spin. A full Y rotation turned the scored top away from the
+    // camera for half of every cycle, which is why it read as a bare egg.
+    g.rotation.y = Math.sin(state.clock.elapsedTime * 0.28) * 0.5 + hover.current * 0.45;
+    g.rotation.z = -0.4 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+    g.position.y = 0.75 + Math.sin(state.clock.elapsedTime * 0.6 + 1) * 0.08;
   });
 
   return (
-    <group ref={ref} position={[-1.25, 0.9, -0.3]} rotation={[0, 0, -0.35]} scale={0.78}>
+    <group ref={ref} position={[-1.5, 0.75, -0.3]} rotation={[0, 0, -0.4]} scale={0.72}>
       <mesh geometry={body}>
         <meshStandardMaterial color={GLAZE} roughness={0.7} />
       </mesh>
-      {/* Scored slashes across the top, the detail that says "bread". */}
-      {[-0.62, -0.2, 0.22, 0.64].map((y, i) => (
-        <mesh key={i} position={[0, y, 0.5]} rotation={[0, 0, 0.5]} scale={[0.42, 0.055, 0.06]}>
-          <capsuleGeometry args={[1, 1.6, 4, 10]} />
-          <meshStandardMaterial color={CRUMB} roughness={0.85} />
-        </mesh>
-      ))}
+      {/* Scored slashes. z is derived from the SAME profile the lathe uses, so
+          each cut sits on the crust instead of floating inside it, which is
+          what made the loaf look like a bare egg. */}
+      {[-0.52, -0.17, 0.18, 0.53].map((y, i) => {
+        const t = (y + 1.05) / 2.1;
+        const r = Math.pow(Math.sin(t * Math.PI), 0.42) * 0.72;
+        const len = 0.34 * Math.pow(Math.sin(t * Math.PI), 0.3);
+        return (
+          <mesh
+            key={i}
+            position={[0, y, r * 0.94]}
+            rotation={[0, 0, 0.68]}
+            scale={[len, 0.055, 0.055]}
+          >
+            <capsuleGeometry args={[1, 1.4, 4, 10]} />
+            <meshStandardMaterial color={CRUMB} roughness={0.95} />
+          </mesh>
+        );
+      })}
+      {/* Flour dusting: a slightly larger, lighter shell breaks the plastic
+          look of a single smooth material. */}
+      <mesh geometry={body} scale={1.012}>
+        <meshStandardMaterial
+          color={CRUMB}
+          roughness={1}
+          transparent
+          opacity={0.22}
+          depthWrite={false}
+        />
+      </mesh>
     </group>
   );
 }
@@ -154,11 +188,11 @@ function Danish({ hover }: { hover: React.RefObject<number> }) {
     if (!g) return;
     g.rotation.z -= delta * 0.2;
     g.rotation.x = 0.95 + Math.sin(state.clock.elapsedTime * 0.45) * 0.08 - hover.current * 0.25;
-    g.position.y = -1.25 + Math.sin(state.clock.elapsedTime * 0.8 + 2) * 0.07;
+    g.position.y = -1.6 + Math.sin(state.clock.elapsedTime * 0.8 + 2) * 0.07;
   });
 
   return (
-    <group ref={ref} position={[-0.55, -1.25, 0.35]} rotation={[0.95, 0, 0]} scale={0.95}>
+    <group ref={ref} position={[-0.35, -1.6, 0.35]} rotation={[0.95, 0, 0]} scale={0.86}>
       <mesh geometry={geo}>
         <meshStandardMaterial color={CRUST} roughness={0.58} />
       </mesh>

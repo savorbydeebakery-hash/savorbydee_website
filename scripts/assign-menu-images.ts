@@ -26,8 +26,6 @@ const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error("Missing Supabase env vars");
 
 const supabase = createClient(url, key);
-const BUCKET_URL = `${url}/storage/v1/object/public/menu-items`;
-const img = (f: string) => `${BUCKET_URL}/${f}`;
 
 const DRY = process.argv.includes("--dry");
 const REVERT = process.argv.includes("--revert");

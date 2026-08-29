@@ -47,11 +47,12 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
     };
   }, []);
 
+  // Width only. Reduced motion must not remove the items: they are the right
+  // column, and gating them on it left three floating labels over an empty
+  // box. Motion preference is handled inside the scene instead.
   const showItems = useSyncExternalStore(
     subscribe,
-    () =>
-      window.matchMedia("(min-width: 768px)").matches &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => window.matchMedia("(min-width: 768px)").matches,
     () => false
   );
 
@@ -100,7 +101,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
         </div>
 
         <div className="relative mx-auto max-w-[1400px] overflow-hidden rounded-[28px] bg-porcelain shadow-[0_40px_120px_-40px_rgb(46_33_27_/_0.45)] sm:rounded-[40px]">
-          <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[1.02fr_1fr] lg:gap-4 lg:px-16 lg:py-20">
+          <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[1.02fr_1fr] lg:gap-4 lg:px-16 lg:py-12">
             {/* Copy */}
             <div>
               <h1 className="text-display text-ink">
@@ -121,12 +122,12 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
                 </span>
               </h1>
 
-              <p data-hero-sub className="mt-7 max-w-sm text-base leading-relaxed text-ink-soft">
+              <p data-hero-sub className="mt-6 max-w-sm text-base leading-relaxed text-ink-soft">
                 From the first crackle of crust to the soft crumb inside, every bake
                 is made fresh to order in Shillong.
               </p>
 
-              <div data-hero-cta className="mt-9 flex flex-wrap items-center gap-7">
+              <div data-hero-cta className="mt-8 flex flex-wrap items-center gap-7">
                 <Link
                   href="/menu"
                   className="inline-flex items-center rounded-full bg-berry px-8 py-3.5 text-sm font-semibold text-white shadow-[var(--shadow-md)] transition-all hover:bg-berry/90"
@@ -141,10 +142,10 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
                 </Link>
               </div>
 
-              <ul data-hero-badges className="mt-14 flex flex-wrap gap-9">
+              <ul data-hero-badges className="mt-10 flex flex-wrap gap-8">
                 {BADGES.map(({ icon: Icon, label }) => (
                   <li key={label} className="flex flex-col items-center gap-2.5 text-center">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-full border border-ink/12 text-berry">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/12 text-berry">
                       {Icon ? <Icon /> : <WarmthMark />}
                     </span>
                     <span className="text-eyebrow text-ink-soft">{label}</span>
@@ -154,7 +155,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
             </div>
 
             {/* Three.js bakery items with handwritten labels */}
-            <div className="relative h-[340px] sm:h-[460px] lg:h-[560px]">
+            <div className="relative h-[320px] sm:h-[420px] lg:h-[500px]">
               {showItems && (
                 <div className="absolute inset-0">
                   <BakeryItems />
@@ -164,17 +165,17 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
               {/* Curving script labels, as in the reference. */}
               <ScriptLabel
                 text="Artisan bread"
-                className="left-[6%] top-[8%]"
+                className="left-[2%] top-[4%]"
                 path="M0,34 Q70,0 150,20"
               />
               <ScriptLabel
                 text="Assorted pastries"
-                className="bottom-[16%] left-[2%]"
+                className="bottom-[6%] left-[0%]"
                 path="M0,30 Q80,4 168,26"
               />
               <ScriptLabel
                 text="Croissant"
-                className="right-[4%] top-[36%]"
+                className="right-[14%] top-[26%]"
                 path="M12,0 Q28,50 14,110"
                 vertical
               />
