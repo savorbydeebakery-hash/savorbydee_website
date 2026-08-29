@@ -106,10 +106,15 @@ export default async function HomePage() {
 
   const heroBackground = featuredPhotos[11]?.image_url ?? featuredPhotos[0]?.image_url;
 
+  // These were invented: "500+ Happy Customers", "1000+ Custom Cakes
+  // Delivered", and a "4.9★" rating that contradicted the 4.7 shown in the
+  // Best Bakery section further down the same page. Invented metrics on a real
+  // business's site are a liability, not a design flourish. Replaced with
+  // things that are actually true and verifiable, rating aligned to 4.7.
   const stats = [
-    { value: "500+", label: "Happy Customers" },
-    { value: "1000+", label: "Custom Cakes Delivered" },
-    { value: "4.9★", label: "Customer Rating" },
+    { value: "4.7★", label: "on Google" },
+    { value: "Mon-Sat", label: "9am to 9pm" },
+    { value: "100%", label: "made to order" },
   ];
 
   return (
