@@ -22,13 +22,13 @@ interface HomeTilesProps {
  */
 const TILES = [
   { href: "/menu?tag=daily", label: "Daily Menu", sub: "Fresh to order", key: 0,
-    span: "sm:col-span-2", aspect: "aspect-[16/10]", sizes: "(max-width: 640px) 100vw, 740px" },
+    span: "sm:col-span-2", aspect: "aspect-[4/3]", sizes: "(max-width: 640px) 100vw, 740px" },
   { href: "/custom-cake", label: "Custom Order", sub: "Made just for you", key: 1,
     span: "", aspect: "aspect-[4/5]", sizes: "(max-width: 640px) 100vw, 366px" },
   { href: "/menu", label: "Full Menu", sub: "Everything we bake", key: 2,
     span: "", aspect: "aspect-[4/5]", sizes: "(max-width: 640px) 100vw, 366px" },
   { href: "/menu?tag=specials", label: "Specials", sub: "Seasonal treats", key: 3,
-    span: "sm:col-span-2", aspect: "aspect-[16/10]", sizes: "(max-width: 640px) 100vw, 740px" },
+    span: "sm:col-span-2", aspect: "aspect-[4/3]", sizes: "(max-width: 640px) 100vw, 740px" },
 ];
 
 /**

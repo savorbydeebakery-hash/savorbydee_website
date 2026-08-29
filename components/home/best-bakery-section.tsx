@@ -25,7 +25,7 @@ interface BestBakerySectionProps {
 export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
   const narrative =
     settings?.about_narrative ??
-    "Savor by Dee began with a simple love for baking — the warmth of a kitchen, the joy of sharing something made by hand. Every cake, every cookie, every savoury bite is crafted fresh to order, using quality ingredients and a whole lot of heart.";
+    "Savor by Dee began with a simple love for baking: the warmth of a kitchen, the joy of sharing something made by hand. Every cake, every cookie, every savoury bite is made fresh to order.";
   const directions =
     settings?.google_maps_directions_url ?? "https://maps.app.goo.gl/UTshwMiCXrRDXPW67";
 
@@ -33,7 +33,7 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
   // surfaces and were previously invisible when used as the icon colour.
   const stats = [
     { icon: Star, text: "4.7/5 on Google", accent: "bg-yellow-soft text-gold-deep" },
-    { icon: Clock, text: "Open Mon–Sat, 9AM–9PM", accent: "bg-mint-soft text-cocoa" },
+    { icon: Clock, text: "Open Mon-Sat, 9am to 9pm", accent: "bg-mint-soft text-cocoa" },
     { icon: MapPin, text: "Near Laban, Shillong", accent: "bg-pink-soft text-berry" },
     { icon: Award, text: "Made fresh to order", accent: "bg-lavender-soft text-cocoa" },
   ];
@@ -49,7 +49,8 @@ export function BestBakerySection({ photo, settings }: BestBakerySectionProps) {
               alt="Savor by Dee bakery"
               aspect="aspect-[4/3]"
               sizes="(max-width: 768px) 100vw, 560px"
-              className="rounded-[var(--r-xl)]"
+              fit="contain"
+              className="rounded-[var(--r-xl)] bg-shell"
             />
           </div>
           {/* Glass, overlapping the image corner — glass over imagery is the

@@ -272,6 +272,8 @@ export default async function HomePage() {
                   alt={photo.caption ?? "SAVOR bakery"}
                   aspect="aspect-[4/3]"
                   sizes="(max-width: 640px) 50vw, 300px"
+                  fit="contain"
+                  className="bg-shell"
                 />
               </div>
             ))}

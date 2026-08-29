@@ -1,17 +1,14 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/motion/gsap";
 import { HeroBackdrop } from "@/components/three/hero-backdrop";
 import { CakeSlice, HeartHandshakeIcon } from "@/components/ui/hero-icons";
 
-const BakeryItems = dynamic(() => import("@/components/three/bakery-items-scene"), {
-  ssr: false,
-  loading: () => null,
-});
+const HERO_IMAGE = "/hero/bakery-items.png";
 
 /**
  * Hero, following the client's reference composition:
@@ -36,25 +33,7 @@ const BADGES = [
 export function HeroCard({ className }: { images?: string[]; className?: string }) {
   const scope = useRef<HTMLElement>(null);
 
-  const subscribe = useCallback((onChange: () => void) => {
-    const w = window.matchMedia("(min-width: 768px)");
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    w.addEventListener("change", onChange);
-    m.addEventListener("change", onChange);
-    return () => {
-      w.removeEventListener("change", onChange);
-      m.removeEventListener("change", onChange);
-    };
-  }, []);
 
-  // Width only. Reduced motion must not remove the items: they are the right
-  // column, and gating them on it left three floating labels over an empty
-  // box. Motion preference is handled inside the scene instead.
-  const showItems = useSyncExternalStore(
-    subscribe,
-    () => window.matchMedia("(min-width: 768px)").matches,
-    () => false
-  );
 
   useGSAP(
     () => {
@@ -79,6 +58,19 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
           stagger: 0.08,
           delay: 0.35,
         });
+        gsap.from("[data-hero-photo-wrap]", {
+          opacity: 0,
+          scale: 0.96,
+          y: 24,
+          duration: 1.1,
+          ease: "power3.out",
+          delay: 0.15,
+        });
+        gsap.to("[data-hero-photo-wrap]", {
+          y: -70,
+          ease: "none",
+          scrollTrigger: { trigger: root, start: "top top", end: "bottom top", scrub: 1 },
+        });
         gsap.from("[data-script]", {
           opacity: 0,
           duration: 1.2,
@@ -86,6 +78,17 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
           stagger: 0.18,
           delay: 0.9,
         });
+      });
+
+      mm.add("(pointer: fine) and (prefers-reduced-motion: no-preference)", () => {
+        const wrap = root.querySelector<HTMLElement>("[data-hero-photo-wrap]");
+        if (!wrap) return;
+        const toX = gsap.quickTo(wrap, "x", { duration: 0.9, ease: "power3.out" });
+        const onMove = (e: PointerEvent) => {
+          toX(((e.clientX - window.innerWidth / 2) / window.innerWidth) * 26);
+        };
+        window.addEventListener("pointermove", onMove, { passive: true });
+        return () => window.removeEventListener("pointermove", onMove);
       });
 
       return () => mm.revert();
@@ -101,9 +104,9 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
         </div>
 
         <div className="relative mx-auto max-w-[1400px] overflow-hidden rounded-[28px] bg-porcelain shadow-[0_40px_120px_-40px_rgb(46_33_27_/_0.45)] sm:rounded-[40px]">
-          <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[1.02fr_1fr] lg:gap-4 lg:px-16 lg:py-12">
+          <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[1fr_1.05fr] lg:gap-6 lg:px-16 lg:py-12">
             {/* Copy */}
-            <div>
+            <div className="relative z-10">
               <h1 className="text-display text-ink">
                 <span className="block overflow-hidden pb-[0.06em]">
                   <span data-line className="block">
@@ -154,31 +157,26 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
               </ul>
             </div>
 
-            {/* Three.js bakery items with handwritten labels */}
-            <div className="relative h-[320px] sm:h-[420px] lg:h-[500px]">
-              {showItems && (
-                <div className="absolute inset-0">
-                  <BakeryItems />
-                </div>
-              )}
+            {/* Product photography. Its own grid column, so copy can never
+                sit over the food: the two never share space by construction,
+                not by tuning offsets. */}
+            <div className="relative h-[280px] sm:h-[400px] lg:h-[520px]">
+              <div data-hero-photo-wrap className="absolute inset-0">
+                <Image
+                  src={HERO_IMAGE}
+                  alt="A slice of berry layer cake, a pink macaron and a croissant"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 720px"
+                  // object-right: when the frame is cropped at narrow widths it
+                  // gives up its empty left margin first, never the food.
+                  className="object-contain object-right"
+                />
+              </div>
 
-              {/* Curving script labels, as in the reference. */}
-              <ScriptLabel
-                text="Artisan bread"
-                className="left-[2%] top-[4%]"
-                path="M0,34 Q70,0 150,20"
-              />
-              <ScriptLabel
-                text="Assorted pastries"
-                className="bottom-[6%] left-[0%]"
-                path="M0,30 Q80,4 168,26"
-              />
-              <ScriptLabel
-                text="Croissant"
-                className="right-[14%] top-[26%]"
-                path="M12,0 Q28,50 14,110"
-                vertical
-              />
+              <ScriptLabel text="Layer cake" className="left-[1%] top-[2%]" path="M0,32 Q70,2 148,18" />
+              <ScriptLabel text="Macaron" className="bottom-[3%] left-[0%]" path="M0,28 Q66,4 140,22" />
+              <ScriptLabel text="Croissant" className="right-[1%] top-[6%]" path="M12,0 Q28,50 14,110" vertical />
             </div>
           </div>
         </div>

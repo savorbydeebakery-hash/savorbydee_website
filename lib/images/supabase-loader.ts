@@ -21,6 +21,19 @@
  * serialize this function to the client.
  */
 
+/**
+ * Callers can opt out of cropping by appending #contain to the src.
+ *
+ * This matters because `resize=cover` crops SERVER SIDE: the browser never
+ * receives the rest of the frame, so no amount of object-contain in CSS can
+ * recover it. The client's photos are phone shots with off-centre subjects,
+ * and cover was cutting the cake out of the picture entirely.
+ *
+ * A hash fragment is never sent to the server, so it is a safe carrier for a
+ * hint that only this loader needs to read.
+ */
+const CONTAIN_HINT = "#contain";
+
 /** Supabase caps transform dimensions; stay under it. */
 const MAX_TRANSFORM_WIDTH = 2500;
 
@@ -36,14 +49,17 @@ export default function supabaseImageLoader({
   width: number;
   quality?: number;
 }): string {
+  const wantsContain = src.endsWith(CONTAIN_HINT);
+  const clean = wantsContain ? src.slice(0, -CONTAIN_HINT.length) : src;
+
   // Not a Supabase public-storage URL → hand back untouched.
-  if (!src.includes(PUBLIC_OBJECT_PATH)) return src;
+  if (!clean.includes(PUBLIC_OBJECT_PATH)) return clean;
 
   const params = new URLSearchParams({
     width: String(Math.min(width, MAX_TRANSFORM_WIDTH)),
     quality: String(quality ?? 72),
-    resize: "cover",
+    resize: wantsContain ? "contain" : "cover",
   });
 
-  return `${src.replace(PUBLIC_OBJECT_PATH, PUBLIC_RENDER_PATH)}?${params}`;
+  return `${clean.replace(PUBLIC_OBJECT_PATH, PUBLIC_RENDER_PATH)}?${params}`;
 }

@@ -25,6 +25,7 @@ export function SmartImage({
   aspect = "aspect-[4/3]",
   sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 384px",
   priority = false,
+  fit = "cover",
 }: {
   src?: string | null;
   alt: string;
@@ -34,6 +35,13 @@ export function SmartImage({
   sizes?: string;
   /** Set on the LCP image only. Disables lazy loading. */
   priority?: boolean;
+  /**
+   * "contain" shows the whole frame. Use it for product photography, where the
+   * subject is often off-centre and cropping cuts the cake out of the picture.
+   * It also switches the Supabase transform to resize=contain, without which
+   * the crop has already happened server side.
+   */
+  fit?: "cover" | "contain";
 }) {
   const [loaded, setLoaded] = useState(false);
 
@@ -62,13 +70,16 @@ export function SmartImage({
       {!loaded && <div className="skeleton absolute inset-0 z-10" />}
 
       <Image
-        src={src}
+        src={fit === "contain" ? `${src}#contain` : src}
         alt={alt}
         fill
         sizes={sizes}
         priority={priority}
         onLoad={() => setLoaded(true)}
-        className="object-cover transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+        className={cn(
+          fit === "contain" ? "object-contain" : "object-cover",
+          "transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+        )}
         style={{
           opacity: loaded ? 1 : 0,
           transform: loaded ? "scale(1)" : "scale(1.04)",

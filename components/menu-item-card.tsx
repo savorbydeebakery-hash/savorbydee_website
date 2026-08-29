@@ -58,12 +58,16 @@ export function MenuItemCard({
           4:5 portrait reads as more premium than 4:3 when a photo exists. */}
       {hasImage && (
         <div className="relative">
+          {/* contain, not cover: these are phone photos with off-centre
+              subjects and a hard crop was removing the cake. bg-shell gives the
+              letterboxing a deliberate tint rather than bare white. */}
           <SmartImage
             src={item.image_url}
             alt={item.name}
-            aspect="aspect-[4/5]"
+            aspect="aspect-[4/3]"
             sizes={sizes}
-            className="rounded-none"
+            fit="contain"
+            className="rounded-none bg-shell"
           />
           {/* Price as a glass chip over the image — glass over imagery is the
               placement rule's happy path. */}
