@@ -5,7 +5,7 @@
 
 ---
 
-## STATUS — Phases 0-5 complete (2026-08-29, Opus)
+## STATUS — ALL PHASES COMPLETE (2026-08-29, Opus)
 
 Branch `redesign/liquid-glass`. Rollback point: `git checkout master` (`ea88237`).
 
@@ -17,12 +17,17 @@ Branch `redesign/liquid-glass`. Rollback point: `git checkout master` (`ea88237`
 | 3 Motion infra | ✅ | `a5cd9b4` |
 | 4 3D props | ✅ | `a5cd9b4` |
 | 5 Hero | ✅ | `a5cd9b4` |
-| 6 Section redesign | ⬜ partial — rhythm + footer + How It Works done in P2; tiles/rows/menu cards remain |
-| 7 Menu page | ⬜ not started |
-| 8 Polish & verification | ⬜ not started |
+| 6 Section redesign | ✅ | `c2216ef` |
+| 7 Menu page | ✅ | `b06412d` |
+| 8 Polish & verification | ✅ | `e0fe383` |
 
-**Current gates:** tsc 0 errors · eslint 0 errors / 1 warning (baseline was 9) ·
-vitest 56/56 (baseline 48) · OpenNext build OK · **Playwright 9/9**
+**Final gates:** tsc 0 errors · eslint 0 errors / 1 warning (baseline 9) ·
+vitest 56/56 (baseline 48) · OpenNext build OK ·
+**Playwright 14/14** (9 functional + 5 audit)
+
+`e2e/a11y-audit.spec.ts` is now part of the suite — it checks computed contrast
+and horizontal overflow across four pages at three viewports, plus a
+reduced-motion assertion. Keep it green.
 
 **Measured result of Phase 1** (real client photo, `gallery/Bento cakes 5.jpg`):
 
