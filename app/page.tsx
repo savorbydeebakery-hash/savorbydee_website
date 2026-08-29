@@ -49,6 +49,7 @@ export default async function HomePage() {
     { data: menuItems },
     { data: chefsChoiceItems },
     { data: bestsellerItems },
+    { data: specialItems },
     { data: settings },
   ] = await Promise.all([
     supabase
@@ -93,8 +94,20 @@ export default async function HomePage() {
       .eq("is_bestseller", true)
       .order("sort_order")
       .limit(6),
+    supabase
+      .from("menu_items")
+      .select("id")
+      .eq("is_active", true)
+      .eq("is_special", true)
+      .limit(1),
     supabase.from("site_settings").select("*").eq("id", 1).single(),
   ]);
+
+  // The seasonal section is driven by data, not by a hardcoded date range: it
+  // appears when the client flags items as Special in the admin panel and
+  // disappears when they unflag them. No code change, and nothing vanishes
+  // unexpectedly on a date the client did not choose.
+  const hasSpecials = (specialItems?.length ?? 0) > 0;
 
   const allGalleryPhotos = galleryPhotos ?? [];
   const featuredPhotos = allGalleryPhotos.slice(0, 20);
@@ -216,6 +229,20 @@ export default async function HomePage() {
         poster="/scroll-world/bakery-counter.jpg"
         align="right"
       />
+
+      {hasSpecials && (
+        <ScrollVideoSection
+          eyebrow="Seasonal"
+          title="Festive bakes, while they last"
+          body="Gingerbread, spiced fruit cake and the rest of the seasonal run. Flagged as Specials in the admin panel, so this section appears only while there are any."
+          src="/scroll-world/bakery-specials.mp4"
+          poster="/scroll-world/bakery-specials.jpg"
+          align="center"
+          cta="See the specials"
+          href="/menu?tag=specials"
+          hold="150%"
+        />
+      )}
 
       {/* Today's Menu (admin-curated) — raised band */}
       <div className="bg-shell">

@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
@@ -31,6 +33,9 @@ export function ScrollVideoSection({
   title,
   body,
   align = "left",
+  /** Optional call to action. Narrative sections omit it; actionable ones set it. */
+  cta,
+  href,
   /** How much scroll the pin holds for. 200% = two viewport heights. */
   hold = "200%",
 }: {
@@ -40,6 +45,8 @@ export function ScrollVideoSection({
   title: string;
   body: string;
   align?: "left" | "right" | "center";
+  cta?: string;
+  href?: string;
   hold?: string;
 }) {
   const section = useRef<HTMLElement>(null);
@@ -209,6 +216,14 @@ export function ScrollVideoSection({
               {title}
             </h2>
             <p className="mt-4 text-[#D8CCC0]">{body}</p>
+            {cta && href && (
+              <Link
+                href={href}
+                className="glass glass-sheen mt-7 inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition-all hover:gap-3"
+              >
+                {cta} <ArrowRight size={16} />
+              </Link>
+            )}
           </div>
         </div>
       </div>
