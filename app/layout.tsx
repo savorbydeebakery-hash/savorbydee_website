@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -7,33 +7,21 @@ import { ScrollToTop } from "@/components/layout/scroll-to-top";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { MotionProvider } from "@/components/motion-provider";
 import { SplashLoader } from "@/components/splash-loader";
+import { MobileStickyBar } from "@/components/layout/mobile-sticky-bar";
 
 /**
- * Display — Fraunces. Soft high-contrast serif; warm rather than cold, which
- * is the register a bakery wants. `opsz` lets the same family go from 14px
- * captions to 120px headlines without looking stretched; SOFT rounds the
- * terminals slightly; WONK enables the angled italic-ish forms.
- * `wght` is always included and must NOT be listed in `axes`.
- */
-const fraunces = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-  axes: ["SOFT", "WONK", "opsz"],
-  display: "swap",
-});
-
-/**
- * Body/UI — Plus Jakarta Sans. Geometric-humanist with slightly rounded
- * terminals; the closest Google-hosted match to General Sans.
+ * DM Sans, one family for the whole site.
  *
- * SWAP POINT: to use General Sans instead, drop GeneralSans-Variable.woff2
- * into public/fonts/ and replace this with next/font/local:
- *   const sans = localFont({
- *     src: "../public/fonts/GeneralSans-Variable.woff2",
- *     variable: "--font-sans", weight: "200 700", display: "swap",
- *   });
+ * The reference brand (brookibakehouse.com) sets --font-body-family,
+ * --font-heading-family, --font-navigation-family and --font-button-family all
+ * to DM Sans; the display/body serif+sans pairing this site used before has no
+ * equivalent there. globals.css points --font-display at --font-sans so every
+ * existing `font-display` utility and .text-h1/.text-h2 rule keeps resolving.
+ *
+ * Loaded once. Requesting the same family twice under two variable names is
+ * two downloads of the same bytes.
  */
-const jakarta = Plus_Jakarta_Sans({
+const dmSans = DM_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
@@ -55,9 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${jakarta.variable} h-full antialiased`}
+      className={`${dmSans.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-background">
+      <body className="flex min-h-full flex-col bg-bk-bg">
         {/* Liquid-glass refraction filter. Defined once, referenced by
             .glass-liquid via filter: url(#liquid-glass). */}
         <svg aria-hidden="true" className="absolute h-0 w-0" focusable="false">
@@ -87,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="flex-1">{children}</main>
           <Footer />
           <WhatsAppWidget />
+          <MobileStickyBar />
         </MotionProvider>
       </body>
     </html>

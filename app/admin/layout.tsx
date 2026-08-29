@@ -17,6 +17,7 @@ import {
   LogOut,
   Menu,
   X,
+  Star,
 } from "lucide-react";
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/banners", label: "Promo Banners", icon: Megaphone },
   { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
   { href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake },
+  { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/accounts", label: "Accounts", icon: Users },
 ];

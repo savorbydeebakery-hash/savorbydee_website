@@ -6,10 +6,9 @@ import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/motion/gsap";
 import { HeroBackdrop } from "@/components/three/hero-backdrop";
-import { CakeSlice, HeartHandshakeIcon } from "@/components/ui/hero-icons";
 import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
 
-const HERO_IMAGE = "/hero/bakery-items.jpg";
+const HERO_IMAGE = "/hero/celebration-cakes-v3.jpg";
 
 /**
  * Hero, following the client's reference composition:
@@ -24,12 +23,6 @@ const HERO_IMAGE = "/hero/bakery-items.jpg";
  *
  * Palette is the client's pastel pink, not the reference's lilac.
  */
-
-const BADGES = [
-  { icon: CakeSlice, label: "Quality" },
-  { icon: HeartHandshakeIcon, label: "Passion" },
-  { icon: null, label: "Warmth" },
-];
 
 export function HeroCard({ className }: { images?: string[]; className?: string }) {
   const scope = useRef<HTMLElement>(null);
@@ -51,7 +44,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
           ease: "power4.out",
           stagger: 0.09,
         });
-        gsap.from("[data-hero-sub], [data-hero-cta], [data-hero-badges]", {
+        gsap.from("[data-hero-sub], [data-hero-cta]", {
           y: 18,
           opacity: 0,
           duration: 0.8,
@@ -71,13 +64,6 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
           y: -70,
           ease: "none",
           scrollTrigger: { trigger: root, start: "top top", end: "bottom top", scrub: 1 },
-        });
-        gsap.from("[data-script]", {
-          opacity: 0,
-          duration: 1.2,
-          ease: "power2.out",
-          stagger: 0.18,
-          delay: 0.9,
         });
       });
 
@@ -109,7 +95,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
         </div>
 
         <div className="relative mx-auto max-w-[1400px] overflow-hidden rounded-[28px] bg-paper shadow-[0_40px_120px_-40px_rgb(46_33_27_/_0.45)] sm:rounded-[40px]">
-          <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[1fr_1.05fr] lg:gap-6 lg:px-16 lg:py-12">
+          <div className="grid items-center gap-8 px-6 py-14 sm:px-10 lg:grid-cols-[0.9fr_1.45fr] lg:gap-10 lg:py-12 lg:pl-16 lg:pr-6">
             {/* Copy */}
             <div className="relative z-10">
               <h1 className="text-display text-ink">
@@ -148,93 +134,63 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
                   Open catalogue <span aria-hidden="true">&#9656;</span>
                 </Link>
               </div>
-
-              <ul data-hero-badges className="mt-10 flex flex-wrap gap-8">
-                {BADGES.map(({ icon: Icon, label }) => (
-                  <li key={label} className="flex flex-col items-center gap-2.5 text-center">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/12 text-berry">
-                      {Icon ? <Icon /> : <WarmthMark />}
-                    </span>
-                    <span className="text-eyebrow text-ink-soft">{label}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
 
             {/* Product photography. Its own grid column, so copy can never
                 sit over the food: the two never share space by construction,
                 not by tuning offsets. */}
-            <div className="relative aspect-[16/9] w-full">
+            {/* Floated, not framed. This plate is shot on a near-white ground
+                that is genuinely flat (an 18/255 spread corner to corner), so
+                the food can sit loose on the card and feather into it with no
+                visible rectangle — which only works while --paper is matched
+                to that ground. See the token's note in globals.css. */}
+            {/* overflow-hidden so the scale below crops rather than bleeding
+                over the copy column. Only flat ground is ever cropped: the
+                food sits inside the middle ~65% of the frame, and the scroll
+                parallax shifts the plate by 70px against a ~90px margin, so
+                it cannot pull a doughnut into the clip.
+
+                photo-feather belongs on THIS box, not on the <Image>. It masks
+                the outer 6-7% of whatever it is applied to, so on the image it
+                was being scaled out of view along with the dead margin — which
+                left a hard cut through the middle of the plate, and the plate's
+                ground is a slight left-to-right gradient, so that cut showed as
+                a pale rectangle against the flat card. On the box the fade
+                always lands at the visible edge, whatever the inner scale and
+                wherever the parallax has pushed the plate. */}
+            <div className="photo-feather relative aspect-[16/9] w-full overflow-hidden">
               <div data-hero-photo-wrap className="absolute inset-0">
                 <Image
                   src={HERO_IMAGE}
-                  alt="A slice of berry layer cake, a pink macaron and a croissant"
+                  alt="A cheese-topped savoury bun, a chocolate-glazed doughnut and a red velvet cupcake, photographed mid-air with their ingredients scattered around them"
                   fill
                   priority
                   sizes="(max-width: 1024px) 100vw, 720px"
-                  // object-right: when the frame is cropped at narrow widths it
-                  // gives up its empty left margin first, never the food.
-                  className="photo-feather object-contain object-right"
+                  // This is a /public asset, and the custom Supabase loader
+                  // hands anything that is not a Supabase object URL straight
+                  // back — so every srcset candidate already resolved to this
+                  // one file. Saying so silences the "loader does not
+                  // implement width" warning and costs nothing: the behaviour
+                  // is identical, it is just no longer implicit.
+                  unoptimized
+                  // contain + feather: the whole frame is shown and its edges
+                  // dissolve into the card, so nothing is cropped and no seam
+                  // is drawn. Centre-anchored — this is a centred cluster with
+                  // slack both sides, so anchoring right would cut the bun off
+                  // at narrow widths.
+                  // scale-125: the plate is shot with roughly a quarter of
+                  // the frame as empty ground on each side, and at 1.792
+                  // against a 16/9 box it already fills that box — so the
+                  // only way to make the FOOD bigger is to push the dead
+                  // margin outside the crop. Nothing is lost; the ground is
+                  // flat and matches --paper, so the crop edge is invisible.
+                  className="scale-125 object-contain object-center"
                 />
               </div>
-
-              <ScriptLabel text="Layer cake" className="left-[8%] top-[6%]" path="M0,32 Q70,2 148,18" />
-              <ScriptLabel text="Macaron" className="bottom-[12%] left-[4%]" path="M0,28 Q66,4 140,22" />
-              <ScriptLabel text="Croissant" className="right-[2%] top-[22%]" path="M12,0 Q28,50 14,110" vertical />
             </div>
           </div>
         </div>
       </div>
     </section>
-  );
-}
-
-/** Handwritten label that follows a curve, matching the reference annotations. */
-function ScriptLabel({
-  text,
-  className,
-  path,
-  vertical = false,
-}: {
-  text: string;
-  className: string;
-  path: string;
-  vertical?: boolean;
-}) {
-  const id = `p-${text.replace(/\s+/g, "-").toLowerCase()}`;
-  return (
-    <svg
-      data-script
-      aria-hidden="true"
-      viewBox={vertical ? "0 0 40 120" : "0 0 180 44"}
-      className={`pointer-events-none absolute ${vertical ? "h-32 w-10" : "h-11 w-44"} ${className}`}
-    >
-      <defs>
-        <path id={id} d={path} fill="none" />
-      </defs>
-      <text
-        className="fill-ink-soft"
-        style={{ fontFamily: "var(--font-display), serif", fontSize: 15, fontStyle: "italic", letterSpacing: "0.06em" }}
-      >
-        <textPath href={`#${id}`} startOffset="50%" textAnchor="middle">
-          {text}
-        </textPath>
-      </text>
-    </svg>
-  );
-}
-
-/** Simple mark for the third badge, kept in-family with the other two. */
-function WarmthMark() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3c2.5 3 4 5.2 4 7.5a4 4 0 1 1-8 0C8 8.2 9.5 6 12 3Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M7 20h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
   );
 }

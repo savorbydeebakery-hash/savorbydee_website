@@ -16,10 +16,17 @@
   --berry: #A8455A;        /* saturated accent — prices, active chips, CTAs */
   --shell: #F2E8DC;        /* raised surface — alternating section background */
   --porcelain: #FFFDFA;    /* card surface, warmer than pure white */
-  /* Sampled from the hero photograph's own background (#F9F6EF / #F7F6F0).
-     The hero card uses this so the photo has no visible rectangular edge
-     against it; on porcelain the seam was plainly visible. */
-  --paper: #F8F6EF;
+  /* Sampled from the hero photograph's own background. The hero card uses
+     this so the photo has no visible rectangular edge against it; on
+     porcelain the seam was plainly visible.
+     Re-sampled for the current plate. Measured at 7% inset, which is where
+     .photo-feather stops fading and the real seam lands, the median ground
+     is #ECE9EC — a cool near-white, where the old #F8F6EF was warm cream.
+     A 16-point hue swing over an area that size is plainly visible as a
+     rectangle behind the food, so the card follows the photograph.
+     Contrast re-checked on it: ink 9.93, ink-soft 4.74, berry 4.76 — the
+     left column's copy shares this ground, so it has to clear AA. */
+  --paper: #ECE9EC;
   --background: #FAF6F1;    /* Milk Foam */
   --foreground: #3B3630;    /* warm dark text */
   /* SAVOR warm milk palette */
@@ -58,6 +65,49 @@
   --shadow-lg: 0 20px 48px -16px rgb(46 33 27 / 0.22);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Brooki sets ONE family — body, headings, nav and buttons are all DM
+     Sans. --font-display stays defined so the existing .text-h1/.text-h2
+     classes and every `font-display` utility across the other pages keep
+     resolving; they simply resolve to the same face now. */
+  --font-display: var(--font-sans);
+
+  /* ---------- Brooki layer ----------
+     Read off brookibakehouse.com's own CSS custom properties rather than
+     eyedropped from a screenshot, so these are the real values.
+
+     UNIT NOTE: that theme runs a 10px rem base (its body copy is "1.6rem"),
+     ours is the browser default 16px. Every length below is converted, not
+     copied — their 2.4rem pill is 24px here, not 38px. Copying the numbers
+     verbatim is the obvious way to get this subtly wrong. */
+  --bk-bg: #ffffff;
+  --bk-bg-2: #f7f7f7;        /* secondary background */
+  --bk-bg-3: #f9f9f9;        /* the tint most of their blocks actually paint */
+  --bk-fg: #000000;          /* they commit to true black, not a warm near-black */
+  --bk-muted: #666666;       /* their --color-foreground-lighten-60 */
+  --bk-border: #e6e6e6;
+  --bk-pink: #e1b5c2;        /* the brand pink, off their review widget tokens */
+  --bk-pink-soft: #f6eaee;   /* derived: the pink at ~30% over white */
+  --bk-red: #d63a2f;         /* --color-primary, used for price/sale accents */
+  --bk-sand: #e8dcd0;
+  --bk-cream: #f3eeea;
+  --bk-btn: #000000;
+  --bk-btn-fg: #ffffff;
+
+  /* Radii, converted from the 10px base */
+  --bk-r-pill: 24px;
+  --bk-r-block: 20px;
+  --bk-r-inner: 16px;
+  --bk-r-md: 10px;
+  --bk-r-sm: 6px;
+
+  /* Layout */
+  --bk-page-width: 1410px;
+
+  /* Little Token's spacing rhythm: sections are separated by 24px / 32px
+     margins and nothing else. No section padding, no dividers. */
+  --lt-gap: 12px;
+  --lt-section: 32px;
 }
 
 @theme inline {
@@ -90,38 +140,74 @@
   --color-shell: var(--shell);
   --color-porcelain: var(--porcelain);
   --color-paper: var(--paper);
+  --color-bk-bg: var(--bk-bg);
+  --color-bk-bg-2: var(--bk-bg-2);
+  --color-bk-bg-3: var(--bk-bg-3);
+  --color-bk-fg: var(--bk-fg);
+  --color-bk-muted: var(--bk-muted);
+  --color-bk-border: var(--bk-border);
+  --color-bk-pink: var(--bk-pink);
+  --color-bk-pink-soft: var(--bk-pink-soft);
+  --color-bk-red: var(--bk-red);
+  --color-bk-sand: var(--bk-sand);
+  --color-bk-cream: var(--bk-cream);
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-display), ui-serif, Georgia, serif;
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ---------- Type scale ----------
    Section headings were text-2xl (24px) next to text-sm (14px) body — a ~1.7x
    ratio, far too flat to build hierarchy. Display is now ~5x body. */
+/* Retuned for DM Sans. The opsz/SOFT/WONK axes were Fraunces'; DM Sans has
+   an opsz axis of its own with a different range, so leaving those settings in
+   place would have applied a real and wrong optical size rather than being
+   ignored. Weight and tracking now follow Brooki: 500, -0.04em. */
 .text-display {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(3rem, 9vw, 7.5rem);
-  font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1;
-  font-weight: 700;
-  line-height: 0.92;
-  letter-spacing: -0.03em;
+  font-variation-settings: normal;
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
 }
 
 .text-h1 {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(2.5rem, 5vw, 4rem);
-  font-variation-settings: "opsz" 72, "SOFT" 25;
-  font-weight: 600;
-  line-height: 1.02;
-  letter-spacing: -0.02em;
+  font-variation-settings: normal;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
 }
 
 .text-h2 {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(2rem, 3.5vw, 3rem);
-  font-variation-settings: "opsz" 48, "SOFT" 20;
-  font-weight: 600;
-  line-height: 1.08;
-  letter-spacing: -0.015em;
+  font-variation-settings: normal;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+/* The one heading style the rebuilt homepage uses.
+   Little Token never leaves a 448px column, so its section headings are a flat
+   18px/700 — correct there, far too small on a 1410px page. Brooki's h2 is
+   32px/500 at -0.04em. This is both, which is the whole brief: the phone gets
+   Little Token, the desktop gets Brooki. */
+.bk-section-title {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .bk-section-title {
+    font-size: 2rem;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+  }
 }
 
 .text-eyebrow {
@@ -131,9 +217,14 @@
   text-transform: uppercase;
 }
 
+/* The page ground is Brooki's white, not the old cream.
+   This has to be set HERE rather than as a `bg-bk-bg` utility on <body>:
+   `@import "tailwindcss"` puts utilities inside a cascade layer, and an
+   unlayered rule like this one beats any layered rule regardless of
+   specificity. The utility was being applied and losing silently. */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bk-bg);
+  color: var(--bk-fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }

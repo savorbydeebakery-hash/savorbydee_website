@@ -14,7 +14,28 @@ describe("supabaseImageLoader", () => {
     const url = new URL(supabaseImageLoader({ src: OBJECT, width: 640, quality: 60 }));
     expect(url.searchParams.get("width")).toBe("640");
     expect(url.searchParams.get("quality")).toBe("60");
-    expect(url.searchParams.get("resize")).toBe("cover");
+    expect(url.searchParams.get("resize")).toBe("contain");
+  });
+
+  // Regression: the loader used to send resize=cover by default. Supabase's
+  // `cover` fills BOTH dimensions, so with a width and no height it returns
+  // the source height untouched — ?width=640 on a 3000x4000 photo came back
+  // 640x4000. Every image on the site shipped at full source height, and the
+  // fixed aspect boxes hid it. `contain` is the only correct value here.
+  it("never asks for cover, which does not scale height when width is alone", () => {
+    for (const w of [96, 384, 640, 1200, 2304]) {
+      const url = new URL(supabaseImageLoader({ src: OBJECT, width: w }));
+      expect(url.searchParams.get("resize")).toBe("contain");
+      expect(url.searchParams.get("height")).toBeNull();
+    }
+  });
+
+  // The #contain hint no longer changes the transform, but leaving it on the
+  // end of the path would 404.
+  it("strips the #contain hint from the path", () => {
+    const url = new URL(supabaseImageLoader({ src: `${OBJECT}#contain`, width: 640 }));
+    expect(url.pathname.endsWith("#contain")).toBe(false);
+    expect(url.pathname).toBe("/storage/v1/render/image/public/gallery/savor-cake.jpg");
   });
 
   it("defaults quality to 72 when not supplied", () => {

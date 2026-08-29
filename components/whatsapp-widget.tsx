@@ -24,7 +24,9 @@ export function WhatsAppWidget() {
 
   return (
     <div
-      className={`fixed bottom-5 right-5 z-40 transition-all duration-300 ${
+      // bottom-24 on phones clears the 61px MobileStickyBar plus the iOS home
+      // indicator; from md up the bar is gone and it returns to the corner.
+      className={`fixed bottom-24 right-5 z-40 transition-all duration-300 md:bottom-5 ${
         visible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
       }`}
     >
