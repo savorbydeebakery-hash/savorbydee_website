@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { PromoBanner } from "@/components/promo-banner";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HeroCollage } from "@/components/ui/modern-hero-section";
 import { DailyMenu } from "@/components/daily-menu";
@@ -133,7 +132,7 @@ export default async function HomePage() {
             <span className="text-blush">Made Fresh to Order</span>
           </>
         }
-        subtitle="From celebration cakes to everyday treats — every bake is crafted with quality ingredients and a whole lot of heart. Handcrafted in Shillong."
+        subtitle="Every bake is made to order in Shillong, with good ingredients and no shortcuts."
         stats={stats}
         images={heroImages}
         backgroundImage={heroBackground}
@@ -170,8 +169,9 @@ export default async function HomePage() {
         <ChocolateCurl size={58} x="94%" y="70%" depth={0.8} className="hidden lg:block" />
         <CurationRow
           eyebrow="Handpicked"
+          layout="rail"
           title="Chef's Choice"
-          subtitle="Handpicked by our bakers — the bakes we're proudest of."
+          subtitle="The bakes we are proudest of."
           items={chefsChoiceItems ?? []}
           categories={categories ?? []}
         />
@@ -179,7 +179,6 @@ export default async function HomePage() {
 
       {/* Most Ordered (admin-curated bestsellers) */}
       <CurationRow
-        eyebrow="Customer favourites"
         title="Most Ordered"
         subtitle="The treats our customers keep coming back for."
         items={bestsellerItems ?? []}
@@ -229,8 +228,8 @@ export default async function HomePage() {
             <Cake className="mx-auto mb-4 text-blush" size={40} />
             <h2 className="text-h2 mb-4 text-shell">Dreaming of a Custom Cake?</h2>
             <p className="mx-auto mb-8 max-w-lg text-[#D8CCC0]">
-              Tell us your vision — flavours, design, decoration — and we&rsquo;ll craft
-              something uniquely yours. Custom cakes need 5 days notice.
+              Tell us your vision: flavours, design, decoration. We will craft something
+              uniquely yours. Custom cakes need 5 days notice.
             </p>
             <Link href="/custom-cake">
               <Button size="lg" variant="primary">
@@ -259,32 +258,41 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* How it works — raised band */}
+      {/* How it works. Was three equal cards, which is the single most
+          template-looking feature layout there is. Now an asymmetric editorial
+          list: oversized outlined numerals in a narrow left rail, copy in a
+          wide right column, hairline between steps instead of card chrome. */}
       <Reveal className="bg-shell">
-        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <p className="text-eyebrow mb-2 text-center text-berry">Three steps</p>
-          <h2 className="text-h2 mb-12 text-center text-ink">How It Works</h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <section className="mx-auto max-w-5xl px-4 py-20 sm:px-6">
+          <h2 className="text-h2 mb-14 max-w-xl text-ink">
+            Three steps, no surprises
+          </h2>
+          <ol className="divide-y divide-ink/10">
             {[
-              { step: "01", title: "Browse & Order", desc: "Pick your treats from our menu and add to cart." },
-              { step: "02", title: "We Bake Fresh", desc: "Everything is made to order — no stale shelf stock." },
-              { step: "03", title: "Pickup or Delivery", desc: "Choose a slot that works for you. We'll have it ready." },
+              { n: "01", title: "Browse and order", desc: "Pick your treats and add them to the cart. Choose sizes, flavours and add-ons as you go." },
+              { n: "02", title: "We bake fresh", desc: "Nothing sits on a shelf. Your order goes into the oven after it is placed, which is why we ask for notice." },
+              { n: "03", title: "Pickup or delivery", desc: "Choose a slot that works for you. We will have it boxed and ready." },
             ].map((item) => (
-              <Card key={item.step} className="bg-porcelain text-center">
-                {/* Outlined display numeral — big type as ornament rather than
-                    another pastel chip. */}
+              <li
+                key={item.n}
+                className="grid grid-cols-[auto_1fr] items-baseline gap-x-6 py-8 sm:grid-cols-[8rem_1fr] sm:gap-x-10"
+              >
                 <span
                   aria-hidden="true"
-                  className="text-display mb-2 block text-[3.5rem] leading-none text-transparent"
+                  className="font-display text-[3rem] font-semibold leading-none text-transparent sm:text-[5rem]"
                   style={{ WebkitTextStroke: "1.5px var(--berry)" }}
                 >
-                  {item.step}
+                  {item.n}
                 </span>
-                <h3 className="mb-1 font-semibold text-ink">{item.title}</h3>
-                <p className="text-sm text-ink-soft">{item.desc}</p>
-              </Card>
+                <div>
+                  <h3 className="font-display text-xl font-semibold text-ink sm:text-2xl">
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 max-w-prose text-ink-soft">{item.desc}</p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </section>
       </Reveal>
     </div>

@@ -40,12 +40,12 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Savor by Dee — Handcrafted Cakes & Desserts in Shillong",
+  title: "Savor by Dee | Handcrafted Cakes & Desserts in Shillong",
   description:
     "Pre-order handcrafted cakes, desserts, cookies and savoury bakes from Savor by Dee, the artisanal bakery in Shillong. Custom cakes, bulk orders, and delivery available.",
   keywords: ["bakery", "cakes", "Shillong", "custom cakes", "desserts", "pre-order", "Meghalaya"],
   openGraph: {
-    title: "Savor by Dee — Handcrafted Cakes & Desserts in Shillong",
+    title: "Savor by Dee | Handcrafted Cakes & Desserts in Shillong",
     description: "Pre-order handcrafted cakes, desserts, and savoury bakes. Made fresh to order in Shillong.",
     type: "website",
   },

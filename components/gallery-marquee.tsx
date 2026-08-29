@@ -75,7 +75,6 @@ export function GalleryMarquee({ photos }: GalleryMarqueeProps) {
   return (
     <Reveal>
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <p className="text-eyebrow mb-2 text-blush">Straight from the oven</p>
         <h2 className="text-h2 mb-8 text-shell">From the Bakery</h2>
 
         <div className="relative space-y-4 overflow-hidden">

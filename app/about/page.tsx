@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, MessageCircle } from "lucide-react";
 
 export const metadata = {
-  title: "About Savor by Dee — Our Story",
+  title: "About Savor by Dee",
   description:
-    "Learn about Savor by Dee, the artisanal bakery — handcrafted cakes, desserts and savoury bakes made fresh to order in Shillong.",
+    "Handcrafted cakes, desserts and savoury bakes, made fresh to order in Shillong.",
 };
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,7 @@ export default async function AboutPage() {
   const bakeryName = settings?.bakery_name ?? "Savor by Dee";
   const narrative =
     settings?.about_narrative ??
-    "Savor by Dee began with a simple love for baking — the warmth of a kitchen, the joy of sharing something made by hand. Every cake, every cookie, every savoury bite is crafted fresh to order, using quality ingredients and a whole lot of heart. From custom celebration cakes to everyday treats, we're here to make your moments a little sweeter.";
+    "Savor by Dee began with a simple love for baking: the warmth of a kitchen, the joy of sharing something made by hand. Every cake, every cookie, every savoury bite is made fresh to order. From celebration cakes to everyday treats, we are here to make your moments a little sweeter.";
   const phone = settings?.contact_phone ?? "+91 98365 37447";
   const whatsapp = settings?.whatsapp_number ?? "919836537447";
   const addressLine1 = settings?.address_line1 ?? "Near Laban Police Station, Myliem";

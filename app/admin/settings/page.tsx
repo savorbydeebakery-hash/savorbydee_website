@@ -201,7 +201,7 @@ export default function AdminSettingsPage() {
             )}
             {heroStaged && (
               <p className="mt-2 text-sm font-medium text-gold-deep">
-                Hero image staged — click <span className="font-semibold">Save</span> at the bottom to apply it.
+                Hero image staged. Click <span className="font-semibold">Save</span> at the bottom to apply it.
               </p>
             )}
           </div>
@@ -308,7 +308,7 @@ export default function AdminSettingsPage() {
           </label>
           <Input label="UPI ID" value={settings.upi_id ?? ""} onChange={(e) => update("upi_id", e.target.value)} placeholder="savorbakery@upi" />
           <div className="rounded-xl bg-yellow-soft/50 p-3">
-            <p className="text-sm text-ink-soft">Razorpay keys are set via environment variables (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET) — not stored in the database.</p>
+            <p className="text-sm text-ink-soft">Razorpay keys are set via environment variables (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET), not stored in the database.</p>
           </div>
         </Card>
       )}

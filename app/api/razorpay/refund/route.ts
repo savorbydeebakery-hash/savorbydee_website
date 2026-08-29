@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (order.payment_status !== "paid") {
-      return NextResponse.json({ error: "Order is not paid — cannot refund" }, { status: 400 });
+      return NextResponse.json({ error: "Order is not paid, cannot refund" }, { status: 400 });
     }
 
     if (!order.razorpay_payment_id) {

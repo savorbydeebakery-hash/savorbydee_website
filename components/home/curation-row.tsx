@@ -18,6 +18,12 @@ interface CurationRowProps {
   subtitle: string;
   /** Small uppercase kicker above the title. */
   eyebrow?: string;
+  /**
+   * "grid" or "rail". Two instances of this component on one page must not
+   * use the same value: three consecutive identical card grids (this twice
+   * plus DailyMenu) is the templated rhythm the redesign is trying to break.
+   */
+  layout?: "grid" | "rail";
   items: MenuItemForCart[];
   categories: MenuCategory[];
 }
@@ -33,6 +39,7 @@ export function CurationRow({
   eyebrow,
   items,
   categories,
+  layout = "grid",
 }: CurationRowProps) {
   const [selectedItem, setSelectedItem] = useState<MenuItemForCart | null>(null);
 
@@ -41,7 +48,7 @@ export function CurationRow({
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name;
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
       <div className="mb-6 flex items-end justify-between">
         <div>
           {eyebrow && (
@@ -58,17 +65,37 @@ export function CurationRow({
         </Link>
       </div>
 
-      <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => (
-          <RevealItem key={item.id} className="h-full">
-            <MenuItemCard
-              item={item}
-              categoryName={categoryName(item.category_id)}
-              onSelect={setSelectedItem}
-            />
-          </RevealItem>
-        ))}
-      </RevealGroup>
+      {layout === "rail" ? (
+        // Scroll-snap rail. Native overflow scrolling, no hijack: the user
+        // keeps control and it degrades to a normal swipe on touch.
+        <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="w-[78%] flex-shrink-0 snap-start sm:w-[46%] lg:w-[31%]"
+            >
+              <MenuItemCard
+                item={item}
+                categoryName={categoryName(item.category_id)}
+                onSelect={setSelectedItem}
+                sizes="(max-width: 640px) 78vw, (max-width: 1024px) 46vw, 360px"
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <RevealGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((item) => (
+            <RevealItem key={item.id} className="h-full">
+              <MenuItemCard
+                item={item}
+                categoryName={categoryName(item.category_id)}
+                onSelect={setSelectedItem}
+              />
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      )}
 
       <ItemDetailModal
         item={selectedItem}

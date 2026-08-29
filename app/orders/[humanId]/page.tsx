@@ -164,7 +164,7 @@ export default function OrderConfirmationPage({
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-mint-soft">
           <CheckCircle2 className="text-cocoa" size={36} />
         </div>
-        <h1 className="text-h1 text-ink mb-2">Order Confirmed! 🎂</h1>
+        <h1 className="text-h1 text-ink mb-2">Order confirmed</h1>
         <p className="text-ink-soft">Your order has been received.</p>
         <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-pink-soft px-4 py-2">
           <span className="text-sm text-ink-faint">Order ID:</span>

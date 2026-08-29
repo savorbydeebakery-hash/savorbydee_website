@@ -82,7 +82,7 @@ export function MenuItemCard({
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         {categoryName && (
-          <p className="text-eyebrow text-ink-soft">{categoryName}</p>
+          <p className="text-xs text-ink-soft">{categoryName}</p>
         )}
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-display text-lg font-semibold leading-snug text-ink">

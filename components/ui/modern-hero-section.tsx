@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import Image from "next/image";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/motion/gsap";
+import { HeroGlass } from "@/components/three/hero-glass";
 import { cn } from "@/lib/utils";
 
 interface HeroCollageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
@@ -240,6 +241,11 @@ const HeroCollage = React.forwardRef<HTMLDivElement, HeroCollageProps>(
             {subtitle}
           </p>
         </div>
+
+        {/* WebGL centrepiece. Sits behind the collage (z-0 vs the tiles' z-10+)
+            so the photos read first and the glass is atmosphere, not the
+            subject. Desktop + idle only; see HeroGlass for the gate. */}
+        <HeroGlass className="pointer-events-none absolute left-1/2 top-[62%] z-0 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2" />
 
         {/* Image Collage */}
         <div className="relative z-0 mt-20 flex h-[400px] items-center justify-center sm:h-[500px] md:h-[600px]">
