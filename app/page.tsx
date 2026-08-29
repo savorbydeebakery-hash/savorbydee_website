@@ -9,6 +9,7 @@ import { SmartImage } from "@/components/kinetic/smart-image";
 import { HomeTiles } from "@/components/home/home-tiles";
 import { CurationRow } from "@/components/home/curation-row";
 import { BestBakerySection } from "@/components/home/best-bakery-section";
+import { ScrollWorld } from "@/components/three/scroll-world";
 import { PropField } from "@/components/props/prop-field";
 import {
   Macaron,
@@ -162,6 +163,11 @@ export default async function HomePage() {
         <Cherry size={44} x="50%" y="46%" depth={0.5} className="hidden lg:block" />
         <HomeTiles galleryPhotos={featuredPhotos.slice(7, 11)} />
       </PropField>
+
+      {/* Pinned scroll flight. Sits here because the page previously went flat
+          right after the tiles: four grids in a row with nothing to break them.
+          This is the mid-page set piece. */}
+      <ScrollWorld />
 
       {/* Chef's Choice (admin-curated) — raised band */}
       <PropField className="bg-shell">
