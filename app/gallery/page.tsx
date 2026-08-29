@@ -1,6 +1,5 @@
-import Image from "next/image";
+import { GalleryGrid } from "@/components/gallery-grid";
 import { createClient } from "@/lib/supabase/server";
-import { ParallaxGallery } from "@/components/ui/3d-parallax-unfurling-gallery";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -16,7 +15,7 @@ export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on mem
 
 // Every image here is rendered twice — once in the parallax gallery, once in
 // the static grid below it — so the source list is bounded.
-const MAX_GALLERY_IMAGES = 48;
+const MAX_GALLERY_IMAGES = 100;
 
 export default async function GalleryPage() {
   const supabase = await createClient();
@@ -68,10 +67,7 @@ export default async function GalleryPage() {
         </p>
       </section>
 
-      {/* 3D parallax gallery */}
-      {allImages.length > 0 ? (
-        <ParallaxGallery images={allImages} />
-      ) : (
+      {allImages.length === 0 && (
         <section className="mx-auto max-w-6xl px-4 py-20 text-center">
           <p className="text-lg text-ink-soft">
             Gallery photos are being curated. Please check back soon!
@@ -79,26 +75,12 @@ export default async function GalleryPage() {
         </section>
       )}
 
-      {/* Static gallery grid for accessibility and SEO */}
+      {/* Masonry grid + lightbox. Columns rather than a square grid so each
+          photo keeps its own aspect ratio and nothing is cropped; clicking
+          opens the full frame with resize=contain. */}
       {allImages.length > 0 && (
-        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <h2 className="mb-6 text-h2 text-ink">All Photos</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {allImages.map((img, i) => (
-              <div
-                key={i}
-                className="group relative aspect-square overflow-hidden rounded-2xl bg-pink-soft"
-              >
-                <Image
-                  src={img.src}
-                  alt={img.alt}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 276px"
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              </div>
-            ))}
-          </div>
+        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <GalleryGrid items={allImages} />
         </section>
       )}
 

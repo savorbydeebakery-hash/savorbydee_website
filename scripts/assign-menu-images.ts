@@ -32,48 +32,40 @@ const img = (f: string) => `${BUCKET_URL}/${f}`;
 const DRY = process.argv.includes("--dry");
 const REVERT = process.argv.includes("--revert");
 
-/** Photo of exactly this product type. Matched on lowercased item name. */
-const EXACT: Record<string, string> = {
-  "carrot": "carrot-cake.jpg",
-  "banana": "banana-bread.jpg",
-  "banana & walnut": "banana-bread.jpg",
-  "banana honey & oatmeal": "banana-bread.jpg",
-  "chocolate": "choc-cake2.jpg",
-  "choco-chip": "choc-cake3.jpg",
-  "chocolate & walnut": "choc-cake3.jpg",
-  "very berry": "berry-cake.jpg",
-  "berries & cream": "berry-cake.jpg",
-  "rich fruit cake (rum)": "fruit-cake.jpg",
-  "coffee cupcake": "coffee-cake.jpg",
-  "gooey brownies": "brownie.jpg",
-  "tiramisu tub": "tiramisu.jpg",
-  "pannacotta cup": "pudding.jpg",
-  "thai mango pudding": "pudding.jpg",
-  "cold cheesecake cup": "vanilla-cup.jpg",
-  "blueberry cupcake": "cupcake2.jpg",
-  "chocolate cupcake": "cupcake.jpg",
-  "vanilla cupcake": "cupcake.jpg",
-  "plain vanilla": "vanilla-cake.jpg",
-  "choc truffle": "choc-cake.jpg",
-  "triple layer chocolate": "layer-cake.jpg",
-  "classic ny baked": "cheesecake.jpg",
+/**
+ * Images come from gallery_photos only.
+ *
+ * The menu-items bucket is not used: its filenames do not describe its
+ * contents and four of its twenty files are not food at all (an iPhone, a
+ * puppy, a clothing store, a blank icon sheet). The gallery is the client's own
+ * captioned work, so a caption keyword is a reliable signal about the subject.
+ *
+ * Matching is on caption keyword, and each menu category maps to the kind of
+ * bake it actually is. Where several photos match, they are distributed round
+ * robin so a category does not show the same picture on every card.
+ */
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  "Frosted Sponge Cakes": ["tier cake", "3d cake"],
+  "Tea Cakes": ["bento cake"],
+  "Cheesecakes": ["bento cake", "tier cake"],
+  "Cupcakes, Muffins & Brownies": ["cupcake", "custom cookie"],
+  "Desserts": ["donut", "custom cookie"],
+  // Savoury range. Cookies are the closest the gallery has to a nibble, but a
+  // chicken sandwich card showing a decorated cookie still misleads, so these
+  // stay text-only until real photos exist.
 };
 
-/** Fallback: a photo of the item's own category. */
-const BY_CATEGORY: Record<string, string> = {
-  "Tea Cakes": "vanilla-cake.jpg",
-  "Cheesecakes": "cheesecake.jpg",
-  "Cupcakes, Muffins & Brownies": "cupcake.jpg",
-  "Desserts": "dessert-cup.jpg",
-  "Frosted Sponge Cakes": "layer-cake.jpg",
-  // High Tea Nibbles is deliberately absent. It is the savoury range
-  // (chicken sandwiches, patties, buns) and the only category-level photo
-  // available is a pastry counter. A sandwich card showing a cake display
-  // misleads someone about to order it, and the card renders cleanly with no
-  // image, so these stay text-only until real photos exist.
-};
+/** Item-name keyword wins over the category default when it matches. */
+const NAME_KEYWORDS: [RegExp, string[]][] = [
+  [/cupcake/i, ["cupcake"]],
+  [/cookie|biscuit/i, ["custom cookie"]],
+  [/doughnut|donut/i, ["donut"]],
+  [/tier|wedding/i, ["tier cake"]],
+];
 
 type Row = { id: string; name: string; image_url: string | null; categories: { name: string } | null };
+
+type Photo = { image_url: string; caption: string | null };
 
 async function main() {
   if (REVERT) {
@@ -85,57 +77,78 @@ async function main() {
     return;
   }
 
-  const { data, error } = await supabase
-    .from("menu_items")
-    .select("id, name, image_url, categories(name)")
-    .eq("is_active", true)
-    .order("name");
-
+  const [{ data: photoRows }, { data: itemRows, error }] = await Promise.all([
+    supabase.from("gallery_photos").select("image_url, caption").eq("is_active", true).order("sort_order"),
+    supabase.from("menu_items").select("id, name, image_url, categories(name)").eq("is_active", true).order("name"),
+  ]);
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as unknown as Row[];
 
-  let exact = 0;
+  const photos = (photoRows ?? []) as Photo[];
+  const rows = (itemRows ?? []) as unknown as Row[];
+
+  const matching = (keywords: string[]) =>
+    photos.filter((p) => {
+      const c = (p.caption ?? "").toLowerCase();
+      return keywords.some((k) => c.includes(k));
+    });
+
+  // Round-robin cursor per keyword set, so a category of 18 items does not
+  // render the same photo 18 times.
+  const cursor = new Map<string, number>();
+  const pick = (keywords: string[]) => {
+    const key = keywords.join("|");
+    const pool = matching(keywords);
+    if (pool.length === 0) return null;
+    const i = cursor.get(key) ?? 0;
+    cursor.set(key, i + 1);
+    return pool[i % pool.length].image_url;
+  };
+
+  let named = 0;
   let byCat = 0;
   let skipped = 0;
-  const plan: { id: string; name: string; file: string; how: string }[] = [];
+  const plan: { id: string; name: string; url: string; how: string }[] = [];
 
   for (const r of rows) {
     const cat = r.categories?.name ?? "";
-    const hit = EXACT[r.name.trim().toLowerCase()];
-    const file = hit ?? BY_CATEGORY[cat];
-    if (!file) {
+    const nameHit = NAME_KEYWORDS.find(([re]) => re.test(r.name));
+    let url = nameHit ? pick(nameHit[1]) : null;
+    let how = "name";
+    if (!url) {
+      const kws = CATEGORY_KEYWORDS[cat];
+      url = kws ? pick(kws) : null;
+      how = "category";
+    }
+    if (!url) {
       skipped++;
-      console.log(`  ?  ${r.name}  (no photo for category "${cat}")`);
       continue;
     }
-    if (hit) exact++;
+    if (how === "name") named++;
     else byCat++;
-    plan.push({ id: r.id, name: r.name, file, how: hit ? "exact" : "category" });
+    plan.push({ id: r.id, name: r.name, url, how });
   }
 
   console.log(
-    `\n  ${rows.length} active items -> ${exact} exact, ${byCat} category, ${skipped} unmatched\n`
+    `  ${photos.length} gallery photos available, ${rows.length} active items -> ${named} by name, ${byCat} by category, ${skipped} left text-only`
   );
-  for (const p of plan.slice(0, 12)) {
-    console.log(`  ${p.how === "exact" ? "=" : "~"}  ${p.name.padEnd(34)} ${p.file}`);
+  for (const p of plan.slice(0, 10)) {
+    const file = decodeURIComponent(p.url.split("/").pop() ?? "");
+    console.log(`  ${p.how === "name" ? "=" : "~"}  ${p.name.padEnd(30)} ${file.slice(0, 40)}`);
   }
-  if (plan.length > 12) console.log(`  ... and ${plan.length - 12} more`);
+  if (plan.length > 10) console.log(`  ... and ${plan.length - 10} more`);
 
   if (DRY) {
-    console.log("\n  DRY RUN, nothing written. Re-run without --dry to apply.\n");
+    console.log("\n  DRY RUN, nothing written.\n");
     return;
   }
 
   let ok = 0;
   for (const p of plan) {
-    const { error: e } = await supabase
-      .from("menu_items")
-      .update({ image_url: img(p.file) })
-      .eq("id", p.id);
+    const { error: e } = await supabase.from("menu_items").update({ image_url: p.url }).eq("id", p.id);
     if (e) console.error(`  x ${p.name}: ${e.message}`);
     else ok++;
   }
-  console.log(`\n  Updated ${ok}/${plan.length}. Undo with --revert.\n`);
+  console.log(`  Updated ${ok}/${plan.length}. Undo with --revert.`);
 }
 
 main().catch((e) => {
