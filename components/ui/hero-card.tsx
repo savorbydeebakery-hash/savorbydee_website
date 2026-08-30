@@ -44,7 +44,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
           ease: "power4.out",
           stagger: 0.09,
         });
-        gsap.from("[data-hero-sub], [data-hero-cta]", {
+        gsap.from("[data-hero-cta]", {
           y: 18,
           opacity: 0,
           duration: 0.8,
@@ -124,16 +124,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
                 </span>
               </h1>
 
-              {/* max-w-md, not max-w-sm: this replaced a two-line sentence with
-                  a 48-word paragraph, and at 24rem it ran to nine lines. */}
-              <p data-hero-sub className="mt-6 max-w-md text-[0.95rem] leading-relaxed text-ink-soft">
-                At our artisanal bakery, we don&rsquo;t just bake &mdash; we craft edible
-                art. From fluffy brioche buns that pull apart like clouds to decadent
-                cakes layered with luxury, each creation is handmade with passion,
-                precision, and a sprinkle of magic.
-              </p>
-
-              <div data-hero-cta className="mt-8 flex flex-wrap items-center gap-7">
+              <div data-hero-cta className="mt-10 flex flex-wrap items-center gap-7">
                 <Link href="/menu" aria-label="Order now">
                   <InteractiveHoverButton className="px-8 py-3.5 text-sm">
                     Order now

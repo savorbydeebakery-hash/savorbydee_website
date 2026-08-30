@@ -53,21 +53,25 @@ export function Footer() {
     <footer className="mt-16 border-t border-bk-border bg-bk-bg text-bk-fg">
       <div className="mx-auto w-full max-w-[var(--bk-page-width)] px-4 pb-28 pt-12 md:px-6 md:pb-14 md:pt-16">
         <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-[2fr_1fr_1fr_1fr] md:gap-8">
-          {/* Lead block */}
+          {/* Lead block. This used to be an "Order on WhatsApp" panel with the
+              phone number as its primary action, which pulled customers out of
+              the checkout the rest of the site is built around — no cart, no
+              slot picker, no order record, no payment. Ordering happens on the
+              site; WhatsApp stays available further down as a contact channel,
+              not as the way to place an order. */}
           <div className="col-span-2 md:col-span-1">
-            <p className="bk-section-title">Order on WhatsApp</p>
+            <p className="bk-section-title">Order online</p>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-bk-muted">
               Handcrafted cakes, desserts and savoury bakes, made fresh to order
-              in Shillong. Message us and we will take it from there.
+              in Shillong. Browse the menu, pick a slot, and we will have it
+              ready.
             </p>
-            <a
-              href="https://wa.me/919836537447"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/menu"
               className="mt-5 inline-flex h-12 items-center gap-2 rounded-[var(--bk-r-pill)] bg-bk-btn px-6 text-sm font-medium text-bk-btn-fg transition-opacity hover:opacity-85"
             >
-              +91 98365 37447 <ArrowRight size={16} />
-            </a>
+              Browse the menu <ArrowRight size={16} />
+            </Link>
           </div>
 
           <FooterColumn title="Explore" links={EXPLORE} />

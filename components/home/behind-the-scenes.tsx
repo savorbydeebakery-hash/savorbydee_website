@@ -18,6 +18,11 @@ export interface BtsItem {
  * real image as Dee uploads it in Admin -> Behind the Scenes. Nothing about
  * the layout shifts when that happens.
  *
+ * Labels only — the caption line under each stage was dropped, so the row
+ * reads as three named steps rather than three paragraphs. The caption column
+ * and its admin field are left in place so the copy is not lost and the line
+ * can be switched back on without a migration.
+ *
  * The placeholder is deliberately an icon on a tint that says "photo coming
  * soon" — not a stock kitchen shot and not a borrowed gallery photo. Either of
  * those would be showing customers a picture that is not this bakery's work
@@ -98,11 +103,6 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
               <h3 className="mt-3 text-base font-semibold text-bk-fg md:text-lg">
                 {item.label}
               </h3>
-              {item.caption && (
-                <p className="mt-1 text-sm leading-relaxed text-bk-muted">
-                  {item.caption}
-                </p>
-              )}
             </li>
           );
         })}

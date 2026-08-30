@@ -7,6 +7,7 @@ import { CatalogueSplit } from "@/components/home/catalogue-split";
 import { ReviewsCarousel } from "@/components/home/reviews-carousel";
 import { BestSellers } from "@/components/home/best-sellers";
 import { BehindTheScenes } from "@/components/home/behind-the-scenes";
+import { AboutUs } from "@/components/home/about-us";
 
 // NOTE: this was briefly `export const revalidate = 60` to avoid Supabase
 // round-trips to Tokyo per request. That engages OpenNext's ISR path, which
@@ -148,8 +149,12 @@ export default async function HomePage() {
       {/* 6. Best Sellers — a scrolling rail, hidden when nothing is flagged. */}
       <BestSellers items={bestsellers ?? []} />
 
-      {/* 7. Behind the Scenes — hidden until the photos exist. */}
+      {/* 7. Behind the Scenes */}
       <BehindTheScenes items={bts ?? []} />
+
+      {/* 8. About Us — carries the paragraph that used to sit under the hero
+             headline, and is editable via site_settings.about_narrative. */}
+      <AboutUs narrative={settings?.about_narrative} />
     </div>
   );
 }

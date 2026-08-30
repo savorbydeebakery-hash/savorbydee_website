@@ -101,9 +101,12 @@ export function Header() {
             <Link
               href="/"
               onClick={() => setMobileOpen(false)}
-              className="justify-self-center text-2xl font-bold tracking-tight text-bk-fg"
+              // Slightly smaller than the old one-word mark: "Savor by Dee"
+              // is three times the characters, and at text-2xl it crowded the
+              // hamburger and cart on a 375px header.
+              className="justify-self-center whitespace-nowrap text-lg font-bold tracking-tight text-bk-fg sm:text-xl md:text-2xl"
             >
-              SAVOR
+              Savor by Dee
             </Link>
 
             {/* Right rail — account + cart */}
