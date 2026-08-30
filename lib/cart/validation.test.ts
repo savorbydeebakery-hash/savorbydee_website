@@ -38,7 +38,7 @@ const weeklyHours = {
 
 describe("getRequiredNoticeHours", () => {
   it("returns global notice (12h) for small cart", () => {
-    expect(getRequiredNoticeHours([makeItem()], DEFAULT_NOTICE_RULES)).toBe(12);
+    expect(getRequiredNoticeHours([makeItem()], DEFAULT_NOTICE_RULES)).toBe(2);
   });
 
   it("returns bulk notice (24h) when qty >= bulkThreshold (10)", () => {
@@ -57,7 +57,7 @@ describe("getRequiredNoticeHours", () => {
   });
 
   it("returns global minimum even for empty cart", () => {
-    expect(getRequiredNoticeHours([], DEFAULT_NOTICE_RULES)).toBe(12);
+    expect(getRequiredNoticeHours([], DEFAULT_NOTICE_RULES)).toBe(2);
   });
 });
 

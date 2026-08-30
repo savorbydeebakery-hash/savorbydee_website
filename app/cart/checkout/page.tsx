@@ -8,6 +8,8 @@ import {
   validateGuestInfo,
   validateDeliveryAddress,
   getRequiredNoticeHours,
+  DEFAULT_NOTICE_RULES,
+  type SiteNoticeRules,
 } from "@/lib/cart/validation";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -65,7 +67,32 @@ export default function CheckoutPage() {
 
 
   const cartValidation = validateCart(items);
-  const noticeHours = getRequiredNoticeHours(items);
+  // This used to call getRequiredNoticeHours(items) with no rules, so it ran on
+  // DEFAULT_NOTICE_RULES and the "Global Notice (hours)" field in the admin
+  // panel changed nothing at checkout. The setting is the source of truth, so
+  // it is loaded here and the constant is only the pre-load fallback.
+  const [noticeRules, setNoticeRules] = useState<SiteNoticeRules>(DEFAULT_NOTICE_RULES);
+
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase
+      .from("site_settings")
+      .select("global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days")
+      .eq("id", 1)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        setNoticeRules({
+          globalNoticeHours: data.global_notice_hours ?? DEFAULT_NOTICE_RULES.globalNoticeHours,
+          bulkThreshold: data.bulk_threshold ?? DEFAULT_NOTICE_RULES.bulkThreshold,
+          bulkNoticeHours: data.bulk_notice_hours ?? DEFAULT_NOTICE_RULES.bulkNoticeHours,
+          customCakeNoticeDays:
+            data.custom_cake_notice_days ?? DEFAULT_NOTICE_RULES.customCakeNoticeDays,
+        });
+      });
+  }, []);
+
+  const noticeHours = getRequiredNoticeHours(items, noticeRules);
 
   const handleProceedToFulfillment = () => {
     if (!cartValidation.valid) {
@@ -249,7 +276,9 @@ export default function CheckoutPage() {
             </Button>
           </div>
 
-          {noticeHours > 12 && (
+          {/* "more than the standard wait", not a hardcoded 12 — otherwise
+              this silently stops matching the moment the setting changes. */}
+          {noticeHours > noticeRules.globalNoticeHours && (
             <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
               <p className="text-sm text-ink-soft">
                 ⏰ This order requires {noticeHours}h advance notice due to{" "}

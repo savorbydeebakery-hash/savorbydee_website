@@ -228,7 +228,7 @@ export default function AdminSettingsPage() {
           <div className="rounded-xl bg-pink-soft/50 p-3">
             <p className="text-sm text-ink-soft">Notice windows stack by MAX. The effective notice is the maximum of all applicable windows.</p>
           </div>
-          <Input label="Global Notice (hours)" type="number" value={settings.global_notice_hours} onChange={(e) => update("global_notice_hours", parseInt(e.target.value) || 12)} />
+          <Input label="Global Notice (hours)" type="number" value={settings.global_notice_hours} onChange={(e) => update("global_notice_hours", parseInt(e.target.value) || 2)} />
           <Input label="Bulk Threshold (items)" type="number" value={settings.bulk_threshold} onChange={(e) => update("bulk_threshold", parseInt(e.target.value) || 10)} />
           <Input label="Bulk Notice (hours)" type="number" value={settings.bulk_notice_hours} onChange={(e) => update("bulk_notice_hours", parseInt(e.target.value) || 24)} />
           <Input label="Custom Cake Notice (days)" type="number" value={settings.custom_cake_notice_days} onChange={(e) => update("custom_cake_notice_days", parseInt(e.target.value) || 5)} />

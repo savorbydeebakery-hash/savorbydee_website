@@ -73,7 +73,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
   const s: Settings = data ?? {};
 
   const name = s.bakery_name?.trim() || "Savor by Dee";
-  const notice = s.global_notice_hours ?? 12;
+  const notice = s.global_notice_hours ?? 2;
   const bulkQty = s.bulk_threshold ?? 10;
   const bulkNotice = s.bulk_notice_hours ?? 24;
   const customDays = s.custom_cake_notice_days ?? 5;

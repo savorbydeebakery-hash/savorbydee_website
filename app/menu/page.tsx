@@ -6,7 +6,7 @@ import { Macaron, Cherry, Sprinkles } from "@/components/props/pastry-props";
 export const metadata = {
   title: "Menu – Savor by Dee",
   description:
-    "Browse our full menu of cakes, desserts, cookies, and savoury bakes. Pre-order online with 12 hours notice.",
+    "Browse our full menu of cakes, desserts, cookies, and savoury bakes. Pre-order online, made fresh to order.",
 };
 
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
@@ -19,7 +19,7 @@ export default async function MenuPage({
   const supabase = await createClient();
   const { tag } = await searchParams;
 
-  const [{ data: categories }, { data: menuItems }] = await Promise.all([
+  const [{ data: categories }, { data: menuItems }, { data: settings }] = await Promise.all([
     supabase
       .from("categories")
       .select("id, name, sort_order")
@@ -32,6 +32,8 @@ export default async function MenuPage({
       )
       .eq("is_active", true)
       .order("sort_order"),
+    // So the stated wait tracks the admin setting instead of going stale.
+    supabase.from("site_settings").select("global_notice_hours").eq("id", 1).single(),
   ]);
 
   return (
@@ -54,8 +56,8 @@ export default async function MenuPage({
           <p className="text-eyebrow mb-3 text-blush">Fresh to order</p>
           <h1 className="text-h1 text-shell">Our Menu</h1>
           <p className="mx-auto mt-4 max-w-xl text-[#D8CCC0]">
-            Every item is made fresh when you order. Please allow at least 12
-            hours for standard items.
+            Every item is made fresh when you order. Please allow at least{" "}
+            {settings?.global_notice_hours ?? 2} hours for standard items.
           </p>
         </div>
       </section>

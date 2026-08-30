@@ -6,7 +6,7 @@
 import type { CartItem } from "./types";
 
 export interface SiteNoticeRules {
-  globalNoticeHours: number; // default 12
+  globalNoticeHours: number; // default 2
   bulkThreshold: number; // default 10
   bulkNoticeHours: number; // default 24
   customCakeNoticeDays: number; // default 5
@@ -27,8 +27,13 @@ export interface ValidationResult {
   noticeHours: number;
 }
 
+/**
+ * Fallback only. site_settings is the source of truth and the checkout now
+ * loads it — these values are what applies for the moment before that request
+ * resolves, and in tests.
+ */
 export const DEFAULT_NOTICE_RULES: SiteNoticeRules = {
-  globalNoticeHours: 12,
+  globalNoticeHours: 2,
   bulkThreshold: 10,
   bulkNoticeHours: 24,
   customCakeNoticeDays: 5,
