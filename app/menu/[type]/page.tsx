@@ -5,11 +5,6 @@ import {
   ShieldCheck,
   PackageCheck,
   CalendarClock,
-  Cake,
-  PartyPopper,
-  Sparkles,
-  Clock,
-  Gift,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MenuTypeGrid } from "@/components/menu/menu-type-grid";
@@ -34,7 +29,7 @@ const SELECT_FIELDS =
  */
 const MENUS: Record<
   string,
-  { label: string; column: string; blurb: string; empty: string; tiles: FeatureTile[] }
+  { label: string; column?: string; blurb: string; empty: string; tiles: FeatureTile[] }
 > = {
   daily: {
     label: "Daily Menu",
@@ -52,37 +47,18 @@ const MENUS: Record<
   },
   preorder: {
     label: "Preorder Menu",
-    column: "is_preorder",
+    // No `column`: preordering IS the whole catalogue. Everything here is
+    // baked to order, so filtering it down to a flagged subset would have
+    // hidden most of the menu behind a distinction customers do not make.
     blurb:
-      "Reserve ahead for the bakes that need a little notice. Flagged in the admin panel, so this list is whatever Dee is taking orders for right now.",
-    empty: "Nothing is open for preorder at the moment. Check back soon.",
+      "Everything we bake, open for preorder. Nothing is made until your order comes in, which is why we ask for notice.",
+    empty: "The menu is not up yet. Check back shortly.",
     tiles: [
       {
         icon: CalendarClock,
         label: "Reserve in Advance",
         sub: "Secure your favourites early, available on a first-come, first-serve basis.",
       },
-      {
-        icon: Cake,
-        label: "Custom Creations",
-        sub: "Personalised cakes and themed treats made just for you.",
-      },
-      {
-        icon: PartyPopper,
-        label: "Perfect for Events",
-        sub: "Plan ahead for birthdays, weddings, or gatherings with handcrafted indulgence.",
-      },
-    ],
-  },
-  specials: {
-    label: "Specials",
-    column: "is_special",
-    blurb: "Seasonal bakes and limited runs. Here only while they last.",
-    empty: "No specials running at the moment.",
-    tiles: [
-      { icon: Sparkles, label: "Seasonal", sub: "Only" },
-      { icon: Clock, label: "Limited", sub: "Run" },
-      { icon: Gift, label: "Gift", sub: "Ready" },
     ],
   },
 };
@@ -108,12 +84,16 @@ export default async function MenuTypePage({
   if (!menu) notFound();
 
   const supabase = await createClient();
-  const { data: items } = await supabase
+  // A menu with no `column` is the full catalogue, so the flag filter is
+  // skipped rather than passed an undefined column name.
+  const base = supabase
     .from("menu_items")
     .select(SELECT_FIELDS)
-    .eq("is_active", true)
-    .eq(menu.column, true)
-    .order("sort_order");
+    .eq("is_active", true);
+  const { data: items } = await (menu.column
+    ? base.eq(menu.column, true)
+    : base
+  ).order("sort_order");
 
   return (
     <div className="bg-bk-bg">

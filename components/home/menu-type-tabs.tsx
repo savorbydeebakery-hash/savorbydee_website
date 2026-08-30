@@ -21,7 +21,6 @@ import Link from "next/link";
 export const MENU_TYPE_ORDER = [
   { slug: "daily", label: "Daily Menu" },
   { slug: "preorder", label: "Preorder Menu" },
-  { slug: "specials", label: "Specials" },
 ] as const;
 
 export function MenuTypeTabs({ active }: { active?: string }) {
