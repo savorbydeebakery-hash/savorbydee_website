@@ -16,6 +16,8 @@ export interface OrderRow {
   requested_slot: string;
   payment_status: string;
   total_cents: number;
+  /** Cash-on-delivery charge quoted by staff. null = not quoted yet. */
+  delivery_fee_cents: number | null;
   acknowledged_at: string | null;
   staff_email_sent_at: string | null;
   created_at: string;
@@ -71,6 +73,30 @@ export function useOrdersRealtime() {
   }, []);
 
   // Update order status
+  /**
+   * Records the distance-based delivery charge. Deliberately a separate column
+   * from total_cents: that value is what Razorpay captured for the bakes, and
+   * editing it after payment would leave the order record disagreeing with the
+   * money actually taken.
+   */
+  const setDeliveryFee = useCallback(
+    async (orderId: string, feeCents: number | null) => {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("orders")
+        .update({ delivery_fee_cents: feeCents })
+        .eq("id", orderId);
+
+      if (!error) {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, delivery_fee_cents: feeCents } : o))
+        );
+      }
+      return !error;
+    },
+    []
+  );
+
   const updateOrderStatus = useCallback(
     async (orderId: string, status: string) => {
       const supabase = createClient();
@@ -153,6 +179,7 @@ export function useOrdersRealtime() {
     connected,
     acknowledgeOrder,
     updateOrderStatus,
+    setDeliveryFee,
     refresh: fetchOrders,
   };
 }

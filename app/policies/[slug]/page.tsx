@@ -243,8 +243,15 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
               </Section>
               <Section title="Delivery charges">
                 <p>
-                  Any delivery charge is shown at checkout before you pay. There are no
-                  charges added afterwards.
+                  The payment you make online covers the bakes only. Delivery is
+                  charged separately because the cost depends on how far we are
+                  travelling, so we work it out from your address once your order
+                  comes in.
+                </p>
+                <p>
+                  We confirm the delivery charge with you before we set off, and
+                  it is paid in cash when your order arrives. You will never be
+                  charged anything extra to the card or UPI account you paid with.
                 </p>
               </Section>
               {s.delivery_instructions?.trim() && (

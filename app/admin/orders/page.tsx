@@ -41,7 +41,7 @@ const statusColors: Record<string, "pink" | "mint" | "lavender" | "peach" | "sky
 };
 
 export default function AdminOrdersPage() {
-  const { orders, connected, acknowledgeOrder, updateOrderStatus } = useOrdersRealtime();
+  const { orders, connected, acknowledgeOrder, updateOrderStatus, setDeliveryFee } = useOrdersRealtime();
   useAlarmClient();
 
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -299,6 +299,58 @@ export default function AdminOrdersPage() {
                 )}
               </div>
             </Card>
+
+            {/* Delivery charge — only meaningful on delivery orders. Collected
+                in cash on arrival, so this is a record of what was quoted
+                rather than anything the customer pays online. */}
+            {selectedOrder.fulfillment === "delivery" && (
+              <Card>
+                <h3 className="font-semibold text-ink mb-1">Delivery Charge</h3>
+                <p className="mb-3 text-xs text-ink-soft">
+                  Worked out from the distance and collected in cash on
+                  delivery. The customer has already paid for the bakes online —
+                  this is not added to that payment.
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-ink-soft">&#8377;</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    defaultValue={
+                      // == null, not === null: before migration 00020 is
+                      // applied the column is absent and this is undefined,
+                      // which would render defaultValue as NaN.
+                      selectedOrder.delivery_fee_cents == null
+                        ? ""
+                        : selectedOrder.delivery_fee_cents / 100
+                    }
+                    placeholder="Not quoted yet"
+                    onBlur={async (e) => {
+                      const raw = e.target.value.trim();
+                      // Empty clears the quote back to "not decided", which is
+                      // a different state from a free delivery of zero.
+                      const cents = raw === "" ? null : Math.round(parseFloat(raw) * 100);
+                      if (cents !== null && (Number.isNaN(cents) || cents < 0)) return;
+                      await setDeliveryFee(selectedOrder.id, cents);
+                      setSelectedOrder((prev) =>
+                        prev && prev.id === selectedOrder.id
+                          ? { ...prev, delivery_fee_cents: cents }
+                          : prev
+                      );
+                    }}
+                    className="w-40 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink"
+                  />
+                  <span className="text-xs text-ink-faint">
+                    {selectedOrder.delivery_fee_cents == null
+                      ? "not quoted"
+                      : selectedOrder.delivery_fee_cents === 0
+                        ? "free delivery"
+                        : "to collect in cash"}
+                  </span>
+                </div>
+              </Card>
+            )}
 
             {/* Status update */}
             <Card>

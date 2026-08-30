@@ -355,6 +355,21 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-semibold text-ink mb-3 flex items-center gap-2">
                 <MapPin size={20} className="text-cocoa" /> Delivery Address
               </h2>
+
+              {/* Disclosed HERE, at the moment delivery is chosen, and again on
+                  the confirm step beside the total. The delivery charge depends
+                  on distance and is set by staff after the order comes in, so
+                  it cannot be shown at checkout — which makes telling the
+                  customer up front the whole basis on which that is fair.
+                  Someone who pays online and is then quoted a fee they were
+                  never warned about has a legitimate complaint, and a disputed
+                  charge against a new payment account is expensive. */}
+              <p className="mb-4 rounded-xl bg-pink-soft px-4 py-3 text-sm leading-relaxed text-ink">
+                <strong>Delivery is charged separately.</strong> The amount you
+                pay now covers the bakes only. We work out the delivery charge
+                from your address and confirm it with you before we set off —
+                it is paid in cash when your order arrives.
+              </p>
               <div className="flex flex-col gap-4">
                 <Textarea
                   label="Full Address"
@@ -410,6 +425,14 @@ export default function CheckoutPage() {
                 <span className="font-semibold text-ink">Total</span>
                 <span className="font-bold text-gold-deep text-lg">{formatPrice(totalCents)}</span>
               </div>
+
+              {fulfillment === "delivery" && (
+                <p className="mt-3 rounded-xl bg-pink-soft px-4 py-3 text-xs leading-relaxed text-ink">
+                  This total is for the bakes only. Your delivery charge depends
+                  on the distance, and we will confirm it with you before
+                  delivery — payable in cash on arrival.
+                </p>
+              )}
             </div>
           </Card>
 
