@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { sendOrderConfirmation, sendStaffNotification } from "@/lib/email/send";
-import { validateCart, validateGuestInfo, validateDeliveryAddress } from "@/lib/cart/validation";
+import {
+  validateCart,
+  validateGuestInfo,
+  validateDeliveryAddress,
+  getRequiredNoticeHours,
+  DEFAULT_NOTICE_RULES,
+} from "@/lib/cart/validation";
 import type { CartItem } from "@/lib/cart/types";
 
 /**
@@ -110,6 +117,62 @@ export async function POST(request: NextRequest) {
     if (!requestedSlot) {
       return NextResponse.json(
         { error: "Requested slot is required" },
+        { status: 400 }
+      );
+    }
+
+    // --- Notice window (AUTHORITATIVE) ---
+    // The checkout applies the same rule, but that runs in the browser and is
+    // trivially skipped by posting here directly — so until now an order could
+    // be booked for a slot inside the notice window, which the kitchen then
+    // cannot physically meet. This is the check that actually holds.
+    //
+    // Rules come from site_settings rather than the constant, so raising the
+    // notice period in the admin panel takes effect immediately and cannot
+    // drift from what the checkout showed the customer.
+    // Anon client on purpose: site_settings is world-readable (RLS policy
+    // settings_select_public), so this needs no privilege. Validating input
+    // before building a service-role client also means a bad slot is rejected
+    // as a 400 rather than failing later as a 500 if that secret is missing.
+    const { data: noticeSettings } = await createPublicClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+      .from("site_settings")
+      .select("global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days")
+      .eq("id", 1)
+      .single();
+
+    const noticeRules = {
+      globalNoticeHours:
+        noticeSettings?.global_notice_hours ?? DEFAULT_NOTICE_RULES.globalNoticeHours,
+      bulkThreshold: noticeSettings?.bulk_threshold ?? DEFAULT_NOTICE_RULES.bulkThreshold,
+      bulkNoticeHours:
+        noticeSettings?.bulk_notice_hours ?? DEFAULT_NOTICE_RULES.bulkNoticeHours,
+      customCakeNoticeDays:
+        noticeSettings?.custom_cake_notice_days ?? DEFAULT_NOTICE_RULES.customCakeNoticeDays,
+    };
+
+    const slotMs = new Date(requestedSlot).getTime();
+    if (Number.isNaN(slotMs)) {
+      return NextResponse.json(
+        { error: "Requested slot is not a valid date" },
+        { status: 400 }
+      );
+    }
+
+    const requiredHours = getRequiredNoticeHours(items as CartItem[], noticeRules);
+    // 60s of slack. Someone who picks the earliest valid slot and submits a few
+    // seconds later would otherwise be rejected for being marginally too early,
+    // which is a false failure rather than an attempt to dodge the rule.
+    const earliestMs = Date.now() + requiredHours * 3_600_000 - 60_000;
+
+    if (slotMs < earliestMs) {
+      return NextResponse.json(
+        {
+          error: `This order needs at least ${requiredHours} hours notice. Please choose a later slot.`,
+          requiredNoticeHours: requiredHours,
+        },
         { status: 400 }
       );
     }
