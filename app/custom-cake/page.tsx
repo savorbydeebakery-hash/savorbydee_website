@@ -91,6 +91,17 @@ export default function CustomCakePage() {
           Dreaming of something special? Tell us your vision and we&rsquo;ll craft it for you.
           Custom cakes need at least 5 days notice.
         </p>
+
+        {/* Sets the expectation BEFORE someone describes a design or attaches a
+            reference photo, which is the only moment it can do any good. Left
+            deliberately warm and short: the point is to be honest about
+            handmade variation, not to read as a liability waiver. */}
+        <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-ink-soft">
+          Every cake is made by hand, so no two ever come out exactly alike. If
+          you send us a picture we will get as close to it as we can &mdash; the
+          small differences in colour, piping and finish are what make yours
+          one of a kind.
+        </p>
       </div>
 
       {error && (
