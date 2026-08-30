@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hmacSha256Hex, timingSafeEqualHex } from "@/lib/crypto/timing-safe";
 
 /**
  * T6.3: Razorpay webhook handler.
@@ -16,31 +17,33 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get("x-razorpay-signature") ?? "";
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
+    // FAIL CLOSED. This used to skip verification entirely when the secret was
+    // missing, logging "accepting in dev mode" and carrying on. That is a hole,
+    // not a convenience: the handler below flips an order to payment_status
+    // 'paid' on payment.captured, so an unsigned request with a known
+    // razorpay_order_id marks an unpaid order as paid. A missing secret in
+    // production is a deployment fault, and the only safe response to it is to
+    // reject every webhook until it is set.
     if (!webhookSecret) {
-      console.warn("[razorpay-webhook] No webhook secret configured — accepting in dev mode");
-    } else {
-      // Verify signature: HMAC-SHA256(rawBody, webhook_secret)
-      const encoder = new TextEncoder();
-      const keyData = encoder.encode(webhookSecret);
-      const bodyData = encoder.encode(rawBody);
-
-      const crypto = globalThis.crypto ?? (await import("node:crypto")).webcrypto;
-      const key = await crypto.subtle.importKey(
-        "raw",
-        keyData,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
+      console.error(
+        "[razorpay-webhook] RAZORPAY_WEBHOOK_SECRET is not set — rejecting. " +
+          "Set it with `wrangler secret put RAZORPAY_WEBHOOK_SECRET`."
       );
-      const sig = await crypto.subtle.sign("HMAC", key, bodyData);
-      const expectedSig = Array.from(new Uint8Array(sig))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
+      return NextResponse.json(
+        { error: "Webhook secret not configured" },
+        { status: 500 }
+      );
+    }
 
-      if (expectedSig !== signature) {
-        console.error("[razorpay-webhook] Signature verification failed");
-        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-      }
+    // HMAC-SHA256 over the RAW body — re-serialising parsed JSON would change
+    // key order and whitespace and never match.
+    const expectedSig = await hmacSha256Hex(webhookSecret, rawBody);
+
+    // Constant-time: `!==` short-circuits on the first wrong character, which
+    // leaks how much of a guessed signature was correct.
+    if (!timingSafeEqualHex(expectedSig, signature)) {
+      console.error("[razorpay-webhook] Signature verification failed");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
     const event = JSON.parse(rawBody);

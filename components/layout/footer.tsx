@@ -28,9 +28,16 @@ const SERVICE = [
   { href: "/account", label: "My Account" },
 ];
 
+// Razorpay's activation review checks that Terms, Privacy, Refunds, Shipping
+// and Contact are all reachable from the storefront. Linking them here puts
+// them on every page, which is what the reviewer looks for.
 const INFO = [
   { href: "/about", label: "Location & Hours" },
-  { href: "/custom-cake", label: "Bulk & Custom Orders" },
+  { href: "/policies/contact", label: "Contact Us" },
+  { href: "/policies/terms", label: "Terms & Conditions" },
+  { href: "/policies/privacy", label: "Privacy Policy" },
+  { href: "/policies/refunds", label: "Refunds & Cancellations" },
+  { href: "/policies/shipping", label: "Shipping & Delivery" },
 ];
 
 const SOCIALS = [

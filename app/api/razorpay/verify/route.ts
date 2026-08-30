@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { timingSafeEqualHex } from "@/lib/crypto/timing-safe";
 
 /**
  * T6.2 (part 2): Razorpay payment verification endpoint.
@@ -50,7 +51,8 @@ export async function POST(request: NextRequest) {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    if (expectedSignature !== razorpay_signature) {
+    // Constant-time — see lib/crypto/timing-safe.ts
+    if (!timingSafeEqualHex(expectedSignature, razorpay_signature)) {
       console.error("[razorpay/verify] Signature mismatch");
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
