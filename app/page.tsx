@@ -5,6 +5,8 @@ import { GalleryRail } from "@/components/home/gallery-rail";
 import { MenuTypeShowcase } from "@/components/home/menu-type-showcase";
 import { CatalogueSplit } from "@/components/home/catalogue-split";
 import { ReviewsCarousel } from "@/components/home/reviews-carousel";
+import { BestSellers } from "@/components/home/best-sellers";
+import { BehindTheScenes } from "@/components/home/behind-the-scenes";
 
 // NOTE: this was briefly `export const revalidate = 60` to avoid Supabase
 // round-trips to Tokyo per request. That engages OpenNext's ISR path, which
@@ -55,6 +57,8 @@ export default async function HomePage() {
     { count: itemCount },
     { data: settings },
     { data: reviews },
+    { data: bestsellers },
+    { data: bts },
   ] = await Promise.all([
     supabase
       .from("menu_items")
@@ -90,6 +94,21 @@ export default async function HomePage() {
       .eq("is_active", true)
       .order("sort_order")
       .limit(12),
+    supabase
+      .from("menu_items")
+      .select(SELECT_FIELDS)
+      .eq("is_active", true)
+      .eq("is_bestseller", true)
+      .order("sort_order")
+      .limit(10),
+    // behind_the_scenes arrives with migration 00019. Same degradation as
+    // reviews: the query errors before it is applied, data is null, and the
+    // section returns null rather than throwing.
+    supabase
+      .from("behind_the_scenes")
+      .select("id, label, caption, image_url")
+      .eq("is_active", true)
+      .order("sort_order"),
   ]);
 
   const photos = galleryPhotos ?? [];
@@ -109,21 +128,28 @@ export default async function HomePage() {
         rating={4.6}
       />
 
-      {/* 3. Gallery */}
-      <GalleryRail photos={photos} />
-
-      {/* 4. Menu types, in Brooki's shape: the tab strip is the heading and
+      {/* 3. Menu types, in Brooki's shape: the tab strip is the heading and
              the cards sit straight under it. Selecting a tab opens that
              menu's own page. This replaced the Daily | Specials split — two
              menu-pickers on one page was one too many. */}
       <MenuTypeShowcase items={dailyItems ?? []} />
 
-      {/* 5. Full Menu | Custom Order */}
+      {/* 4. Full Menu | Custom Order */}
       <CatalogueSplit
         categories={categories ?? []}
         itemCount={itemCount ?? 0}
         noticeDays={settings?.custom_cake_notice_days ?? 5}
       />
+
+      {/* 5. Gallery — moved below the menu so the page leads with what is for
+             sale and follows with what it looks like. */}
+      <GalleryRail photos={photos} />
+
+      {/* 6. Best Sellers — a scrolling rail, hidden when nothing is flagged. */}
+      <BestSellers items={bestsellers ?? []} />
+
+      {/* 7. Behind the Scenes — hidden until the photos exist. */}
+      <BehindTheScenes items={bts ?? []} />
     </div>
   );
 }

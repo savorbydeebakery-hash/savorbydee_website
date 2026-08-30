@@ -3,8 +3,12 @@ import Link from "next/link";
 /**
  * The menu-type strip, recreated from Brooki's category tabs: a horizontal row
  * of large words, the current one in full brand dark and the rest dropped back
- * to a light grey, with no underline, pill or box around any of them. The type
- * carries the state entirely.
+ * to grey, with no underline, pill or box around any of them. The type carries
+ * the state entirely.
+ *
+ * Inactive sits at 50% black, not the 30% the reference appears to use: at
+ * 30% these measured 2.12:1, and WCAG wants 3:1 for text this size. 50% gives
+ * 3.98:1 and still reads clearly as "not the current one".
  *
  * These NAVIGATE rather than switching content in place — selecting a menu
  * opens its own page, which is how it was specified. That is why they are
@@ -36,7 +40,7 @@ export function MenuTypeTabs({ active }: { active?: string }) {
                 className={`block whitespace-nowrap text-[clamp(1.35rem,3.2vw,2rem)] font-medium tracking-[-0.03em] transition-colors ${
                   isActive
                     ? "text-bk-maroon"
-                    : "text-bk-fg/30 hover:text-bk-fg/60"
+                    : "text-bk-fg/50 hover:text-bk-fg/75"
                 }`}
               >
                 {label}

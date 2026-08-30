@@ -34,10 +34,10 @@ const SERVICE = [
 const INFO = [
   { href: "/about", label: "Location & Hours" },
   { href: "/policies/contact", label: "Contact Us" },
-  { href: "/policies/terms", label: "Terms & Conditions" },
+  { href: "/policies/terms", label: "Terms" },
   { href: "/policies/privacy", label: "Privacy Policy" },
-  { href: "/policies/refunds", label: "Refunds & Cancellations" },
-  { href: "/policies/shipping", label: "Shipping & Delivery" },
+  { href: "/policies/refunds", label: "Refunds" },
+  { href: "/policies/shipping", label: "Shipping" },
 ];
 
 const SOCIALS = [
@@ -52,9 +52,9 @@ export function Footer() {
   return (
     <footer className="mt-16 border-t border-bk-border bg-bk-bg text-bk-fg">
       <div className="mx-auto w-full max-w-[var(--bk-page-width)] px-4 pb-28 pt-12 md:px-6 md:pb-14 md:pt-16">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-12 md:gap-8">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-[2fr_1fr_1fr_1fr] md:gap-8">
           {/* Lead block */}
-          <div className="col-span-2 md:col-span-5">
+          <div className="col-span-2 md:col-span-1">
             <p className="bk-section-title">Order on WhatsApp</p>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-bk-muted">
               Handcrafted cakes, desserts and savoury bakes, made fresh to order
@@ -109,7 +109,7 @@ function FooterColumn({
   links: { href: string; label: string }[];
 }) {
   return (
-    <div className="md:col-span-2">
+    <div className="min-w-0">
       <h2 className="text-sm font-semibold text-bk-fg">{title}</h2>
       <ul className="mt-3 flex flex-col gap-2.5">
         {links.map((l) => (

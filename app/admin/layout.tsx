@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   Star,
+  Camera,
 } from "lucide-react";
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/banners", label: "Promo Banners", icon: Megaphone },
   { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
+  { href: "/admin/behind-the-scenes", label: "Behind the Scenes", icon: Camera },
   { href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/settings", label: "Settings", icon: Settings },
