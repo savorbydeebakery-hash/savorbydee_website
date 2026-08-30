@@ -72,42 +72,42 @@ export function Header() {
         className={clsx(
           "sticky top-0 z-40 transition-[background-color,border-color,backdrop-filter] duration-300",
           scrolled
-            ? "border-b border-ink/8 bg-porcelain/85 backdrop-blur-md"
+            ? "border-b border-bk-border bg-bk-bg/90 backdrop-blur-md"
             : "border-b border-transparent bg-transparent"
         )}
       >
         <ScrollProgress />
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-            <span className="text-2xl font-bold tracking-tight text-ink">
-              SAVOR
-            </span>
-            <span className="hidden text-xs font-medium text-berry sm:inline">
-              bakery
-            </span>
-          </Link>
-
-          {/* Desktop nav */}
-          <nav className="hidden items-center gap-1 md:flex">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={clsx(
-                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  pathname === link.href
-                    ? "bg-pink-soft text-berry"
-                    : "text-ink-soft hover:bg-pink-soft/50 hover:text-ink"
-                )}
+        {/* grid-cols-[1fr_auto_1fr], not flex+justify-between. With flex the
+              wordmark sits between the two action groups, so it drifts off
+              centre whenever one side is wider than the other — and the right
+              side changes width the moment someone signs in or the cart badge
+              appears. Equal 1fr rails pin it to the true centre regardless. */}
+          <div className="mx-auto grid h-16 max-w-[var(--bk-page-width)] grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6">
+            {/* Left rail — menu toggle, at every width */}
+            <div className="flex justify-start">
+              <button
+                className="-ml-2 rounded-lg p-2 text-bk-fg transition-colors hover:bg-bk-bg-3"
+                onClick={() => setMobileOpen(!mobileOpen)}
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileOpen}
+                aria-controls="primary-nav-drawer"
               >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+                {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
+            </div>
 
-          {/* Right actions */}
-          <div className="flex items-center gap-2">
+            {/* Centre — wordmark only. The "bakery" sub-label is gone: it sat
+                beside the mark and made the centred block visually lopsided. */}
+            <Link
+              href="/"
+              onClick={() => setMobileOpen(false)}
+              className="justify-self-center text-2xl font-bold tracking-tight text-bk-fg"
+            >
+              SAVOR
+            </Link>
+
+            {/* Right rail — account + cart */}
+            <div className="flex items-center justify-end gap-1">
             {loaded && user ? (
               <Link
                 href="/account"
@@ -146,22 +146,13 @@ export function Header() {
                 </span>
               )}
             </Link>
-
-            {/* Mobile menu toggle */}
-            <button
-              className="rounded-lg p-2 text-ink-soft hover:bg-pink-soft md:hidden"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Menu"
-            >
-              {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
           </div>
         </div>
       </header>
 
       {/* Mobile nav drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-30 md:hidden">
+        <div id="primary-nav-drawer" className="fixed inset-0 z-30">
           <div
             className="absolute inset-0 bg-ink/20 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}

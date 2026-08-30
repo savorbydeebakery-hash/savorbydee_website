@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { PromoBanner } from "@/components/promo-banner";
 import { HeroCard } from "@/components/ui/hero-card";
 import { GalleryRail } from "@/components/home/gallery-rail";
-import { MenuSplit } from "@/components/home/menu-split";
+import { MenuTypeShowcase } from "@/components/home/menu-type-showcase";
 import { CatalogueSplit } from "@/components/home/catalogue-split";
 import { ReviewsCarousel } from "@/components/home/reviews-carousel";
 
@@ -50,7 +50,6 @@ export default async function HomePage() {
 
   const [
     { data: dailyItems },
-    { data: specialItems },
     { data: categories },
     { data: galleryPhotos },
     { count: itemCount },
@@ -62,16 +61,6 @@ export default async function HomePage() {
       .select(SELECT_FIELDS)
       .eq("is_active", true)
       .eq("daily_menu", true)
-      .order("sort_order")
-      .limit(4),
-    // This used to select only `id` because the page just needed to know
-    // whether any specials existed. The Specials panel renders them now, so
-    // it needs the full row.
-    supabase
-      .from("menu_items")
-      .select(SELECT_FIELDS)
-      .eq("is_active", true)
-      .eq("is_special", true)
       .order("sort_order")
       .limit(4),
     supabase
@@ -123,26 +112,11 @@ export default async function HomePage() {
       {/* 3. Gallery */}
       <GalleryRail photos={photos} />
 
-      {/* 4. Daily | Specials */}
-      <MenuSplit
-        left={{
-          title: "Daily Menu",
-          blurb:
-            "What is going into the oven today. The list changes, so this is the one worth checking.",
-          href: "/menu?tag=daily",
-          items: dailyItems ?? [],
-          empty: "Today's list is not up yet. Check back shortly.",
-        }}
-        right={{
-          title: "Specials",
-          blurb:
-            "Seasonal bakes and limited runs. Here only while they last.",
-          href: "/menu?tag=specials",
-          items: specialItems ?? [],
-          empty: "No specials running at the moment.",
-          tinted: true,
-        }}
-      />
+      {/* 4. Menu types, in Brooki's shape: the tab strip is the heading and
+             the cards sit straight under it. Selecting a tab opens that
+             menu's own page. This replaced the Daily | Specials split — two
+             menu-pickers on one page was one too many. */}
+      <MenuTypeShowcase items={dailyItems ?? []} />
 
       {/* 5. Full Menu | Custom Order */}
       <CatalogueSplit

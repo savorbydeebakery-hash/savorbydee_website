@@ -87,11 +87,17 @@
   --bk-muted: #666666;       /* their --color-foreground-lighten-60 */
   --bk-border: #e6e6e6;
   --bk-pink: #e1b5c2;        /* the brand pink, off their review widget tokens */
+  /* Their DARK brand tone. Read off the live "Best Seller" badge, which paints
+     rgb(101,50,48) with white text at a 5px radius — matching the theme's own
+     --badges-radius. Reads as a deep maroon rather than a pink, but it is the
+     dark end of their pink family and the colour their wordmark uses.
+     White on it measures 10.23:1, so it is safe as a button and badge ground. */
+  --bk-maroon: #653230;
   --bk-pink-soft: #f6eaee;   /* derived: the pink at ~30% over white */
   --bk-red: #d63a2f;         /* --color-primary, used for price/sale accents */
   --bk-sand: #e8dcd0;
   --bk-cream: #f3eeea;
-  --bk-btn: #000000;
+  --bk-btn: #653230;   /* was pure black; the brand dark reads warmer */
   --bk-btn-fg: #ffffff;
 
   /* Radii, converted from the 10px base */
@@ -147,6 +153,7 @@
   --color-bk-muted: var(--bk-muted);
   --color-bk-border: var(--bk-border);
   --color-bk-pink: var(--bk-pink);
+  --color-bk-maroon: var(--bk-maroon);
   --color-bk-pink-soft: var(--bk-pink-soft);
   --color-bk-red: var(--bk-red);
   --color-bk-sand: var(--bk-sand);

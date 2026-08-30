@@ -23,10 +23,16 @@ export function ProductMiniCard({
   item,
   onSelect,
   sizes = "(max-width: 768px) 45vw, 220px",
+  badge,
+  priority = false,
 }: {
   item: MenuItemForCart;
   onSelect: (item: MenuItemForCart) => void;
   sizes?: string;
+  /** Corner flag, e.g. "Best Seller". Only pass this for a claim the data
+   *  actually supports — it reads as a statement of fact to a customer. */
+  badge?: string;
+  priority?: boolean;
 }) {
   const rupees = `₹${(item.base_price_cents / 100).toFixed(0)}`;
 
@@ -62,6 +68,7 @@ export function ProductMiniCard({
               alt=""
               aspect="aspect-[3/4]"
               sizes={sizes}
+              priority={priority}
               fit="cover"
               className="rounded-[var(--bk-r-inner)] bg-bk-bg-3 transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             />
@@ -74,6 +81,12 @@ export function ProductMiniCard({
                 {item.name}
               </span>
             </div>
+          )}
+
+          {badge && !item.is_sold_out && (
+            <span className="absolute left-2 top-2 rounded-[var(--bk-r-sm)] bg-bk-maroon px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+              {badge}
+            </span>
           )}
 
           {item.is_sold_out && (
