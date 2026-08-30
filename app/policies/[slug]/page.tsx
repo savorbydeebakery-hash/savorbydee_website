@@ -42,7 +42,7 @@ type Slug = (typeof SLUGS)[number];
 const TITLES: Record<Slug, string> = {
   terms: "Terms & Conditions",
   privacy: "Privacy Policy",
-  refunds: "Refund & Cancellation Policy",
+  refunds: "Refunds & Returns",
   shipping: "Shipping & Delivery Policy",
   contact: "Contact Us",
 };
@@ -83,13 +83,20 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="bg-bk-bg">
-      <div className="mx-auto w-full max-w-3xl px-4 pb-20 pt-8 md:px-6 md:pt-12">
-        <h1 className="bk-section-title text-bk-fg">{TITLES[key]}</h1>
-        <p className="mt-2 text-sm text-bk-muted">
+      {/* Proportions taken from the reference's policy template: a ~774px
+          column, the title centred at 28px/500 with -0.04em tracking, body at
+          16px on a 26px line and 32px between blocks. Wider line spacing than
+          the rest of this site uses, which is right for a page people read
+          rather than scan. */}
+      <div className="mx-auto w-full max-w-[774px] px-4 pb-20 pt-10 md:px-6 md:pt-14">
+        <h1 className="text-center text-[1.75rem] font-medium leading-[1.2] tracking-[-0.04em] text-bk-fg">
+          {TITLES[key]}
+        </h1>
+        <p className="mt-3 text-center text-sm text-bk-muted">
           Last updated {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
         </p>
 
-        <div className="prose-policy mt-8 space-y-6 text-sm leading-relaxed text-bk-fg md:text-base">
+        <div className="mt-10 space-y-8 text-base leading-[1.625] text-bk-fg">
           {key === "terms" && (
             <>
               <p>
@@ -282,7 +289,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
         </div>
 
         <div className="mt-12 border-t border-bk-border pt-6">
-          <p className="mb-3 text-xs text-bk-muted">Other policies</p>
+          <p className="mb-3 text-sm font-bold text-bk-fg">Other policies</p>
           <ul className="flex flex-wrap gap-x-5 gap-y-2">
             {SLUGS.filter((x) => x !== key).map((x) => (
               <li key={x}>
@@ -304,8 +311,8 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-2 text-base font-semibold text-bk-fg md:text-lg">{title}</h2>
-      <div className="space-y-3 text-bk-muted">{children}</div>
+      <h2 className="mb-2 text-base font-bold text-bk-fg">{title}</h2>
+      <div className="space-y-4">{children}</div>
     </section>
   );
 }
@@ -313,8 +320,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[7rem_1fr] gap-3">
-      <dt className="text-sm font-semibold text-bk-fg">{label}</dt>
-      <dd className="text-sm text-bk-muted">{children}</dd>
+      <dt className="text-base font-bold text-bk-fg">{label}</dt>
+      <dd className="text-base text-bk-fg">{children}</dd>
     </div>
   );
 }

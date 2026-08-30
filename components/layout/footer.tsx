@@ -36,7 +36,7 @@ const INFO = [
   { href: "/policies/contact", label: "Contact Us" },
   { href: "/policies/terms", label: "Terms" },
   { href: "/policies/privacy", label: "Privacy Policy" },
-  { href: "/policies/refunds", label: "Refunds" },
+  { href: "/policies/refunds", label: "Refunds & Returns" },
   { href: "/policies/shipping", label: "Shipping" },
 ];
 
