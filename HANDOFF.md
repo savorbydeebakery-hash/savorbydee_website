@@ -158,6 +158,15 @@ Recorded because each cost real time to find.
   locale without setting the zone. Both look correct on a laptop in India and
   are wrong in production, which is exactly why the bug survived so long.
 
+- **The checkout's rules load asynchronously, so anything that reads them must
+  wait.** The slot step's Continue is disabled and labelled "Checking
+  availability…" until `site_settings` arrives. Without that gate a closed day
+  went straight through whenever the click beat the fetch — the schedule was
+  still null, the client check no-opped, and the customer only hit the refusal
+  after filling in their details. It passed locally every time and failed on
+  staging, which is the only reason it was caught. Any new check that depends
+  on those settings needs the same gate.
+
 - **E2E specs must not fill the slot picker with a UTC string.** Three did
   (`new Date(Date.now() + 48h).toISOString().slice(0, 16)`), which was harmless
   only while nothing validated opening hours. Use `validSlotInput()` from

@@ -37,6 +37,11 @@ test("bulk orders enforce 24h notice window", async ({ page }) => {
   await expect(slotInput).toBeVisible();
   await expect(page.getByText(/minimum 24h notice required/i)).toBeVisible();
 
+  // The slot step's Continue is labelled "Checking availability…" and disabled
+  // until site_settings arrives, so waiting for it here is what guarantees the
+  // min attribute below was computed from the real schedule.
+  await expect(page.getByRole("button", { name: /continue/i })).toBeEnabled();
+
   const min = await slotInput.getAttribute("min");
   expect(min, "the slot picker must carry a min attribute").toBeTruthy();
 

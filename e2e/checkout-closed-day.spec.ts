@@ -24,6 +24,11 @@ test("closed day is not offered and is refused if entered", async ({ page }) => 
   const slotInput = page.locator("input[type='datetime-local']");
   await expect(slotInput).toBeVisible();
 
+  // The slot step's Continue is labelled "Checking availability…" and disabled
+  // until site_settings arrives, so waiting for it here is what guarantees the
+  // min attribute below was computed from the real schedule.
+  await expect(page.getByRole("button", { name: /continue/i })).toBeEnabled();
+
   // 1. The floor the picker offers is a day the bakery is open.
   const min = await slotInput.getAttribute("min");
   expect(min, "the slot picker must carry a min attribute").toBeTruthy();

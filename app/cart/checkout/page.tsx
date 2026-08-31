@@ -88,18 +88,29 @@ export default function CheckoutPage() {
     weekly: null,
     holidays: [],
   });
+  // Whether that request has come back at all. Without this the slot step let
+  // a closed day straight through whenever the click beat the fetch: the
+  // schedule was still null, the check below no-opped, and the customer only
+  // found out after filling in their details. Caught on staging, where the
+  // round trip is slower than it is locally.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    void supabase
-      .from("site_settings")
-      .select(
-        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays"
-      )
-      .eq("id", 1)
-      .single()
-      .then(({ data }) => {
-        if (!data) return;
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("site_settings")
+          .select(
+            "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays"
+          )
+          .eq("id", 1)
+          .single();
+
+        if (cancelled || !data) return;
+
         setNoticeRules({
           globalNoticeHours: data.global_notice_hours ?? DEFAULT_NOTICE_RULES.globalNoticeHours,
           bulkThreshold: data.bulk_threshold ?? DEFAULT_NOTICE_RULES.bulkThreshold,
@@ -111,7 +122,18 @@ export default function CheckoutPage() {
           weekly: (data.weekly_hours as WeeklyHours | null) ?? null,
           holidays: (data.holidays as string[] | null) ?? [],
         });
-      });
+      } catch {
+        // Fail open. The order API applies both rules authoritatively, so a
+        // settings read that fails should not strand the customer at checkout.
+      } finally {
+        if (!cancelled) setSettingsLoaded(true);
+      }
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const noticeHours = getRequiredNoticeHours(items, noticeRules);
@@ -137,6 +159,8 @@ export default function CheckoutPage() {
   };
 
   const handleProceedToDetails = () => {
+    if (!settingsLoaded) return;
+
     if (!requestedSlot) {
       setErrors(["Please select a pickup/delivery slot"]);
       return;
@@ -399,8 +423,8 @@ export default function CheckoutPage() {
             <Button onClick={() => setStep("review")} variant="ghost">
               ← Back
             </Button>
-            <Button onClick={handleProceedToDetails} variant="primary">
-              Continue →
+            <Button onClick={handleProceedToDetails} variant="primary" disabled={!settingsLoaded}>
+              {settingsLoaded ? "Continue →" : "Checking availability…"}
             </Button>
           </div>
         </div>
