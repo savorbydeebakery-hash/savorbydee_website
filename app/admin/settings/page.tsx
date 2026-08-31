@@ -29,6 +29,7 @@ interface SiteSettings {
   bulk_threshold: number;
   bulk_notice_hours: number;
   custom_cake_notice_days: number;
+  daily_menu_cutoff: string;
   weekly_hours: Record<string, { open: boolean; from: string; to: string }>;
   holidays: string[];
   delivery_enabled: boolean;
@@ -229,7 +230,11 @@ export default function AdminSettingsPage() {
             <p className="text-sm text-ink-soft">Notice windows stack by MAX. The effective notice is the maximum of all applicable windows.</p>
           </div>
           <Input label="Global Notice (hours)" type="number" value={settings.global_notice_hours} onChange={(e) => update("global_notice_hours", parseInt(e.target.value) || 2)} />
-          <Input label="Bulk Threshold (items)" type="number" value={settings.bulk_threshold} onChange={(e) => update("bulk_threshold", parseInt(e.target.value) || 10)} />
+          <Input label="Bulk Threshold (per item)" type="number" value={settings.bulk_threshold} onChange={(e) => update("bulk_threshold", parseInt(e.target.value) || 12)} />
+          <p className="-mt-2 text-xs text-ink-faint">
+            More than this many of any ONE item counts as a bulk order. At 12, ordering 13 of
+            something triggers the bulk notice below; a basket of many different items never does.
+          </p>
           <Input label="Bulk Notice (hours)" type="number" value={settings.bulk_notice_hours} onChange={(e) => update("bulk_notice_hours", parseInt(e.target.value) || 24)} />
           <Input label="Custom Cake Notice (days)" type="number" value={settings.custom_cake_notice_days} onChange={(e) => update("custom_cake_notice_days", parseInt(e.target.value) || 5)} />
         </Card>
@@ -257,6 +262,24 @@ export default function AdminSettingsPage() {
               </div>
             );
           })}
+
+          {/* Daily menu cutoff */}
+          <div className="border-t border-ink/8 pt-4">
+            <label className="mb-1 block text-sm font-medium text-ink">
+              Daily menu closes at
+            </label>
+            <p className="mb-2 text-xs text-ink-faint">
+              Today&rsquo;s bakes stop being orderable at this time, so the last of them can be
+              handed over before you close. Preorders are not affected. Never later than the
+              day&rsquo;s closing time.
+            </p>
+            <input
+              type="time"
+              value={settings.daily_menu_cutoff ?? "20:30"}
+              onChange={(e) => update("daily_menu_cutoff", e.target.value)}
+              className="rounded-lg border border-ink/15 px-3 py-1.5 text-sm"
+            />
+          </div>
 
           {/* Holidays */}
           <div className="border-t border-ink/8 pt-4">

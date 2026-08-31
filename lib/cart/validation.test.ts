@@ -49,9 +49,26 @@ describe("getRequiredNoticeHours", () => {
     expect(getRequiredNoticeHours([makeItem()], DEFAULT_NOTICE_RULES)).toBe(2);
   });
 
-  it("returns bulk notice (24h) when qty >= bulkThreshold (10)", () => {
-    const items = [makeItem({ quantity: 10 })];
-    expect(getRequiredNoticeHours(items, DEFAULT_NOTICE_RULES)).toBe(24);
+  it("returns bulk notice (24h) when one item exceeds the threshold (12)", () => {
+    expect(getRequiredNoticeHours([makeItem({ quantity: 13 })], DEFAULT_NOTICE_RULES)).toBe(24);
+  });
+
+  it("treats exactly the threshold as NOT bulk — the rule is *more than* 12", () => {
+    expect(getRequiredNoticeHours([makeItem({ quantity: 12 })], DEFAULT_NOTICE_RULES)).toBe(2);
+  });
+
+  it("does not call a mixed basket bulk just because it is large", () => {
+    // Thirteen different single items is a normal order; thirteen of one cake
+    // is a baking problem. The old rule summed the cart and got this wrong.
+    const basket = Array.from({ length: 13 }, (_, i) =>
+      makeItem({ id: `cart-${i}`, quantity: 1 })
+    );
+    expect(getRequiredNoticeHours(basket, DEFAULT_NOTICE_RULES)).toBe(2);
+  });
+
+  it("triggers on the largest single line, not the total", () => {
+    const basket = [makeItem({ id: "a", quantity: 2 }), makeItem({ id: "b", quantity: 13 })];
+    expect(getRequiredNoticeHours(basket, DEFAULT_NOTICE_RULES)).toBe(24);
   });
 
   it("returns custom notice (120h = 5 days) when item requires custom notice", () => {

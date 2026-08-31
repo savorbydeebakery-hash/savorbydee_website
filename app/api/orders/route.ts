@@ -13,6 +13,7 @@ import {
 } from "@/lib/cart/validation";
 import type { CartItem } from "@/lib/cart/types";
 import { istInputToInstant, formatIstSlot, istDateParts } from "@/lib/time/ist";
+import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 
 /**
  * Resolve the logged-in customer id from the request's auth cookies.
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
     )
       .from("site_settings")
       .select(
-        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, bakery_name, address_line1, address_line2, address_city, address_state"
+        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, bakery_name, address_line1, address_line2, address_city, address_state"
       )
       .eq("id", 1)
       .single();
@@ -156,6 +157,29 @@ export async function POST(request: NextRequest) {
       customCakeNoticeDays:
         noticeSettings?.custom_cake_notice_days ?? DEFAULT_NOTICE_RULES.customCakeNoticeDays,
     };
+
+    // --- Business hours (AUTHORITATIVE) ---
+    // "Orders will be reviewed only during business hours." The storefront
+    // greys the menu out and refuses the add-to-cart, but a tab left open
+    // since the afternoon would still post here at midnight.
+    const openState = getOpenState(
+      noticeSettings?.weekly_hours as Parameters<typeof getOpenState>[0],
+      (noticeSettings?.holidays as string[] | null) ?? [],
+      noticeSettings?.daily_menu_cutoff ?? DEFAULT_DAILY_MENU_CUTOFF
+    );
+
+    if (!openState.isOpen) {
+      const back = openState.nextOpen
+        ? ` We reopen ${formatIstSlot(openState.nextOpen)} IST.`
+        : "";
+      return NextResponse.json(
+        {
+          error: `We are closed and not accepting orders right now.${back}`,
+          reopensAt: openState.nextOpen?.toISOString() ?? null,
+        },
+        { status: 400 }
+      );
+    }
 
     // The checkout posts a naive wall clock from a `datetime-local` input.
     // `new Date()` would resolve that against the *runtime's* zone, which is
@@ -221,11 +245,23 @@ export async function POST(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
         .from("menu_items")
-        .select("id, name, stock_count, is_sold_out")
+        .select("id, name, stock_count, is_sold_out, daily_menu")
         .in("id", [...orderedByItem.keys()]);
 
       for (const row of stockRows ?? []) {
         const wanted = orderedByItem.get(row.id) ?? 0;
+
+        // Today's bakes stop being orderable before the shop shuts, so the
+        // last of them can be handed over. Preorders are unaffected — they are
+        // being baked another day regardless.
+        if (row.daily_menu && !openState.dailyMenuOpen) {
+          return NextResponse.json(
+            {
+              error: `${row.name} is on today's menu, which has closed for the evening. It reopens in the morning.`,
+            },
+            { status: 400 }
+          );
+        }
 
         if (row.is_sold_out) {
           return NextResponse.json(
@@ -339,6 +375,25 @@ export async function POST(request: NextRequest) {
     if (itemsError) {
       console.error("[api/orders] Items insert error:", itemsError);
       // Order created but items failed — still return the order
+    }
+
+    // --- Reduce stock ---
+    // After the order exists, so a failure here cannot lose a paid-for order,
+    // and through an RPC so the subtraction happens inside the database: two
+    // checkouts in the same second would otherwise both read the old value.
+    // Untracked items (stock_count null) are skipped by the function itself.
+    try {
+      const { error: stockError } = await supabase.rpc("decrement_stock", {
+        lines: [...orderedByItem.entries()].map(([id, qty]) => ({ id, qty })),
+      });
+      if (stockError) {
+        console.error("[api/orders] Stock decrement error:", stockError);
+      }
+    } catch (stockError) {
+      // Non-fatal. Staff also sell over the counter and correct the number by
+      // hand, so an out-of-date count is a known, recoverable state; refusing
+      // an order that is already in the database would not be.
+      console.error("[api/orders] Stock decrement threw:", stockError);
     }
 
     // --- Send emails (non-blocking — don't fail the order if email fails) ---

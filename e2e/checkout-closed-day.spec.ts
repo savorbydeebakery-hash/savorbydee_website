@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { skipWhenClosed } from "./helpers/shop-open";
 import { istInputToInstant, istDayName, instantToIstInput } from "@/lib/time/ist";
 
 /**
@@ -11,6 +12,7 @@ import { istInputToInstant, istDayName, instantToIstInput } from "@/lib/time/ist
  * the entire time. Both halves are now real assertions.
  */
 test("closed day is not offered and is refused if entered", async ({ page }) => {
+  await skipWhenClosed(page);
   await page.goto("/menu");
   await page.locator("button", { hasText: /add to cart/i }).first().click();
   await page

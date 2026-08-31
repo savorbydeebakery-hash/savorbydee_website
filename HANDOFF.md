@@ -152,6 +152,27 @@ existing flags aren't lost if a filter is reintroduced.
 
 Recorded because each cost real time to find.
 
+- **Business hours are enforced in three places and they must agree.**
+  `lib/shop/open-state.ts` is the single source: it answers "is the bakery
+  open", "when does it reopen" and "is the daily menu still taking orders"
+  (cutoff 20:30, before the 21:00 close). The root layout resolves it once per
+  request and hands it down through `ShopStatusProvider`; cards grey out and
+  refuse the add-to-cart; the order API refuses the POST. Every failure path
+  returns OPEN on purpose — a settings read that breaks must not hang a CLOSED
+  sign on a bakery that is trading.
+
+- **Specs that place an order skip when the shop is shut.** `verify` runs on
+  every deploy at whatever time the deploy happens, and the API correctly
+  refuses orders outside Mon-Sat 09:00-21:00 IST. `e2e/helpers/shop-open.ts`
+  reads the storefront's own closed banner and skips, so a 9:30pm deploy does
+  not go red. If those specs are always skipping, check the clock before
+  assuming they are broken.
+
+- **The bulk rule is PER ITEM, not per cart.** "More than 12 of each item",
+  strictly greater, so 12 is fine and 13 triggers `bulk_notice_hours`. It used
+  to sum the whole cart, which made a basket of ten different single items a
+  bulk order. `bulk_threshold` is 12 in the live settings.
+
 - **Dates are IST, and only `lib/time/ist.ts` knows that.** Do not reach for
   `new Date(pickerValue)` or `toLocaleString("en-IN")` again — the first
   resolves against the runtime's zone (UTC on Workers) and the second sets the
@@ -256,7 +277,7 @@ record disagreeing with the money taken. `NULL` = not quoted; `0` = free.
 ```bash
 npx tsc --noEmit                 # typecheck
 npx eslint .                     # 1 known pre-existing warning in open-next.config.ts
-npx vitest run                   # 87 unit tests
+npx vitest run                   # 110 unit tests
 npx playwright test --workers=1  # 14 e2e; 12 pass, 2 need the service-role key locally
 ```
 

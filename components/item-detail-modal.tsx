@@ -7,6 +7,7 @@ import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart/store";
 import { calculateUnitPrice, calculateLineTotal, formatPrice } from "@/lib/cart/math";
 import type { MenuItemForCart, CartItemSelection } from "@/lib/cart/types";
+import { useCanOrder } from "@/components/shop/shop-status";
 
 interface ItemDetailModalProps {
   item: MenuItemForCart | null;
@@ -48,6 +49,10 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
     return () => clearTimeout(id);
   }, [item]);
 
+  // Called before the `!item` bail-out: hooks cannot sit behind a conditional
+  // return. The hook tolerates null and reports the shop-level answer.
+  const { canOrder, message: closedMessage } = useCanOrder(item);
+
   if (!item) return null;
 
   const unitPrice = calculateUnitPrice(item, selections);
@@ -76,6 +81,10 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
   };
 
   const handleAddToCart = () => {
+    // Belt and braces with the disabled button below. The order API refuses
+    // out-of-hours orders too, so this is about telling the customer early
+    // rather than about being the thing that stops it.
+    if (!canOrder) return;
     addToCart(item, selections, quantity);
     onClose();
   };
@@ -112,6 +121,15 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
           </p>
         )}
 
+        {/* Shop closed. Stated separately from "sold out" because the item is
+            fine — it is the bakery that is shut, and conflating the two would
+            tell a customer a cake was gone when it is simply 10pm. */}
+        {!canOrder && !unavailable && (
+          <div className="rounded-xl border border-berry/20 bg-pink-soft p-4">
+            <p className="text-sm font-medium text-ink">{closedMessage}</p>
+          </div>
+        )}
+
         {/* Sold out notice */}
         {unavailable && (
           <div className="rounded-xl bg-ink/5 p-4 text-center">
@@ -123,7 +141,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
           </div>
         )}
 
-        {!unavailable && (
+        {!unavailable && canOrder && (
           <>
             {/* Weight tiers (for weight_tiers price model) */}
             {item.price_model === "weight_tiers" && item.price_options.length > 0 && (

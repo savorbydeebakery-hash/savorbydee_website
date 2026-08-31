@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { skipWhenClosed } from "./helpers/shop-open";
 import { validSlotInput } from "./helpers/slot";
 
 /**
@@ -7,6 +8,7 @@ import { validSlotInput } from "./helpers/slot";
  * NOTE: Actual payment is mocked/skipped in CI — we verify the modal opens.
  */
 test("pay online opens Razorpay checkout modal", async ({ page }) => {
+  await skipWhenClosed(page);
   await page.goto("/menu");
   await page.locator("button", { hasText: /add to cart/i }).first().click();
   await page

@@ -1,6 +1,7 @@
 "use client";
 
 import { SmartImage } from "@/components/kinetic/smart-image";
+import { useCanOrder } from "@/components/shop/shop-status";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
 /**
@@ -48,21 +49,29 @@ export function ProductMiniCard({
   // item (null) is never mistaken for an empty one.
   const unavailable = item.is_sold_out || item.stock_count === 0;
 
+  // Outside business hours the card stays readable but goes flat and stops
+  // responding — the delivery-app pattern the client asked for. Kept separate
+  // from `unavailable` so the reasons do not blur: sold out is about the item,
+  // closed is about the shop.
+  const { canOrder } = useCanOrder(item);
+  const blocked = unavailable || !canOrder;
+
   return (
     <article
-      className="menu-item-card group"
+      className={`menu-item-card group ${!canOrder ? "opacity-50 grayscale" : ""}`}
       data-item-id={item.id}
       data-item-name={item.name.toLowerCase()}
+      data-orderable={canOrder ? "true" : "false"}
     >
       <button
         type="button"
-        disabled={unavailable}
+        disabled={blocked}
         onClick={() => onSelect(item)}
         data-item-id={item.id}
         data-item-name={item.name}
         data-item-price={item.base_price_cents}
         aria-label={`${item.name}, ${rupees} onwards. ${
-          unavailable ? "Unavailable" : "Add to Cart"
+          blocked ? "Unavailable" : "Add to Cart"
         }`}
         className="block w-full rounded-[var(--bk-r-inner)] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 disabled:cursor-not-allowed"
       >
@@ -116,7 +125,7 @@ export function ProductMiniCard({
             description of what activating the tile does — it opens the
             options sheet, which is where the item is actually added. */}
         <span className="sr-only">
-          {unavailable ? "Unavailable" : "Add to Cart"}
+          {blocked ? "Unavailable" : "Add to Cart"}
         </span>
       </button>
     </article>

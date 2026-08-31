@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { skipWhenClosed } from "./helpers/shop-open";
 import { validSlotInput } from "./helpers/slot";
 
 /**
@@ -26,6 +27,7 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
   // Customer context places an order
   const customerContext = await browser.newContext();
   const customerPage = await customerContext.newPage();
+  await skipWhenClosed(customerPage);
   await customerPage.goto("/menu");
   await customerPage.locator("button", { hasText: /add to cart/i }).first().click();
   await customerPage

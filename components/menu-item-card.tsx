@@ -6,6 +6,7 @@ import { SmartImage } from "@/components/kinetic/smart-image";
 import { Lens } from "@/components/magicui/lens";
 import { useTilt } from "@/lib/motion/use-tilt";
 import type { MenuItemForCart } from "@/lib/cart/types";
+import { useCanOrder } from "@/components/shop/shop-status";
 
 /**
  * The one product card. Previously this markup was copy-pasted into
@@ -45,14 +46,21 @@ export function MenuItemCard({
   const hasImage = Boolean(item.image_url);
   // See product-mini-card: a tracked item at 0 is unavailable.
   const unavailable = item.is_sold_out || item.stock_count === 0;
+  // See product-mini-card: shop-closed greys the card without claiming the
+  // item itself is unavailable.
+  const { canOrder } = useCanOrder(item);
+  const blocked = unavailable || !canOrder;
   const tilt = useTilt<HTMLElement>(6);
 
   return (
     <article
       ref={tilt}
-      className="menu-item-card group flex h-full flex-col overflow-hidden rounded-[var(--r-lg)] border border-ink/8 bg-porcelain transition-[transform,box-shadow,border-color] duration-300 ease-[var(--ease-out)] hover:-translate-y-1 hover:border-berry/25 hover:shadow-[var(--shadow-lg)] motion-reduce:hover:translate-y-0"
+      className={`menu-item-card group flex h-full flex-col overflow-hidden rounded-[var(--r-lg)] border border-ink/8 bg-porcelain transition-[transform,box-shadow,border-color] duration-300 ease-[var(--ease-out)] hover:-translate-y-1 hover:border-berry/25 hover:shadow-[var(--shadow-lg)] motion-reduce:hover:translate-y-0 ${
+        !canOrder ? "opacity-50 grayscale" : ""
+      }`}
       data-item-id={item.id}
       data-item-name={item.name.toLowerCase()}
+      data-orderable={canOrder ? "true" : "false"}
     >
       {/* Image area only when there IS an image. Most menu items have no
           photo (the client launched text-only), and unconditionally rendering
@@ -132,15 +140,15 @@ export function MenuItemCard({
         <div className="mt-auto pt-3">
           <Button
             size="sm"
-            variant={unavailable ? "ghost" : "cocoa"}
-            disabled={unavailable}
+            variant={blocked ? "ghost" : "cocoa"}
+            disabled={blocked}
             className="w-full"
             data-item-id={item.id}
             data-item-name={item.name}
             data-item-price={item.base_price_cents}
             onClick={() => onSelect(item)}
           >
-            {unavailable ? "Unavailable" : "Add to Cart"}
+            {blocked ? "Unavailable" : "Add to Cart"}
           </Button>
         </div>
       </div>

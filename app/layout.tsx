@@ -8,6 +8,11 @@ import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { MotionProvider } from "@/components/motion-provider";
 import { SplashLoader } from "@/components/splash-loader";
 import { MobileStickyBar } from "@/components/layout/mobile-sticky-bar";
+import { ShopStatusProvider, type ShopStatus } from "@/components/shop/shop-status";
+import { ClosedBanner } from "@/components/shop/closed-banner";
+import { createClient } from "@/lib/supabase/server";
+import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
+import type { WeeklyHours } from "@/lib/cart/validation";
 
 /**
  * DM Sans, one family for the whole site.
@@ -50,7 +55,46 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Whether the bakery is taking orders, resolved once per request and handed to
+ * every card and modal through context.
+ *
+ * Read here rather than per page because the answer has to be the same
+ * everywhere and the cards that need it sit several levels down. Every failure
+ * path returns "open": a settings read that breaks must not hang a CLOSED sign
+ * on a bakery that is actually trading. The order API applies the same rule
+ * authoritatively, so failing open here costs a clear refusal at checkout
+ * rather than a silently accepted order.
+ */
+async function readShopStatus(): Promise<ShopStatus> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("weekly_hours, holidays, daily_menu_cutoff")
+      .eq("id", 1)
+      .single();
+
+    const state = getOpenState(
+      (data?.weekly_hours as WeeklyHours | null) ?? null,
+      (data?.holidays as string[] | null) ?? [],
+      data?.daily_menu_cutoff ?? DEFAULT_DAILY_MENU_CUTOFF
+    );
+
+    return {
+      isOpen: state.isOpen,
+      dailyMenuOpen: state.dailyMenuOpen,
+      nextOpenIso: state.nextOpen?.toISOString() ?? null,
+      reason: state.reason,
+    };
+  } catch {
+    return { isOpen: true, dailyMenuOpen: true, nextOpenIso: null, reason: "open" };
+  }
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const shopStatus = await readShopStatus();
+
   return (
     <html
       lang="en"
@@ -80,14 +124,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </svg>
 
         <SplashLoader />
-        <MotionProvider>
-          <ScrollToTop />
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <WhatsAppWidget />
-          <MobileStickyBar />
-        </MotionProvider>
+        <ShopStatusProvider value={shopStatus}>
+          <MotionProvider>
+            <ScrollToTop />
+            <Header />
+            <ClosedBanner />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <WhatsAppWidget />
+            <MobileStickyBar />
+          </MotionProvider>
+        </ShopStatusProvider>
       </body>
     </html>
   );

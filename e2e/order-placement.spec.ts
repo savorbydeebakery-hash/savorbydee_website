@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { skipWhenClosed } from "./helpers/shop-open";
 import { validSlotInput } from "./helpers/slot";
 
 /**
@@ -7,6 +8,7 @@ import { validSlotInput } from "./helpers/slot";
  */
 test("customer can place a pre-order from menu to confirmation", async ({ page }) => {
   // 1. Browse menu
+  await skipWhenClosed(page);
   await page.goto("/menu");
   await expect(page.getByRole("heading", { name: /menu/i }).first()).toBeVisible();
 

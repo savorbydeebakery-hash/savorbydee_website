@@ -14,7 +14,12 @@ import {
 
 export interface SiteNoticeRules {
   globalNoticeHours: number; // default 2
-  bulkThreshold: number; // default 10
+  /**
+   * Per-ITEM quantity above which an order counts as bulk. 12 means 13 or more
+   * of any single item triggers the bulk window; a cart of many different
+   * items does not, however large it is.
+   */
+  bulkThreshold: number; // default 12
   bulkNoticeHours: number; // default 24
   customCakeNoticeDays: number; // default 5
 }
@@ -41,7 +46,7 @@ export interface ValidationResult {
  */
 export const DEFAULT_NOTICE_RULES: SiteNoticeRules = {
   globalNoticeHours: 2,
-  bulkThreshold: 10,
+  bulkThreshold: 12,
   bulkNoticeHours: 24,
   customCakeNoticeDays: 5,
 };
@@ -63,10 +68,17 @@ export function hasCustomNoticeItems(items: CartItem[]): boolean {
 /**
  * Determine the required notice window for the cart.
  * Rules STACK BY MAX:
- *   - Global: 12h (minimum for all orders)
- *   - Bulk: if total qty >= bulkThreshold → 24h
- *   - Custom: if any item requires custom notice → 5 days (120h)
+ *   - Global: the site's standard notice (minimum for all orders)
+ *   - Bulk: if ANY ONE item exceeds bulkThreshold -> bulkNoticeHours
+ *   - Custom: if any item requires custom notice -> customCakeNoticeDays
  * The effective notice is the MAX of all applicable windows.
+ *
+ * The bulk test is PER ITEM, and strictly greater than the threshold: the
+ * client's rule is "more than 12 of each item", so 12 is fine and 13 is bulk.
+ * It used to sum every line in the cart and compare that to the threshold,
+ * which made a mixed basket of ten different single items count as a bulk
+ * order — thirteen of one cake is a baking problem, one each of thirteen
+ * things is just a normal order.
  */
 export function getRequiredNoticeHours(
   items: CartItem[],
@@ -74,8 +86,8 @@ export function getRequiredNoticeHours(
 ): number {
   const notices: number[] = [rules.globalNoticeHours];
 
-  const totalQty = countItems(items);
-  if (totalQty >= rules.bulkThreshold) {
+  const largestLine = items.reduce((max, item) => Math.max(max, item.quantity), 0);
+  if (largestLine > rules.bulkThreshold) {
     notices.push(rules.bulkNoticeHours);
   }
 

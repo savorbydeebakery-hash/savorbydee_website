@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { skipWhenClosed } from "./helpers/shop-open";
 import { istInputToInstant } from "@/lib/time/ist";
 
 /**
@@ -6,6 +7,7 @@ import { istInputToInstant } from "@/lib/time/ist";
  * Add 15x item (threshold=10) → checkout → date picker earliest = now+24h → earlier date blocked.
  */
 test("bulk orders enforce 24h notice window", async ({ page }) => {
+  await skipWhenClosed(page);
   await page.goto("/menu");
 
   // Open the first item's detail modal
