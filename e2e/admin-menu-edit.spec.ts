@@ -1,14 +1,23 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * T6.7: Admin edits menu item price → storefront reflects change.
- * NOTE: Requires seeded admin credentials via env ADMIN_EMAIL / ADMIN_PASSWORD.
+ * T6.7: an admin price edit reaches the storefront.
+ *
+ * This test used to set the first item's price to ₹999 and leave it there.
+ * It runs against the live database on every deploy, so it had permanently
+ * overwritten the real price of one item in each category — Plain Vanilla,
+ * Cucumber & Mint Sandwich, Vanilla Cupcake, Tiramisu Tub and Classic NY Baked
+ * were all sitting at ₹999 on the live site because of it. Customers saw those
+ * prices.
+ *
+ * It now records what the price was, asserts on the change, and puts it back
+ * in a finally block so a mid-test failure still restores it. A test that
+ * writes to production has to clean up after itself.
  */
 test("admin price edit reflects on storefront", async ({ page }) => {
   const adminEmail = process.env.ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
   const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
 
-  // Login as admin
   await page.goto("/login");
   await page.getByLabel(/email/i).fill(adminEmail);
   await page.getByLabel(/password/i).fill(adminPassword);
@@ -17,17 +26,30 @@ test("admin price edit reflects on storefront", async ({ page }) => {
     page.locator("form").getByRole("button", { name: /sign in/i }).click(),
   ]);
 
-  // Open menu items admin
   await page.goto("/admin/menu-items");
   await expect(page.getByRole("heading", { name: /menu items/i })).toBeVisible();
 
-  // Edit first item's price (99900 paise = ₹999, displays as "₹999")
-  await page.locator("button", { hasText: /edit/i }).first().click();
-  const priceInput = page.locator("input[name='base_price_cents'], input[type='number']").first();
-  await priceInput.fill("99900");
-  await page.getByRole("button", { name: /save/i }).click();
+  const openFirstEditor = async () => {
+    await page.locator("button", { hasText: /edit/i }).first().click();
+    return page.locator("input[type='number']").first();
+  };
 
-  // Storefront reflects new price
-  await page.goto("/menu");
-  await expect(page.getByText(/999\.99|₹999/).first()).toBeVisible({ timeout: 10_000 });
+  const priceInput = await openFirstEditor();
+  const originalPrice = await priceInput.inputValue();
+  expect(originalPrice, "could not read the original price to restore it").toBeTruthy();
+
+  try {
+    await priceInput.fill("99900");
+    await page.getByRole("button", { name: /save/i }).click();
+
+    await page.goto("/menu");
+    await expect(page.getByText(/₹999/).first()).toBeVisible({ timeout: 10_000 });
+  } finally {
+    await page.goto("/admin/menu-items");
+    const restoreInput = await openFirstEditor();
+    await restoreInput.fill(originalPrice);
+    await page.getByRole("button", { name: /save/i }).click();
+    // Confirm the restore actually persisted rather than trusting the click.
+    await expect(page.locator("button", { hasText: /edit/i }).first()).toBeVisible();
+  }
 });
