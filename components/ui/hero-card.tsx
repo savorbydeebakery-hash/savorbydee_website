@@ -6,7 +6,8 @@ import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/motion/gsap";
 import { HeroBackdrop } from "@/components/three/hero-backdrop";
 
-const HERO_IMAGE = "/hero/celebration-cakes-v3.jpg";
+/** Shipped fallback, used when nothing has been uploaded in admin. */
+const DEFAULT_HERO_IMAGE = "/hero/celebration-cakes-v3.jpg";
 
 /**
  * Hero, following the client's reference composition:
@@ -22,8 +23,22 @@ const HERO_IMAGE = "/hero/celebration-cakes-v3.jpg";
  * Palette is the client's pastel pink, not the reference's lilac.
  */
 
-export function HeroCard({ className }: { images?: string[]; className?: string }) {
+export function HeroCard({
+  imageUrl,
+  className,
+}: {
+  /**
+   * site_settings.hero_image_url. Admin has had an upload control for this all
+   * along — it stored the file, previewed it, and printed "staged, click Save
+   * to apply", while this component ignored it and rendered the shipped
+   * constant. An image had in fact been uploaded and was sitting unused.
+   */
+  imageUrl?: string | null;
+  className?: string;
+}) {
   const scope = useRef<HTMLElement>(null);
+  const heroImage = imageUrl?.trim() || DEFAULT_HERO_IMAGE;
+  const isUploaded = heroImage !== DEFAULT_HERO_IMAGE;
 
 
 
@@ -141,8 +156,16 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
             <div className="photo-feather relative aspect-[16/9] w-full overflow-hidden">
               <div data-hero-photo-wrap className="absolute inset-0">
                 <Image
-                  src={HERO_IMAGE}
-                  alt="A cheese-topped savoury bun, a chocolate-glazed doughnut and a red velvet cupcake, photographed mid-air with their ingredients scattered around them"
+                  src={heroImage}
+                  // The shipped photo gets its real description; an uploaded
+                  // one is unknown to us, so it takes an empty alt and is
+                  // treated as decorative rather than being given a caption
+                  // that might describe something else entirely.
+                  alt={
+                    isUploaded
+                      ? ""
+                      : "A cheese-topped savoury bun, a chocolate-glazed doughnut and a red velvet cupcake, photographed mid-air with their ingredients scattered around them"
+                  }
                   fill
                   priority
                   sizes="(max-width: 1024px) 100vw, 720px"
@@ -152,7 +175,7 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
                   // one file. Saying so silences the "loader does not
                   // implement width" warning and costs nothing: the behaviour
                   // is identical, it is just no longer implicit.
-                  unoptimized
+                  unoptimized={!isUploaded}
                   // contain + feather: the whole frame is shown and its edges
                   // dissolve into the card, so nothing is cropped and no seam
                   // is drawn. Centre-anchored — this is a centred cluster with

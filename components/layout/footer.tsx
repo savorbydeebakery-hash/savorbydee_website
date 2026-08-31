@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Instagram, Facebook, MessageCircle, ArrowRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Footer in Brooki's structure and palette: white ground, true black type,
@@ -40,14 +41,44 @@ const INFO = [
   { href: "/policies/shipping", label: "Shipping" },
 ];
 
-const SOCIALS = [
+/**
+ * Instagram and Facebook are still hardcoded: site_settings has no column for
+ * them, and adding one needs a migration applied by hand. WhatsApp is not —
+ * whatsapp_number IS a setting, and it was being read by /about and
+ * /policies/contact while this footer carried a second, frozen copy of the
+ * number. Changing it in admin updated two places out of three.
+ */
+const SOCIAL_LINKS = [
   { href: "https://www.instagram.com/savorbydee", label: "Instagram", icon: Instagram },
   { href: "https://www.facebook.com/savorbydee", label: "Facebook", icon: Facebook },
-  { href: "https://wa.me/919836537447", label: "WhatsApp", icon: MessageCircle },
 ];
 
-export function Footer() {
+export async function Footer() {
   const year = new Date().getFullYear();
+
+  // Fails open to the shipped defaults: a footer is on every page, and a
+  // settings read that breaks must not take the legal line down with it.
+  let footerText: string | null = null;
+  let whatsappNumber: string | null = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("site_settings")
+      .select("footer_text, whatsapp_number")
+      .eq("id", 1)
+      .single();
+    footerText = data?.footer_text?.trim() || null;
+    whatsappNumber = data?.whatsapp_number?.trim() || null;
+  } catch {
+    // defaults below
+  }
+
+  const socials = [
+    ...SOCIAL_LINKS,
+    ...(whatsappNumber
+      ? [{ href: `https://wa.me/${whatsappNumber}`, label: "WhatsApp", icon: MessageCircle }]
+      : []),
+  ];
 
   return (
     <footer className="mt-16 border-t border-bk-border bg-bk-bg text-bk-fg">
@@ -81,7 +112,7 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col gap-5 border-t border-bk-border pt-6 md:flex-row md:items-center md:justify-between">
           <ul className="flex items-center gap-2">
-            {SOCIALS.map(({ href, label, icon: Icon }) => (
+            {socials.map(({ href, label, icon: Icon }) => (
               <li key={label}>
                 <a
                   href={href}
@@ -96,8 +127,10 @@ export function Footer() {
             ))}
           </ul>
 
+          {/* footer_text has been an editable field with no reader since the
+              panel was built. The shipped line stays as the fallback. */}
           <p className="text-xs text-bk-muted">
-            © {year} Savor by Dee. Made in Shillong.
+            {footerText ?? `© ${year} Savor by Dee. Made in Shillong.`}
           </p>
         </div>
       </div>

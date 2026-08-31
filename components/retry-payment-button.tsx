@@ -163,22 +163,39 @@ export function RetryPaymentButton({
           <AlertCircle className="text-gold-deep" size={20} />
           <h3 className="font-semibold text-ink">Payment via UPI</h3>
         </div>
-        <p className="text-sm text-ink-soft">
-          We&rsquo;re currently setting up online payments. Please pay via UPI to confirm your order.
-        </p>
-        {upiId && (
-          <div className="rounded-xl bg-mint-soft p-4 text-center">
-            <p className="text-xs text-ink-faint mb-1">Pay to UPI ID:</p>
-            <p className="text-lg font-bold text-ink select-all">{upiId}</p>
-            <p className="text-sm text-ink-soft mt-2">Amount: {formatPrice(totalCents)}</p>
-            <p className="text-xs text-ink-faint mt-2">
-              Reference: {humanId}
+        {upiId ? (
+          <>
+            <p className="text-sm text-ink-soft">
+              We&rsquo;re currently setting up online payments. Please pay via UPI to
+              confirm your order.
             </p>
-          </div>
+            <div className="rounded-xl bg-mint-soft p-4 text-center">
+              <p className="text-xs text-ink-faint mb-1">Pay to UPI ID:</p>
+              <p className="text-lg font-bold text-ink select-all">{upiId}</p>
+              <p className="text-sm text-ink-soft mt-2">Amount: {formatPrice(totalCents)}</p>
+              <p className="text-xs text-ink-faint mt-2">Reference: {humanId}</p>
+            </div>
+            <p className="text-xs text-ink-faint">
+              After payment, send a screenshot to our WhatsApp and we&rsquo;ll confirm your order.
+            </p>
+          </>
+        ) : (
+          /* No UPI ID set in admin. Telling someone to "pay via UPI" without
+             saying where would strand them, so say what actually happens
+             instead. Fill in Admin -> Settings -> Payment to show the ID. */
+          <>
+            <p className="text-sm text-ink-soft">
+              Online payment is not switched on yet. We&rsquo;ll message you with
+              payment details to confirm this order.
+            </p>
+            <div className="rounded-xl bg-mint-soft p-4">
+              <p className="text-sm text-ink-soft">
+                Amount due: <strong className="text-ink">{formatPrice(totalCents)}</strong>
+              </p>
+              <p className="text-xs text-ink-faint mt-1">Reference: {humanId}</p>
+            </div>
+          </>
         )}
-        <p className="text-xs text-ink-faint">
-          After payment, send a screenshot to our WhatsApp and we&rsquo;ll confirm your order.
-        </p>
       </Card>
     );
   }

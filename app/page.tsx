@@ -107,7 +107,7 @@ export default async function HomePage() {
       <PromoBanner position="homepage_hero" />
 
       {/* 1. Hero — unchanged from the existing build, minus the proof badges. */}
-      <HeroCard />
+      <HeroCard imageUrl={settings?.hero_image_url} />
 
       {/* 2. Testimonials, directly under the hero. Still hides itself entirely
              while the reviews table is empty. */}

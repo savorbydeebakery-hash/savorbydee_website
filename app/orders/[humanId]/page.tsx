@@ -10,6 +10,8 @@ import { Confetti } from "@/components/magicui/confetti";
 import { CheckCircle2, Package, MapPin, Clock, Search } from "lucide-react";
 import Link from "next/link";
 import { formatIstSlot } from "@/lib/time/ist";
+import { RetryPaymentButton } from "@/components/retry-payment-button";
+import { createClient } from "@/lib/supabase/client";
 
 interface OrderData {
   id: string;
@@ -86,6 +88,35 @@ export default function OrderConfirmationPage({
     }, 0);
     return () => clearTimeout(id);
   }, [fetchOrder]);
+
+  /**
+   * Payment settings. RetryPaymentButton existed but was imported by nothing,
+   * so an unpaid order had no way to pay at all — and kyc_pending_mode, the
+   * setting whose entire purpose is to show UPI instructions while Razorpay
+   * activation is pending, was switched on with nowhere to appear.
+   */
+  const [payment, setPayment] = useState<{
+    razorpayActive: boolean;
+    kycPendingMode: boolean;
+    upiId: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase
+      .from("site_settings")
+      .select("razorpay_active, kyc_pending_mode, upi_id")
+      .eq("id", 1)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        setPayment({
+          razorpayActive: data.razorpay_active ?? false,
+          kycPendingMode: data.kyc_pending_mode ?? false,
+          upiId: data.upi_id ?? null,
+        });
+      });
+  }, []);
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,13 +289,26 @@ export default function OrderConfirmationPage({
         </div>
       </Card>
 
-      {/* Payment info */}
-      <div className="rounded-xl bg-mint-soft border border-mint/20 p-4 mb-6">
-        <p className="text-sm text-ink-soft">
-          💡 We&rsquo;ll confirm your order and send payment instructions to{" "}
-          <strong>{order.guest_email}</strong>. You can pay via Razorpay (online) or UPI.
-        </p>
-      </div>
+      {/* Payment */}
+      {order.payment_status !== "paid" && payment && (payment.razorpayActive || payment.kycPendingMode) ? (
+        <div className="mb-6">
+          <RetryPaymentButton
+            orderId={order.id}
+            humanId={order.human_id}
+            totalCents={order.total_cents}
+            kycPendingMode={payment.kycPendingMode}
+            upiId={payment.upiId ?? undefined}
+            onPaymentSuccess={() => fetchOrder(email, phone)}
+          />
+        </div>
+      ) : (
+        <div className="rounded-xl bg-mint-soft border border-mint/20 p-4 mb-6">
+          <p className="text-sm text-ink-soft">
+            💡 We&rsquo;ll confirm your order and send payment instructions to{" "}
+            <strong>{order.guest_email}</strong>.
+          </p>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex justify-center gap-3">

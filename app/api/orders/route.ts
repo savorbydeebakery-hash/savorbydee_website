@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     )
       .from("site_settings")
       .select(
-        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, bakery_name, address_line1, address_line2, address_city, address_state"
+        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, delivery_enabled, bakery_name, address_line1, address_line2, address_city, address_state"
       )
       .eq("id", 1)
       .single();
@@ -157,6 +157,17 @@ export async function POST(request: NextRequest) {
       customCakeNoticeDays:
         noticeSettings?.custom_cake_notice_days ?? DEFAULT_NOTICE_RULES.customCakeNoticeDays,
     };
+
+    // Delivery can be switched off in admin. The checkout hides the tile, but
+    // that is the browser's copy of the rule. Checked here rather than with the
+    // other fulfillment validation further up, because it needs site_settings,
+    // which is not read until this point.
+    if (fulfillment === "delivery" && noticeSettings?.delivery_enabled === false) {
+      return NextResponse.json(
+        { error: "We are not delivering at the moment. Please choose collection." },
+        { status: 400 }
+      );
+    }
 
     // --- Business hours (AUTHORITATIVE) ---
     // "Orders will be reviewed only during business hours." The storefront

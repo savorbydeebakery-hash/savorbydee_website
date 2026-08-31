@@ -94,6 +94,11 @@ export default function CheckoutPage() {
   // found out after filling in their details. Caught on staging, where the
   // round trip is slower than it is locally.
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  // Admin -> Settings -> Delivery. Unchecking it used to reword the shipping
+  // policy and change nothing else, so customers kept placing delivery orders
+  // the bakery had switched off. Defaults to true so a settings read that
+  // fails does not silently withdraw delivery.
+  const [deliveryEnabled, setDeliveryEnabled] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,7 +109,7 @@ export default function CheckoutPage() {
         const { data } = await supabase
           .from("site_settings")
           .select(
-            "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays"
+            "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled"
           )
           .eq("id", 1)
           .single();
@@ -122,6 +127,7 @@ export default function CheckoutPage() {
           weekly: (data.weekly_hours as WeeklyHours | null) ?? null,
           holidays: (data.holidays as string[] | null) ?? [],
         });
+        setDeliveryEnabled(data.delivery_enabled ?? true);
       } catch {
         // Fail open. The order API applies both rules authoritatively, so a
         // settings read that fails should not strand the customer at checkout.
@@ -135,6 +141,12 @@ export default function CheckoutPage() {
       cancelled = true;
     };
   }, []);
+
+  // Derived, not corrected in an effect. If delivery is switched off while a
+  // customer has it selected, the answer is simply "pickup" from that render
+  // on — writing state back in an effect would cause a cascading render to
+  // reach the same place.
+  const effectiveFulfillment = deliveryEnabled ? fulfillment : "pickup";
 
   const noticeHours = getRequiredNoticeHours(items, noticeRules);
 
@@ -198,7 +210,7 @@ export default function CheckoutPage() {
       setErrors(guestErrors.errors);
       return;
     }
-    if (fulfillment === "delivery") {
+    if (effectiveFulfillment === "delivery") {
       const addrErrors = validateDeliveryAddress(deliveryAddress);
       if (!addrErrors.valid) {
         setErrors(addrErrors.errors);
@@ -227,10 +239,10 @@ export default function CheckoutPage() {
             lineTotalCents: item.lineTotalCents,
           })),
           totalCents,
-          fulfillment,
+          fulfillment: effectiveFulfillment,
           requestedSlot,
           guest,
-          deliveryAddress: fulfillment === "delivery" ? deliveryAddress : undefined,
+          deliveryAddress: effectiveFulfillment === "delivery" ? deliveryAddress : undefined,
           notes,
         }),
       });
@@ -374,11 +386,11 @@ export default function CheckoutPage() {
         <div className="flex flex-col gap-6">
           <div>
             <h2 className="text-lg font-semibold text-ink mb-3">Fulfillment Method</h2>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${deliveryEnabled ? "grid-cols-2" : "grid-cols-1"}`}>
               <button
                 onClick={() => setFulfillment("pickup")}
                 className={`rounded-2xl border p-4 text-left transition-colors ${
-                  fulfillment === "pickup"
+                  effectiveFulfillment === "pickup"
                     ? "border-pink bg-pink-soft"
                     : "border-ink/15 bg-white hover:border-pink"
                 }`}
@@ -387,19 +399,26 @@ export default function CheckoutPage() {
                 <p className="font-semibold text-ink">Pickup</p>
                 <p className="text-xs text-ink-soft">Collect from our bakery</p>
               </button>
-              <button
-                onClick={() => setFulfillment("delivery")}
-                className={`rounded-2xl border p-4 text-left transition-colors ${
-                  fulfillment === "delivery"
-                    ? "border-pink bg-pink-soft"
-                    : "border-ink/15 bg-white hover:border-pink"
-                }`}
-              >
-                <MapPin className="mb-2 text-cocoa" size={20} />
-                <p className="font-semibold text-ink">Delivery</p>
-                <p className="text-xs text-ink-soft">We&rsquo;ll bring it to you</p>
-              </button>
+              {deliveryEnabled && (
+                <button
+                  onClick={() => setFulfillment("delivery")}
+                  className={`rounded-2xl border p-4 text-left transition-colors ${
+                    effectiveFulfillment === "delivery"
+                      ? "border-pink bg-pink-soft"
+                      : "border-ink/15 bg-white hover:border-pink"
+                  }`}
+                >
+                  <MapPin className="mb-2 text-cocoa" size={20} />
+                  <p className="font-semibold text-ink">Delivery</p>
+                  <p className="text-xs text-ink-soft">We&rsquo;ll bring it to you</p>
+                </button>
+              )}
             </div>
+            {!deliveryEnabled && (
+              <p className="mt-2 text-xs text-ink-faint">
+                We are not delivering at the moment &mdash; collection only.
+              </p>
+            )}
           </div>
 
           <div>
@@ -463,7 +482,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {fulfillment === "delivery" && (
+          {effectiveFulfillment === "delivery" && (
             <div>
               <h2 className="text-lg font-semibold text-ink mb-3 flex items-center gap-2">
                 <MapPin size={20} className="text-cocoa" /> Delivery Address
@@ -539,7 +558,7 @@ export default function CheckoutPage() {
                 <span className="font-bold text-gold-deep text-lg">{formatPrice(totalCents)}</span>
               </div>
 
-              {fulfillment === "delivery" && (
+              {effectiveFulfillment === "delivery" && (
                 <p className="mt-3 rounded-xl bg-pink-soft px-4 py-3 text-xs leading-relaxed text-ink">
                   This total is for the bakes only. Your delivery charge depends
                   on the distance, and we will confirm it with you before
@@ -557,13 +576,13 @@ export default function CheckoutPage() {
               <div><span className="text-ink-faint">Phone:</span> {guest.phone}</div>
               <div>
                 <span className="text-ink-faint">Fulfillment:</span>{" "}
-                {fulfillment === "pickup" ? "Pickup" : "Delivery"}
+                {effectiveFulfillment === "pickup" ? "Pickup" : "Delivery"}
               </div>
               <div>
                 <span className="text-ink-faint">Slot:</span>{" "}
                 {formatIstSlot(istInputToInstant(requestedSlot))} IST
               </div>
-              {fulfillment === "delivery" && (
+              {effectiveFulfillment === "delivery" && (
                 <div><span className="text-ink-faint">Address:</span> {deliveryAddress.address}</div>
               )}
               {notes && <div><span className="text-ink-faint">Notes:</span> {notes}</div>}
