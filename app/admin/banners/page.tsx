@@ -9,6 +9,7 @@ import { Input, Textarea, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { uploadFile } from "@/lib/storage/upload-helper";
 import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
+import { instantToIstInput, istInputToInstant } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
 
@@ -212,8 +213,12 @@ function BannerForm({
         </Select>
 
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Start Date" type="datetime-local" value={form.start_date ? new Date(form.start_date).toISOString().slice(0, 16) : ""} onChange={(e) => setForm({ ...form, start_date: new Date(e.target.value).toISOString() })} />
-          <Input label="End Date (optional)" type="datetime-local" value={form.end_date ? new Date(form.end_date).toISOString().slice(0, 16) : ""} onChange={(e) => setForm({ ...form, end_date: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+          {/* Both ends of this round-trip were wrong: the value was rendered
+              with toISOString(), so the box showed UTC, and the change handler
+              read the naive result back in the browser's zone. A schedule set
+              here is an IST schedule at both ends. */}
+          <Input label="Start Date (IST)" type="datetime-local" value={instantToIstInput(form.start_date)} onChange={(e) => setForm({ ...form, start_date: istInputToInstant(e.target.value)?.toISOString() ?? form.start_date })} />
+          <Input label="End Date (optional, IST)" type="datetime-local" value={instantToIstInput(form.end_date)} onChange={(e) => setForm({ ...form, end_date: e.target.value ? istInputToInstant(e.target.value)?.toISOString() ?? null : null })} />
         </div>
 
         <label className="flex items-center gap-2 text-sm text-ink-soft">

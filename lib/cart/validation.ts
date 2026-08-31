@@ -4,6 +4,13 @@
  * No side effects. Fully unit-testable.
  */
 import type { CartItem } from "./types";
+import {
+  IST_OFFSET,
+  istDateKey,
+  istDayName,
+  istMinutesOfDay,
+  parseClockMinutes,
+} from "@/lib/time/ist";
 
 export interface SiteNoticeRules {
   globalNoticeHours: number; // default 2
@@ -79,14 +86,51 @@ export function getRequiredNoticeHours(
   return Math.max(...notices);
 }
 
+/** An instant for a given IST calendar day at a given minute-of-day. */
+function istInstantAt(dateKey: string, minutes: number): Date {
+  const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
+  const mm = String(minutes % 60).padStart(2, "0");
+  return new Date(`${dateKey}T${hh}:${mm}:00${IST_OFFSET}`);
+}
+
+/** The IST calendar day after `dateKey`. Noon avoids any boundary edge. */
+function nextIstDateKey(dateKey: string): string {
+  return istDateKey(new Date(`${dateKey}T12:00:00${IST_OFFSET}`).getTime() + 86_400_000);
+}
+
+/** A day the bakery is open, with its window parsed. Null when it is not. */
+function openWindow(
+  slot: Date,
+  weeklyHours: WeeklyHours | null | undefined,
+  holidaySet: Set<string>
+): { openMinutes: number; closeMinutes: number } | null {
+  if (holidaySet.has(istDateKey(slot))) return null;
+
+  const dayHours = weeklyHours?.[istDayName(slot)];
+  if (!dayHours || !dayHours.open) return null;
+
+  const openMinutes = parseClockMinutes(dayHours.from);
+  const closeMinutes = parseClockMinutes(dayHours.to);
+  if (Number.isNaN(openMinutes) || Number.isNaN(closeMinutes)) return null;
+  if (closeMinutes <= openMinutes) return null;
+
+  return { openMinutes, closeMinutes };
+}
+
 /**
- * 6-step getEarliestValidSlot algorithm:
- * 1. Start from now + required notice hours
- * 2. If the time falls outside operating hours, move to next open day
- * 3. If the time falls on a holiday, skip to next day
- * 4. If the slot is within operating hours, return it
- * 5. If the day is closed, skip to next day
- * 6. Repeat until a valid slot is found (max 30 iterations to prevent infinite loop)
+ * The earliest slot that satisfies the notice window AND falls inside opening
+ * hours, skipping closed days and holidays.
+ *
+ * Everything here is reasoned about in IST. It used to mix `getDay()` and
+ * `getHours()` (the *runtime's* zone — UTC on Workers) with a UTC
+ * `toISOString()` date string for the holiday lookup, so on the server the
+ * weekday and the holiday date could disagree with each other and both
+ * disagree with the bakery.
+ *
+ * The old version also snapped every roll-over to a hardcoded 9am, which is
+ * wrong for any day that opens at another time. Rolling to the next midnight
+ * and letting the "before opening" branch snap it to that day's own `from`
+ * handles it without the constant.
  */
 export function getEarliestValidSlot(
   requiredNoticeHours: number,
@@ -94,67 +138,90 @@ export function getEarliestValidSlot(
   holidays: string[] = [],
   fromTime: Date = new Date()
 ): Date | null {
-  const dayNames = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
   const holidaySet = new Set(holidays);
+  let candidate = new Date(fromTime.getTime() + requiredNoticeHours * 3_600_000);
 
-  // Step 1: earliest possible time = now + notice
-  let candidate = new Date(fromTime.getTime() + requiredNoticeHours * 60 * 60 * 1000);
+  // 30 days is the search horizon; a bakery closed for a month has a problem
+  // this function cannot solve.
+  for (let i = 0; i < 40; i++) {
+    const window = openWindow(candidate, weeklyHours, holidaySet);
 
-  for (let i = 0; i < 30; i++) {
-    const dayName = dayNames[candidate.getDay()];
-    const dateStr = candidate.toISOString().split("T")[0];
-
-    // Step 3: holiday check
-    if (holidaySet.has(dateStr)) {
-      candidate = new Date(candidate);
-      candidate.setDate(candidate.getDate() + 1);
-      candidate.setHours(9, 0, 0, 0); // reset to 9am next day
+    if (!window) {
+      candidate = istInstantAt(nextIstDateKey(istDateKey(candidate)), 0);
       continue;
     }
 
-    // Step 5: closed day check
-    const dayHours = weeklyHours[dayName];
-    if (!dayHours || !dayHours.open) {
-      candidate = new Date(candidate);
-      candidate.setDate(candidate.getDate() + 1);
-      candidate.setHours(9, 0, 0, 0);
+    const candidateMinutes = istMinutesOfDay(candidate);
+
+    if (candidateMinutes < window.openMinutes) {
+      return istInstantAt(istDateKey(candidate), window.openMinutes);
+    }
+
+    if (candidateMinutes >= window.closeMinutes) {
+      candidate = istInstantAt(nextIstDateKey(istDateKey(candidate)), 0);
       continue;
     }
 
-    // Step 2: within operating hours?
-    const [openH, openM] = dayHours.from.split(":").map(Number);
-    const [closeH, closeM] = dayHours.to.split(":").map(Number);
-    const openMinutes = openH * 60 + openM;
-    const closeMinutes = closeH * 60 + closeM;
-    const candidateMinutes = candidate.getHours() * 60 + candidate.getMinutes();
-
-    if (candidateMinutes < openMinutes) {
-      // Too early — set to opening time
-      candidate.setHours(openH, openM, 0, 0);
-      return candidate;
-    }
-
-    if (candidateMinutes >= closeMinutes) {
-      // Too late — move to next day at opening
-      candidate = new Date(candidate);
-      candidate.setDate(candidate.getDate() + 1);
-      candidate.setHours(9, 0, 0, 0);
-      continue;
-    }
-
-    // Step 4: within operating hours — valid slot
     return candidate;
   }
 
-  return null; // couldn't find a slot in 30 days
+  return null;
+}
+
+/**
+ * Is this slot one the bakery is actually open for?
+ *
+ * `weekly_hours` and `holidays` have been editable in Admin -> Settings since
+ * the panel was built, and nothing read either of them: Sunday is set closed
+ * in the live settings and a customer could still book a Sunday slot. This is
+ * the check that makes those two settings mean something.
+ *
+ * Unconfigured or malformed hours return valid. A broken setting should not
+ * refuse every order on the site; the failure mode has to be "accepts too
+ * much", not "accepts nothing".
+ */
+export function validateSlotAgainstHours(
+  slot: Date,
+  weeklyHours: WeeklyHours | null | undefined,
+  holidays: string[] = []
+): { valid: boolean; error: string | null } {
+  if (!weeklyHours || Object.keys(weeklyHours).length === 0) {
+    return { valid: true, error: null };
+  }
+
+  const holidaySet = new Set(holidays);
+
+  if (holidaySet.has(istDateKey(slot))) {
+    return { valid: false, error: "We are closed that day. Please choose another date." };
+  }
+
+  const dayName = istDayName(slot);
+  const dayHours = weeklyHours[dayName];
+
+  // A weekday absent from the settings object is unconfigured, not closed.
+  if (!dayHours) return { valid: true, error: null };
+
+  const label = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+
+  if (!dayHours.open) {
+    return { valid: false, error: `We are closed on ${label}s. Please choose another day.` };
+  }
+
+  const openMinutes = parseClockMinutes(dayHours.from);
+  const closeMinutes = parseClockMinutes(dayHours.to);
+  if (Number.isNaN(openMinutes) || Number.isNaN(closeMinutes)) {
+    return { valid: true, error: null };
+  }
+
+  const slotMinutes = istMinutesOfDay(slot);
+  if (slotMinutes < openMinutes || slotMinutes >= closeMinutes) {
+    return {
+      valid: false,
+      error: `On ${label}s we take slots between ${dayHours.from} and ${dayHours.to} IST.`,
+    };
+  }
+
+  return { valid: true, error: null };
 }
 
 /**

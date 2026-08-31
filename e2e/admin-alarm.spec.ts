@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { validSlotInput } from "./helpers/slot";
 
 /**
  * T6.7: Admin alarm fires on new order.
@@ -38,7 +39,7 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
   await customerPage.getByRole("button", { name: /continue/i }).click();
   await customerPage
     .locator("input[type='datetime-local']")
-    .fill(new Date(Date.now() + 48 * 3600_000).toISOString().slice(0, 16));
+    .fill(validSlotInput());
   await customerPage.getByRole("button", { name: /continue/i }).click();
 
   await customerPage.getByLabel(/name/i).fill("Alarm Test");

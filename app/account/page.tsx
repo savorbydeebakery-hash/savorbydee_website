@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Loader2,
 } from "lucide-react";
+import { formatIst } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
 
@@ -230,7 +231,7 @@ export default function AccountPage() {
                     <p className="font-semibold text-ink hover:text-berry">{order.human_id}</p>
                   </Link>
                   <p className="text-xs text-ink-faint">
-                    {new Date(order.created_at).toLocaleString("en-IN", {
+                    {formatIst(order.created_at, {
                       day: "numeric", month: "short", year: "numeric",
                     })}
                   </p>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { formatPrice } from "@/lib/cart/math";
+import { formatIst, formatIstSlot } from "@/lib/time/ist";
 import {
   Bell,
   Check,
@@ -176,7 +177,7 @@ export default function AdminOrdersPage() {
                     {formatPrice(order.total_cents)}
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-soft">
-                    {new Date(order.requested_slot).toLocaleString("en-IN", {
+                    {formatIst(order.requested_slot, {
                       day: "numeric", month: "short",
                       hour: "2-digit", minute: "2-digit",
                     })}
@@ -275,10 +276,7 @@ export default function AdminOrdersPage() {
                 <div className="flex items-center gap-2">
                   <Clock className="text-ink-faint" size={16} />
                   <span className="text-ink">
-                    {new Date(selectedOrder.requested_slot).toLocaleString("en-IN", {
-                      weekday: "short", day: "numeric", month: "short",
-                      hour: "2-digit", minute: "2-digit",
-                    })}
+                    {formatIstSlot(selectedOrder.requested_slot)} IST
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

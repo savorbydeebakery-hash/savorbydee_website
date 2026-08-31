@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/cart/math";
 import { Search, Package, Clock, MapPin } from "lucide-react";
 import Link from "next/link";
+import { formatIstSlot } from "@/lib/time/ist";
 
 interface OrderData {
   id: string;
@@ -162,10 +163,7 @@ export default function FindMyOrderPage() {
                 <Clock className="text-ink-faint" size={16} />
                 <span className="text-ink-faint">Slot:</span>
                 <span className="text-ink">
-                  {new Date(order.requested_slot).toLocaleString("en-IN", {
-                    weekday: "short", day: "numeric", month: "short",
-                    hour: "2-digit", minute: "2-digit",
-                  })}
+                  {formatIstSlot(order.requested_slot)} IST
                 </span>
               </div>
               <div className="flex items-center gap-2">

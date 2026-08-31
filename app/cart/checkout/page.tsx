@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/cart/math";
 import {
@@ -8,9 +8,18 @@ import {
   validateGuestInfo,
   validateDeliveryAddress,
   getRequiredNoticeHours,
+  getEarliestValidSlot,
+  validateSlotAgainstHours,
   DEFAULT_NOTICE_RULES,
   type SiteNoticeRules,
+  type WeeklyHours,
 } from "@/lib/cart/validation";
+import {
+  istInputToInstant,
+  instantToIstInput,
+  istInputAfterHours,
+  formatIstSlot,
+} from "@/lib/time/ist";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -72,12 +81,21 @@ export default function CheckoutPage() {
   // panel changed nothing at checkout. The setting is the source of truth, so
   // it is loaded here and the constant is only the pre-load fallback.
   const [noticeRules, setNoticeRules] = useState<SiteNoticeRules>(DEFAULT_NOTICE_RULES);
+  // Opening hours and holidays, so the picker cannot offer a slot the API is
+  // about to reject. Null until loaded — an unknown schedule constrains
+  // nothing rather than blocking every date.
+  const [schedule, setSchedule] = useState<{ weekly: WeeklyHours | null; holidays: string[] }>({
+    weekly: null,
+    holidays: [],
+  });
 
   useEffect(() => {
     const supabase = createClient();
     void supabase
       .from("site_settings")
-      .select("global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days")
+      .select(
+        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays"
+      )
       .eq("id", 1)
       .single()
       .then(({ data }) => {
@@ -89,10 +107,25 @@ export default function CheckoutPage() {
           customCakeNoticeDays:
             data.custom_cake_notice_days ?? DEFAULT_NOTICE_RULES.customCakeNoticeDays,
         });
+        setSchedule({
+          weekly: (data.weekly_hours as WeeklyHours | null) ?? null,
+          holidays: (data.holidays as string[] | null) ?? [],
+        });
       });
   }, []);
 
   const noticeHours = getRequiredNoticeHours(items, noticeRules);
+
+  // The earliest slot that clears the notice window *and* lands inside opening
+  // hours. `datetime-local` reads and writes a naive wall clock, which is
+  // treated as IST throughout — see lib/time/ist.ts for why that is pinned
+  // rather than left to the device's zone.
+  const minSlot = useMemo(() => {
+    const earliest = schedule.weekly
+      ? getEarliestValidSlot(noticeHours, schedule.weekly, schedule.holidays)
+      : null;
+    return earliest ? instantToIstInput(earliest) : istInputAfterHours(noticeHours);
+  }, [noticeHours, schedule]);
 
   const handleProceedToFulfillment = () => {
     if (!cartValidation.valid) {
@@ -108,6 +141,29 @@ export default function CheckoutPage() {
       setErrors(["Please select a pickup/delivery slot"]);
       return;
     }
+
+    // Mirrors the two checks the order API enforces, so the customer finds out
+    // here rather than after filling in their details. The API remains the
+    // authority — this is only about where the error surfaces.
+    const slot = istInputToInstant(requestedSlot);
+    if (!slot) {
+      setErrors(["That slot is not a valid date and time"]);
+      return;
+    }
+
+    if (slot.getTime() < Date.now() + noticeHours * 3_600_000 - 60_000) {
+      setErrors([
+        `This order needs at least ${noticeHours} hours notice. Please choose a later slot.`,
+      ]);
+      return;
+    }
+
+    const hoursCheck = validateSlotAgainstHours(slot, schedule.weekly, schedule.holidays);
+    if (!hoursCheck.valid) {
+      setErrors([hoursCheck.error!]);
+      return;
+    }
+
     setErrors([]);
     setStep("details");
   };
@@ -329,10 +385,14 @@ export default function CheckoutPage() {
             </Badge>
             <Input
               type="datetime-local"
-              label="Requested date & time"
+              label="Requested date & time (IST)"
               value={requestedSlot}
+              min={minSlot}
               onChange={(e) => setRequestedSlot(e.target.value)}
             />
+            <p className="mt-2 text-xs text-ink-faint">
+              All times are India Standard Time.
+            </p>
           </div>
 
           <div className="flex justify-between">
@@ -477,13 +537,7 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <span className="text-ink-faint">Slot:</span>{" "}
-                {new Date(requestedSlot).toLocaleString("en-IN", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatIstSlot(istInputToInstant(requestedSlot))} IST
               </div>
               {fulfillment === "delivery" && (
                 <div><span className="text-ink-faint">Address:</span> {deliveryAddress.address}</div>

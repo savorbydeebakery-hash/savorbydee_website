@@ -8,9 +8,11 @@ import {
   validateGuestInfo,
   validateDeliveryAddress,
   getRequiredNoticeHours,
+  validateSlotAgainstHours,
   DEFAULT_NOTICE_RULES,
 } from "@/lib/cart/validation";
 import type { CartItem } from "@/lib/cart/types";
+import { istInputToInstant, formatIstSlot, istDateParts } from "@/lib/time/ist";
 
 /**
  * Resolve the logged-in customer id from the request's auth cookies.
@@ -139,7 +141,9 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
       .from("site_settings")
-      .select("global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days")
+      .select(
+        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, bakery_name, address_line1, address_line2, address_city, address_state"
+      )
       .eq("id", 1)
       .single();
 
@@ -153,13 +157,19 @@ export async function POST(request: NextRequest) {
         noticeSettings?.custom_cake_notice_days ?? DEFAULT_NOTICE_RULES.customCakeNoticeDays,
     };
 
-    const slotMs = new Date(requestedSlot).getTime();
-    if (Number.isNaN(slotMs)) {
+    // The checkout posts a naive wall clock from a `datetime-local` input.
+    // `new Date()` would resolve that against the *runtime's* zone, which is
+    // UTC on Workers — so a 06:07 slot picked in Shillong was stored as 06:07Z
+    // and every check below inherited a 5h30m skew in the lenient direction.
+    // Read as IST, always, whatever zone the customer's device is set to.
+    const slot = istInputToInstant(requestedSlot);
+    if (!slot) {
       return NextResponse.json(
         { error: "Requested slot is not a valid date" },
         { status: 400 }
       );
     }
+    const slotMs = slot.getTime();
 
     const requiredHours = getRequiredNoticeHours(items as CartItem[], noticeRules);
     // 60s of slack. Someone who picks the earliest valid slot and submits a few
@@ -175,6 +185,20 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // --- Opening hours (AUTHORITATIVE) ---
+    // weekly_hours and holidays have been editable in the admin panel since it
+    // was built and nothing read either one, so a Sunday marked closed was
+    // still bookable. Enforced here for the same reason the notice window is:
+    // the browser's copy of the rule is advisory.
+    const hoursCheck = validateSlotAgainstHours(
+      slot,
+      noticeSettings?.weekly_hours as Parameters<typeof validateSlotAgainstHours>[1],
+      (noticeSettings?.holidays as string[] | null) ?? []
+    );
+    if (!hoursCheck.valid) {
+      return NextResponse.json({ error: hoursCheck.error }, { status: 400 });
     }
 
     const supabase = createAdminClient();
@@ -196,10 +220,9 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Generate human_id: SAV-YYMMDD-NNNN ---
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(2);
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const dd = String(now.getDate()).padStart(2, "0");
+    // IST parts, not the runtime's: on a UTC worker an order placed between
+    // midnight and 05:30 IST was stamped with the previous day's date.
+    const { yy, mm, dd } = istDateParts();
     const datePart = `${yy}${mm}${dd}`;
 
     // Get next sequence value
@@ -226,7 +249,7 @@ export async function POST(request: NextRequest) {
         guest_phone: guest.phone,
         delivery_address: fulfillment === "delivery" ? deliveryAddress?.address ?? null : null,
         delivery_landmark: fulfillment === "delivery" ? deliveryAddress?.landmark ?? null : null,
-        requested_slot: new Date(requestedSlot).toISOString(),
+        requested_slot: slot.toISOString(),
         payment_status: "unpaid",
         total_cents: totalCents,
         notes: notes || null,
@@ -265,10 +288,28 @@ export async function POST(request: NextRequest) {
 
     // --- Send emails (non-blocking — don't fail the order if email fails) ---
     try {
-      const orderUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(
-        "supabase.co",
-        ""
-      )}orders/${humanId}`;
+      // This used to be built by stripping "supabase.co" out of the Supabase
+      // project URL, which produced links like
+      // "https://tkzbroymiyvnigqxcpze.orders/SAV-..." in the customer's
+      // confirmation email. The request's own origin is the site the customer
+      // just ordered from, which is what the link should point at.
+      const orderUrl = `${request.nextUrl.origin}/orders/${humanId}`;
+
+      // Zone-pinned. Rendered on a Workers runtime, a bare
+      // toLocaleString("en-IN") sets the locale but leaves the zone as UTC, so
+      // customers were emailed a time 5h30m before the slot they booked.
+      const slotLabel = `${formatIstSlot(slot)} IST`;
+
+      const pickupAddress =
+        [
+          noticeSettings?.bakery_name,
+          noticeSettings?.address_line1,
+          noticeSettings?.address_line2,
+          noticeSettings?.address_city,
+          noticeSettings?.address_state,
+        ]
+          .filter(Boolean)
+          .join(", ") || undefined;
 
       // Customer confirmation
       await sendOrderConfirmation(guest.email, {
@@ -281,8 +322,8 @@ export async function POST(request: NextRequest) {
         })),
         total: `₹${(totalCents / 100).toFixed(0)}`,
         fulfillment,
-        requestedSlot: new Date(requestedSlot).toLocaleString("en-IN"),
-        pickupAddress: fulfillment === "pickup" ? "SAVOR Bakery, Kolkata" : undefined,
+        requestedSlot: slotLabel,
+        pickupAddress: fulfillment === "pickup" ? pickupAddress : undefined,
         paymentStatus: "Pending",
         orderUrl,
       });
@@ -298,7 +339,7 @@ export async function POST(request: NextRequest) {
         })),
         total: `₹${(totalCents / 100).toFixed(0)}`,
         fulfillment,
-        requestedSlot: new Date(requestedSlot).toLocaleString("en-IN"),
+        requestedSlot: slotLabel,
         deliveryAddress:
           fulfillment === "delivery" ? deliveryAddress?.address : undefined,
         notes: notes || undefined,

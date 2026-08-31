@@ -3,15 +3,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Package, Cake, Tag, Image as ImageIcon, TrendingUp, Clock, Settings } from "lucide-react";
+import { istDayBounds, formatIstTime } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
 
-  const now = new Date();
-  const today = now.toISOString().split("T")[0];
-  const tomorrow = new Date(now.getTime() + 86400000).toISOString().split("T")[0];
+  // "Today" means the bakery's day. These were UTC date strings, so the
+  // dashboard's today began at 05:30 IST and silently dropped every slot
+  // before it.
+  const { start: today, end: tomorrow } = istDayBounds();
 
   const [
     { count: totalOrders },
@@ -108,9 +110,7 @@ export default async function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-ink-soft">
-                      {new Date(slot.requested_slot).toLocaleTimeString("en-IN", {
-                        hour: "2-digit", minute: "2-digit",
-                      })}
+                      {formatIstTime(slot.requested_slot)}
                     </span>
                     <Badge color="neutral">{slot.fulfillment}</Badge>
                   </div>

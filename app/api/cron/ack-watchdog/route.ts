@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendAckWatchdog } from "@/lib/email/send";
+import { formatIstSlot } from "@/lib/time/ist";
 
 /**
  * T4.3: 30s ack watchdog — Cloudflare Cron Trigger.
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
             customerName: order.guest_name ?? "Unknown",
             customerPhone: order.guest_phone ?? "Unknown",
             total: `₹${(order.total_cents / 100).toFixed(0)}`,
-            requestedSlot: new Date(order.requested_slot).toLocaleString("en-IN"),
+            requestedSlot: `${formatIstSlot(order.requested_slot)} IST`,
             minutesUnacknowledged: Math.max(1, minutesUnacknowledged),
             adminUrl: "/admin/orders",
           });

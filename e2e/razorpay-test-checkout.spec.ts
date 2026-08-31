@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { validSlotInput } from "./helpers/slot";
 
 /**
  * T6.7: Razorpay test checkout modal opens.
@@ -19,7 +20,7 @@ test("pay online opens Razorpay checkout modal", async ({ page }) => {
   await page.getByRole("button", { name: /continue/i }).click();
   await page
     .locator("input[type='datetime-local']")
-    .fill(new Date(Date.now() + 48 * 3600_000).toISOString().slice(0, 16));
+    .fill(validSlotInput());
   await page.getByRole("button", { name: /continue/i }).click();
 
   await page.getByLabel(/name/i).fill("Razorpay Test");

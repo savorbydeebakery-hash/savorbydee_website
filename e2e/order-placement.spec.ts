@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { validSlotInput } from "./helpers/slot";
 
 /**
  * T6.7: Full order placement flow.
@@ -31,7 +32,7 @@ test("customer can place a pre-order from menu to confirmation", async ({ page }
   // 6. Step 2 (Fulfillment) — pickup is default, pick a slot 48h out
   await page
     .locator("input[type='datetime-local']")
-    .fill(new Date(Date.now() + 48 * 3600_000).toISOString().slice(0, 16));
+    .fill(validSlotInput());
   await page.getByRole("button", { name: /continue/i }).click();
 
   // 7. Step 3 (Details) — fill guest info

@@ -9,6 +9,7 @@ import { Input, Textarea, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { formatPrice } from "@/lib/cart/math";
 import { Cake, Phone, Mail, Calendar, Pencil } from "lucide-react";
+import { formatIstDate } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,7 @@ export default function AdminCustomCakesPage() {
               </div>
               {inquiry.requested_date && (
                 <div className="flex items-center gap-2 text-ink-soft">
-                  <Calendar size={14} /> {new Date(inquiry.requested_date).toLocaleDateString("en-IN")}
+                  <Calendar size={14} /> {formatIstDate(inquiry.requested_date)}
                 </div>
               )}
             </div>

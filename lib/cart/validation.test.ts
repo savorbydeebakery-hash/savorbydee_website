@@ -8,8 +8,16 @@ import {
   countItems,
   hasCustomNoticeItems,
   DEFAULT_NOTICE_RULES,
+  validateSlotAgainstHours,
 } from "./validation";
 import type { CartItem } from "./types";
+import { istInputToInstant, istDayName, instantToIstInput } from "@/lib/time/ist";
+
+/** A wall clock the bakery would recognise, as a real instant. */
+const ist = (wallClock: string): Date => istInputToInstant(wallClock)!;
+
+/** The IST clock time of a slot, for assertions. */
+const istClock = (d: Date): string => instantToIstInput(d).slice(11);
 
 // --- Fixtures ---
 
@@ -62,39 +70,39 @@ describe("getRequiredNoticeHours", () => {
 });
 
 // --- getEarliestValidSlot ---
+//
+// Every instant here is built from an IST wall clock and asserted back in IST,
+// so these pass identically on a laptop in Shillong and on a UTC CI runner.
+// They used to be written in the runtime's local zone, which made them
+// self-consistent but silent about the bug they were meant to guard.
 
 describe("getEarliestValidSlot", () => {
   it("rolls to next opening when notice lands after closing", () => {
-    // Wednesday 10am + 12h = 10pm → outside hours → next day 9am (Thursday)
-    const from = new Date("2026-08-19T10:00:00"); // Wednesday
-    const slot = getEarliestValidSlot(12, weeklyHours, [], from);
+    // Wednesday 10:00 + 12h = 22:00 IST, past the 18:00 close -> Thursday 09:00.
+    const slot = getEarliestValidSlot(12, weeklyHours, [], ist("2026-08-19T10:00"));
     expect(slot).not.toBeNull();
-    expect(slot!.getDay()).toBe(4); // Thursday
-    expect(slot!.getHours()).toBe(9);
+    expect(istDayName(slot!)).toBe("thursday");
+    expect(istClock(slot!)).toBe("09:00");
   });
 
   it("skips closed days (Sunday)", () => {
-    // Saturday 5pm + 12h = Sunday 5am → Sunday closed → Monday 9am
-    const from = new Date("2026-08-22T17:00:00"); // Saturday
-    const slot = getEarliestValidSlot(12, weeklyHours, [], from);
+    // Saturday 17:00 + 12h = Sunday 05:00 -> Sunday closed -> Monday 09:00.
+    const slot = getEarliestValidSlot(12, weeklyHours, [], ist("2026-08-22T17:00"));
     expect(slot).not.toBeNull();
-    expect(slot!.getDay()).toBe(1); // Monday
-    expect(slot!.getHours()).toBe(9);
+    expect(istDayName(slot!)).toBe("monday");
+    expect(istClock(slot!)).toBe("09:00");
   });
 
   it("skips holidays", () => {
-    // Wednesday 6am + 12h = Wednesday 6pm = exactly closing time (invalid)
-    // → Thursday, but Thursday is a holiday → Friday 9am
-    const from = new Date("2026-08-19T06:00:00"); // Wednesday 6am
-    const holidays = ["2026-08-20"]; // Thursday
-    const slot = getEarliestValidSlot(12, weeklyHours, holidays, from);
+    // Wednesday 06:00 + 12h = 18:00, exactly the close (invalid) -> Thursday,
+    // which is a holiday -> Friday 09:00.
+    const slot = getEarliestValidSlot(12, weeklyHours, ["2026-08-20"], ist("2026-08-19T06:00"));
     expect(slot).not.toBeNull();
-    expect(slot!.getDay()).toBe(5); // Friday
-    expect(slot!.getHours()).toBe(9);
+    expect(istDayName(slot!)).toBe("friday");
+    expect(istClock(slot!)).toBe("09:00");
   });
 
-  it("returns null if no slot found in 30 iterations", () => {
-    // All days closed
+  it("returns null if every day is closed", () => {
     const allClosed: typeof weeklyHours = {
       monday: { open: false, from: "09:00", to: "18:00" },
       tuesday: { open: false, from: "09:00", to: "18:00" },
@@ -104,17 +112,75 @@ describe("getEarliestValidSlot", () => {
       saturday: { open: false, from: "09:00", to: "18:00" },
       sunday: { open: false, from: "09:00", to: "18:00" },
     };
-    const slot = getEarliestValidSlot(12, allClosed, []);
-    expect(slot).toBeNull();
+    expect(getEarliestValidSlot(12, allClosed, [])).toBeNull();
   });
 
-  it("adjusts to opening time if candidate is before open", () => {
-    // Wednesday 2am + 12h = Wednesday 2pm → within hours
-    // But let's test: Wednesday 8am + 1h = 9am = opening time
-    const from = new Date("2026-08-19T08:00:00"); // Wednesday 8am
-    const slot = getEarliestValidSlot(1, weeklyHours, [], from);
+  it("adjusts to opening time if the candidate is before open", () => {
+    const slot = getEarliestValidSlot(1, weeklyHours, [], ist("2026-08-19T05:00"));
     expect(slot).not.toBeNull();
-    expect(slot!.getHours()).toBe(9); // adjusted to opening
+    expect(istClock(slot!)).toBe("09:00");
+  });
+
+  it("snaps to the day's own opening time, not a hardcoded 9am", () => {
+    // The previous implementation reset every roll-over to 09:00 regardless of
+    // what the day actually opened at.
+    const lateOpening = { ...weeklyHours, thursday: { open: true, from: "11:30", to: "18:00" } };
+    const slot = getEarliestValidSlot(12, lateOpening, [], ist("2026-08-19T10:00"));
+    expect(istDayName(slot!)).toBe("thursday");
+    expect(istClock(slot!)).toBe("11:30");
+  });
+
+  it("returns the candidate unchanged when it already lands inside hours", () => {
+    const slot = getEarliestValidSlot(2, weeklyHours, [], ist("2026-08-19T10:00"));
+    expect(istClock(slot!)).toBe("12:00");
+  });
+});
+
+// --- validateSlotAgainstHours ---
+
+describe("validateSlotAgainstHours", () => {
+  it("rejects a slot on a closed day", () => {
+    // The live bug: Sunday is set closed and was bookable anyway.
+    const result = validateSlotAgainstHours(ist("2026-08-23T10:00"), weeklyHours);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/closed on Sundays/i);
+  });
+
+  it("rejects a slot before opening", () => {
+    const result = validateSlotAgainstHours(ist("2026-08-19T07:00"), weeklyHours);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/between 09:00 and 18:00/);
+  });
+
+  it("rejects a slot at or after closing", () => {
+    expect(validateSlotAgainstHours(ist("2026-08-19T18:00"), weeklyHours).valid).toBe(false);
+    expect(validateSlotAgainstHours(ist("2026-08-19T21:00"), weeklyHours).valid).toBe(false);
+  });
+
+  it("rejects a holiday", () => {
+    const result = validateSlotAgainstHours(ist("2026-08-19T10:00"), weeklyHours, ["2026-08-19"]);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/closed that day/i);
+  });
+
+  it("accepts a slot inside hours", () => {
+    expect(validateSlotAgainstHours(ist("2026-08-19T09:00"), weeklyHours).valid).toBe(true);
+    expect(validateSlotAgainstHours(ist("2026-08-19T17:59"), weeklyHours).valid).toBe(true);
+  });
+
+  it("judges the day in IST, not UTC", () => {
+    // 2026-08-24T02:00 IST is Monday. Read as UTC it is still Sunday 20:30 on
+    // the 23rd, which the old code would have called a closed day.
+    expect(istDayName(ist("2026-08-24T02:00"))).toBe("monday");
+    const result = validateSlotAgainstHours(ist("2026-08-24T09:30"), weeklyHours);
+    expect(result.valid).toBe(true);
+  });
+
+  it("accepts anything when hours are unconfigured or malformed", () => {
+    expect(validateSlotAgainstHours(ist("2026-08-23T10:00"), {}).valid).toBe(true);
+    expect(validateSlotAgainstHours(ist("2026-08-23T10:00"), null).valid).toBe(true);
+    const broken = { sunday: { open: true, from: "nope", to: "later" } };
+    expect(validateSlotAgainstHours(ist("2026-08-23T10:00"), broken).valid).toBe(true);
   });
 });
 

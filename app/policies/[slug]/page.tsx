@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { formatIst } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
           {TITLES[key]}
         </h1>
         <p className="mt-3 text-center text-sm text-bk-muted">
-          Last updated {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+          Last updated {formatIst(new Date(), { day: "numeric", month: "long", year: "numeric" })}
         </p>
 
         <div className="mt-10 space-y-8 text-base leading-[1.625] text-bk-fg">
