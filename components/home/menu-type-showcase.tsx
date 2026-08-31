@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { ProductMiniCard } from "@/components/home/product-mini-card";
 import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
@@ -15,19 +13,19 @@ import type { MenuItemForCart } from "@/lib/cart/types";
  *
  * Their tabs swap the row in place. Here they navigate to a page instead,
  * which is how this was specified, so the row below shows the DEFAULT menu
- * (Daily) and the Daily tab is marked current. The row is a preview, and the
- * link at the end goes to the full list.
+ * (Daily) and the Daily tab is marked current. The row is a preview; the tabs
+ * above it are the way through to the full list, which is why the separate
+ * "View the Daily Menu" button that used to sit under the row was removed —
+ * it was a second control doing what the Daily tab already does.
  *
  * This replaced the old Daily | Specials split. Keeping both would have put
  * two competing menu-pickers on one page.
  */
 export function MenuTypeShowcase({
   items,
-  href = "/menu/daily",
   active = "daily",
 }: {
   items: MenuItemForCart[];
-  href?: string;
   active?: string;
 }) {
   const [selected, setSelected] = useState<MenuItemForCart | null>(null);
@@ -58,15 +56,6 @@ export function MenuTypeShowcase({
             ))}
           </div>
         )}
-      </div>
-
-      <div className="mt-5 flex justify-center">
-        <Link
-          href={href}
-          className="inline-flex h-11 items-center gap-1.5 rounded-[var(--bk-r-pill)] bg-bk-btn px-7 text-sm font-medium text-bk-btn-fg transition-opacity hover:opacity-85"
-        >
-          View the Daily Menu <ChevronRight size={16} />
-        </Link>
       </div>
 
       {selected && (

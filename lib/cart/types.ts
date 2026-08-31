@@ -52,6 +52,8 @@ export interface MenuItemForCart {
   decoration_tiers: PriceOption[];
   size_options: PriceOption[];
   min_order_qty: number;
+  /** Units available. null = not tracked (no counter shown), 0 = out of stock. */
+  stock_count?: number | null;
   is_sold_out: boolean;
   requires_custom_notice: boolean;
   image_url?: string;

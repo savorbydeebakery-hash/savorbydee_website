@@ -36,12 +36,17 @@ export function ProductMiniCard({
 }) {
   const rupees = `₹${(item.base_price_cents / 100).toFixed(0)}`;
 
-  // Most of this catalogue has no photography yet (the menu_items table ships
-  // image_url null for nearly every row). Rendering the empty 3:4 frame with a
-  // placeholder icon four times in a row reads as a broken page rather than as
-  // a bakery that has not shot its menu, so an item without a photo gets a
-  // typographic tile instead: same footprint, same rhythm, nothing missing.
+  // This catalogue is text-only by design — the client is not shooting the
+  // menu. An item without a photo used to get a pink typographic tile holding
+  // its name, which put the name on screen twice and filled the grid with
+  // large empty blocks of colour. No photo now means no image area at all, so
+  // the card collapses to name and price and the rows sit close together.
   const hasPhoto = Boolean(item.image_url);
+
+  // A tracked item at 0 is unavailable for the same reason a manually
+  // sold-out one is. `!= null` rather than a truthy test, so an untracked
+  // item (null) is never mistaken for an empty one.
+  const unavailable = item.is_sold_out || item.stock_count === 0;
 
   return (
     <article
@@ -51,18 +56,18 @@ export function ProductMiniCard({
     >
       <button
         type="button"
-        disabled={item.is_sold_out}
+        disabled={unavailable}
         onClick={() => onSelect(item)}
         data-item-id={item.id}
         data-item-name={item.name}
         data-item-price={item.base_price_cents}
         aria-label={`${item.name}, ${rupees} onwards. ${
-          item.is_sold_out ? "Unavailable" : "Add to Cart"
+          unavailable ? "Unavailable" : "Add to Cart"
         }`}
         className="block w-full rounded-[var(--bk-r-inner)] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 disabled:cursor-not-allowed"
       >
-        <div className="relative overflow-hidden rounded-[var(--bk-r-inner)] bg-bk-bg-3">
-          {hasPhoto ? (
+        {hasPhoto && (
+          <div className="relative overflow-hidden rounded-[var(--bk-r-inner)] bg-bk-bg-3">
             <SmartImage
               src={item.image_url}
               alt=""
@@ -72,31 +77,33 @@ export function ProductMiniCard({
               fit="cover"
               className="rounded-[var(--bk-r-inner)] bg-bk-bg-3 transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             />
-          ) : (
-            <div
-              aria-hidden="true"
-              className="flex aspect-[3/4] items-center justify-center rounded-[var(--bk-r-inner)] bg-bk-pink-soft p-4"
-            >
-              <span className="line-clamp-4 text-center text-base font-medium leading-snug tracking-tight text-bk-fg/80">
-                {item.name}
+
+            {unavailable && (
+              <span className="absolute inset-x-0 bottom-0 bg-bk-fg/75 py-1.5 text-center text-[11px] font-medium uppercase tracking-wide text-white">
+                Sold Out
               </span>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {badge && !item.is_sold_out && (
-            <span className="absolute left-2 top-2 rounded-[var(--bk-r-sm)] bg-bk-maroon px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
-              {badge}
-            </span>
-          )}
+        {/* Badges sit in the flow rather than over the image, because there is
+            usually no image to sit over. */}
+        {(badge || unavailable) && (
+          <div className={`flex flex-wrap items-center gap-1.5 ${hasPhoto ? "mt-2" : ""}`}>
+            {badge && !unavailable && (
+              <span className="rounded-[var(--bk-r-sm)] bg-bk-maroon px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+                {badge}
+              </span>
+            )}
+            {unavailable && !hasPhoto && (
+              <span className="rounded-[var(--bk-r-sm)] bg-bk-fg/75 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-white">
+                Sold Out
+              </span>
+            )}
+          </div>
+        )}
 
-          {item.is_sold_out && (
-            <span className="absolute inset-x-0 bottom-0 bg-bk-fg/75 py-1.5 text-center text-[11px] font-medium uppercase tracking-wide text-white">
-              Sold Out
-            </span>
-          )}
-        </div>
-
-        <h3 className="mt-2 truncate text-sm font-medium text-bk-fg">
+        <h3 className="mt-1.5 text-sm font-medium leading-snug text-bk-fg">
           {item.name}
         </h3>
 
@@ -109,7 +116,7 @@ export function ProductMiniCard({
             description of what activating the tile does — it opens the
             options sheet, which is where the item is actually added. */}
         <span className="sr-only">
-          {item.is_sold_out ? "Unavailable" : "Add to Cart"}
+          {unavailable ? "Unavailable" : "Add to Cart"}
         </span>
       </button>
     </article>

@@ -233,11 +233,16 @@
    without a declared color-scheme, Chrome on Android applies its automatic
    dark theme and force-inverts the whole page — which is exactly what was
    happening on the client's phone, where the cream card and white panels came
-   back as near-black. Declaring `light` opts the document out of that
-   algorithm, and also keeps form controls, scrollbars and the address bar in
-   light UA styling. Set on :root so it applies before any paint. */
+   back as near-black. This also keeps form controls, scrollbars and the
+   address bar in light UA styling. Set on :root so it applies before any
+   paint. */
 :root {
-  color-scheme: light;
+  /* `only light`, not `light`. Plain `light` states a preference and some
+     Chrome/Android builds still apply their auto-dark algorithm over it —
+     which is what the client kept seeing on their phone after the first
+     attempt at this. The `only` keyword is the hard opt-out: it forbids the
+     UA from substituting a dark rendering at all. */
+  color-scheme: only light;
 }
 
 body {

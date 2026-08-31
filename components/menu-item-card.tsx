@@ -43,6 +43,8 @@ export function MenuItemCard({
 }) {
   const price = `₹${(item.base_price_cents / 100).toFixed(0)}+`;
   const hasImage = Boolean(item.image_url);
+  // See product-mini-card: a tracked item at 0 is unavailable.
+  const unavailable = item.is_sold_out || item.stock_count === 0;
   const tilt = useTilt<HTMLElement>(6);
 
   return (
@@ -76,7 +78,7 @@ export function MenuItemCard({
           </Lens>
           {/* Price as a glass chip over the image — glass over imagery is the
               placement rule's happy path. */}
-          {!item.is_sold_out && (
+          {!unavailable && (
             <span
               data-contrast-ground="cocoa"
               className="glass absolute bottom-3 right-3 rounded-full px-3 py-1 text-sm font-semibold text-white"
@@ -84,7 +86,7 @@ export function MenuItemCard({
               {price}
             </span>
           )}
-          {item.is_sold_out && (
+          {unavailable && (
             <span className="absolute bottom-3 right-3 rounded-full bg-cocoa/90 px-3 py-1 text-xs font-semibold text-shell">
               Sold Out
             </span>
@@ -104,12 +106,12 @@ export function MenuItemCard({
           {!hasImage && (
             <span
               className={
-                item.is_sold_out
+                unavailable
                   ? "whitespace-nowrap rounded-full bg-ink/8 px-2.5 py-0.5 text-xs font-semibold text-ink-soft"
                   : "whitespace-nowrap text-sm font-semibold text-berry"
               }
             >
-              {item.is_sold_out ? "Sold Out" : price}
+              {unavailable ? "Sold Out" : price}
             </span>
           )}
         </div>
@@ -130,15 +132,15 @@ export function MenuItemCard({
         <div className="mt-auto pt-3">
           <Button
             size="sm"
-            variant={item.is_sold_out ? "ghost" : "cocoa"}
-            disabled={item.is_sold_out}
+            variant={unavailable ? "ghost" : "cocoa"}
+            disabled={unavailable}
             className="w-full"
             data-item-id={item.id}
             data-item-name={item.name}
             data-item-price={item.base_price_cents}
             onClick={() => onSelect(item)}
           >
-            {item.is_sold_out ? "Unavailable" : "Add to Cart"}
+            {unavailable ? "Unavailable" : "Add to Cart"}
           </Button>
         </div>
       </div>

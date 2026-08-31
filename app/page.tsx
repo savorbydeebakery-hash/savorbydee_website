@@ -49,7 +49,7 @@ export default async function HomePage() {
   const supabase = await createClient();
 
   const SELECT_FIELDS =
-    "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, requires_custom_notice, daily_menu, is_special, is_bestseller";
+    "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, requires_custom_notice, daily_menu, is_special, is_bestseller";
 
   const [
     { data: dailyItems },
@@ -123,15 +123,19 @@ export default async function HomePage() {
              menu-pickers on one page was one too many. */}
       <MenuTypeShowcase items={dailyItems ?? []} />
 
-      {/* 4. Custom Order */}
+      {/* 4. Best Sellers — a scrolling rail, hidden when nothing is flagged.
+             Sits directly under the menu tabs on purpose: a customer who has
+             just been shown the Daily and Preorder lists is at the point of
+             choosing, and "what everyone else orders" is the most useful next
+             thing to put in front of them. */}
+      <BestSellers items={bestsellers ?? []} />
+
+      {/* 5. Custom Order */}
       <CustomOrder noticeDays={settings?.custom_cake_notice_days ?? 5} />
 
-      {/* 5. Gallery — moved below the menu so the page leads with what is for
+      {/* 6. Gallery — below the menu so the page leads with what is for
              sale and follows with what it looks like. */}
       <GalleryRail photos={photos} />
-
-      {/* 6. Best Sellers — a scrolling rail, hidden when nothing is flagged. */}
-      <BestSellers items={bestsellers ?? []} />
 
       {/* 7. Behind the Scenes */}
       <BehindTheScenes items={bts ?? []} />

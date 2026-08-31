@@ -201,6 +201,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: hoursCheck.error }, { status: 400 });
     }
 
+    // --- Stock (AUTHORITATIVE) ---
+    // Same reasoning as the notice window: the modal caps the quantity picker,
+    // but that cap lives in the browser. An item with stock_count null is not
+    // tracked and is skipped entirely — most of the catalogue is untracked, so
+    // this must not turn into a blanket rejection.
+    const orderedByItem = new Map<string, number>();
+    for (const line of items as CartItem[]) {
+      if (!line.menuItemId) continue;
+      orderedByItem.set(
+        line.menuItemId,
+        (orderedByItem.get(line.menuItemId) ?? 0) + line.quantity
+      );
+    }
+
+    if (orderedByItem.size > 0) {
+      const { data: stockRows } = await createPublicClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+        .from("menu_items")
+        .select("id, name, stock_count, is_sold_out")
+        .in("id", [...orderedByItem.keys()]);
+
+      for (const row of stockRows ?? []) {
+        const wanted = orderedByItem.get(row.id) ?? 0;
+
+        if (row.is_sold_out) {
+          return NextResponse.json(
+            { error: `${row.name} is sold out. Please remove it from your cart.` },
+            { status: 400 }
+          );
+        }
+
+        if (row.stock_count == null) continue;
+
+        if (row.stock_count === 0) {
+          return NextResponse.json(
+            { error: `${row.name} is out of stock. Please remove it from your cart.` },
+            { status: 400 }
+          );
+        }
+
+        if (wanted > row.stock_count) {
+          return NextResponse.json(
+            {
+              error: `Only ${row.stock_count} of ${row.name} ${
+                row.stock_count === 1 ? "is" : "are"
+              } available. Please reduce the quantity.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     const supabase = createAdminClient();
 
     // --- Resolve logged-in customer for account-linked orders ---

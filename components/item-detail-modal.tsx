@@ -39,7 +39,11 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
     init.addons = [];
     const id = setTimeout(() => {
       setSelections(init);
-      setQuantity(Math.max(1, item.min_order_qty));
+      setQuantity(
+        item.stock_count != null
+          ? Math.min(Math.max(1, item.min_order_qty), Math.max(1, item.stock_count))
+          : Math.max(1, item.min_order_qty)
+      );
     }, 0);
     return () => clearTimeout(id);
   }, [item]);
@@ -48,6 +52,16 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
 
   const unitPrice = calculateUnitPrice(item, selections);
   const lineTotal = calculateLineTotal(unitPrice, quantity);
+
+  // stock_count is null for an untracked item, which is most of the catalogue.
+  // Untracked must behave exactly as it did before the counter existed — no
+  // line shown, no cap on quantity — so every branch below is guarded on the
+  // null check rather than on a truthiness test that would swallow 0.
+  const tracked = item.stock_count != null;
+  const stock = item.stock_count ?? 0;
+  const outOfStock = tracked && stock === 0;
+  const unavailable = item.is_sold_out || outOfStock;
+  const maxQuantity = tracked ? Math.max(item.min_order_qty, stock) : Infinity;
 
   const handleAddAddon = (addonName: string) => {
     const current = selections.addons ?? [];
@@ -86,16 +100,30 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
           <p className="text-sm text-ink-soft leading-relaxed">{item.description}</p>
         )}
 
+        {/* Live stock. Shown for a tracked item whether or not any is left,
+            because "2 left" and "none left" are both things a customer needs
+            before choosing, and an untracked item shows nothing at all. */}
+        {tracked && !item.is_sold_out && (
+          <p
+            className={`text-sm font-medium ${outOfStock ? "text-ink-soft" : "text-mint-deep"}`}
+            data-stock-count={stock}
+          >
+            {outOfStock ? "Out of stock" : `In stock: ${stock} available`}
+          </p>
+        )}
+
         {/* Sold out notice */}
-        {item.is_sold_out && (
+        {unavailable && (
           <div className="rounded-xl bg-ink/5 p-4 text-center">
             <p className="text-sm font-medium text-ink-soft">
-              This item is currently sold out. Please check back later.
+              {item.is_sold_out
+                ? "This item is currently sold out. Please check back later."
+                : "This item is out of stock. Please check back later."}
             </p>
           </div>
         )}
 
-        {!item.is_sold_out && (
+        {!unavailable && (
           <>
             {/* Weight tiers (for weight_tiers price model) */}
             {item.price_model === "weight_tiers" && item.price_options.length > 0 && (
@@ -208,12 +236,18 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                 </button>
                 <span className="w-8 text-center font-semibold text-ink">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
                   aria-label="Increase quantity"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink/15 text-ink hover:bg-pink-soft transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink/15 text-ink hover:bg-pink-soft transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={quantity >= maxQuantity}
                 >
                   <Plus size={16} />
                 </button>
+                {tracked && quantity >= maxQuantity && (
+                  <span className="text-xs text-ink-faint">
+                    All {stock} available
+                  </span>
+                )}
               </div>
 
               {/* Total + Add */}

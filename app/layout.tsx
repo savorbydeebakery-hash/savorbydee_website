@@ -28,13 +28,13 @@ const dmSans = DM_Sans({
 });
 
 /**
- * Belt and braces with the CSS `color-scheme: light` in globals.css. The CSS
+ * Belt and braces with the CSS `color-scheme: only light` in globals.css. The CSS
  * property is what actually opts the page out of Chrome Android's auto-dark
  * algorithm; this emits the matching <meta name="color-scheme"> so the browser
  * knows before stylesheets have loaded, which avoids a dark first paint.
  */
 export const viewport: Viewport = {
-  colorScheme: "light",
+  colorScheme: "only light",
   themeColor: "#ffffff",
 };
 

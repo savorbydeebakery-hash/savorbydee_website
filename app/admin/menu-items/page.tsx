@@ -27,6 +27,8 @@ interface MenuItem {
   decoration_tiers: PriceOption[];
   size_options: PriceOption[];
   min_order_qty: number;
+  /** Units available. null = not tracked (no counter shown), 0 = out of stock. */
+  stock_count: number | null;
   dietary_tags: string[];
   image_url: string | null;
   is_sold_out: boolean;
@@ -142,6 +144,11 @@ export default function AdminMenuItemsPage() {
               )}
               <div className="mt-2 flex flex-wrap gap-1">
                 {item.is_sold_out && <Badge color="neutral">Sold Out</Badge>}
+                {item.stock_count != null && (
+                  <Badge color={item.stock_count === 0 ? "neutral" : "mint"}>
+                    {item.stock_count === 0 ? "Out of stock" : `${item.stock_count} in stock`}
+                  </Badge>
+                )}
                 {!item.is_active && <Badge color="neutral">Hidden</Badge>}
                 {item.daily_menu && <Badge color="pink">Today&apos;s Menu</Badge>}
                 {item.is_special && <Badge color="yellow">Special</Badge>}
@@ -212,6 +219,7 @@ function MenuItemForm({
       decoration_tiers: [],
       size_options: [],
       min_order_qty: 1,
+      stock_count: null,
       dietary_tags: [],
       image_url: null,
       is_sold_out: false,
@@ -292,6 +300,33 @@ function MenuItemForm({
         <div className="grid grid-cols-2 gap-4">
           <Input label="Min Order Qty" type="number" value={form.min_order_qty ?? 1} onChange={(e) => setForm({ ...form, min_order_qty: parseInt(e.target.value) || 1 })} />
           <Input label="Sort Order" type="number" value={form.sort_order ?? 0} onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} />
+        </div>
+
+        {/* Empty is meaningfully different from 0 here, so this cannot use the
+            usual `parseInt(...) || 0` pattern: that would turn a cleared box
+            into "out of stock" instead of "not tracked". */}
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="In Stock (leave empty for untracked)"
+            type="number"
+            min={0}
+            value={form.stock_count ?? ""}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              const parsed = Number.parseInt(raw, 10);
+              setForm({
+                ...form,
+                stock_count: raw === "" || Number.isNaN(parsed) ? null : Math.max(0, parsed),
+              });
+            }}
+          />
+          <div className="flex items-end pb-2 text-xs text-ink-faint">
+            {form.stock_count == null
+              ? "No counter shown to customers."
+              : form.stock_count === 0
+                ? "Shows as out of stock."
+                : `Shows "In stock: ${form.stock_count} available".`}
+          </div>
         </div>
 
         <Input
