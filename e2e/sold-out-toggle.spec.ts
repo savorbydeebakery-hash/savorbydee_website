@@ -1,10 +1,16 @@
 import { test, expect } from "@playwright/test";
+import { skipWhenClosed } from "./helpers/shop-open";
 
 /**
  * T6.7: Sold-out toggle reflects on storefront.
  * Admin toggles item sold-out → storefront shows item greyed with "Sold Out" badge → can't add to cart.
  */
 test("sold-out item is greyed and not orderable", async ({ page }) => {
+  // Outside business hours every card is greyed and every button reads
+  // "Unavailable", so neither branch below can distinguish a sold-out item
+  // from a shut bakery. The scenario only exists while trading.
+  await skipWhenClosed(page);
+
   // Storefront: find a sold-out item (seeded via admin toggle in manual QA; here we assert the UI state)
   await page.goto("/menu");
 
