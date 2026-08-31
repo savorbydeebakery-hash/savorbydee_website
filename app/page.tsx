@@ -3,7 +3,7 @@ import { PromoBanner } from "@/components/promo-banner";
 import { HeroCard } from "@/components/ui/hero-card";
 import { GalleryRail } from "@/components/home/gallery-rail";
 import { MenuTypeShowcase } from "@/components/home/menu-type-showcase";
-import { CatalogueSplit } from "@/components/home/catalogue-split";
+import { CustomOrder } from "@/components/home/custom-order";
 import { ReviewsCarousel } from "@/components/home/reviews-carousel";
 import { BestSellers } from "@/components/home/best-sellers";
 import { BehindTheScenes } from "@/components/home/behind-the-scenes";
@@ -53,9 +53,7 @@ export default async function HomePage() {
 
   const [
     { data: dailyItems },
-    { data: categories },
     { data: galleryPhotos },
-    { count: itemCount },
     { data: settings },
     { data: reviews },
     { data: bestsellers },
@@ -69,21 +67,11 @@ export default async function HomePage() {
       .order("sort_order")
       .limit(4),
     supabase
-      .from("categories")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("sort_order"),
-    supabase
       .from("gallery_photos")
       .select("id, image_url, caption")
       .eq("is_active", true)
       .order("sort_order")
       .limit(14),
-    // head:true — we want the number, not the rows.
-    supabase
-      .from("menu_items")
-      .select("id", { count: "exact", head: true })
-      .eq("is_active", true),
     supabase.from("site_settings").select("*").eq("id", 1).single(),
     // Reviews arrive with migration 00017. Until that is applied to a given
     // environment this errors and `data` comes back null, which collapses to
@@ -135,12 +123,8 @@ export default async function HomePage() {
              menu-pickers on one page was one too many. */}
       <MenuTypeShowcase items={dailyItems ?? []} />
 
-      {/* 4. Full Menu | Custom Order */}
-      <CatalogueSplit
-        categories={categories ?? []}
-        itemCount={itemCount ?? 0}
-        noticeDays={settings?.custom_cake_notice_days ?? 5}
-      />
+      {/* 4. Custom Order */}
+      <CustomOrder noticeDays={settings?.custom_cake_notice_days ?? 5} />
 
       {/* 5. Gallery — moved below the menu so the page leads with what is for
              sale and follows with what it looks like. */}

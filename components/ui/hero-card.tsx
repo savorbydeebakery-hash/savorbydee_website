@@ -1,12 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { gsap } from "@/lib/motion/gsap";
 import { HeroBackdrop } from "@/components/three/hero-backdrop";
-import { InteractiveHoverButton } from "@/components/magicui/interactive-hover-button";
 
 const HERO_IMAGE = "/hero/celebration-cakes-v3.jpg";
 
@@ -43,14 +41,6 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
           duration: 1,
           ease: "power4.out",
           stagger: 0.09,
-        });
-        gsap.from("[data-hero-cta]", {
-          y: 18,
-          opacity: 0,
-          duration: 0.8,
-          ease: "power3.out",
-          stagger: 0.08,
-          delay: 0.35,
         });
         gsap.from("[data-hero-photo-wrap]", {
           opacity: 0,
@@ -124,19 +114,6 @@ export function HeroCard({ className }: { images?: string[]; className?: string 
                 </span>
               </h1>
 
-              <div data-hero-cta className="mt-10 flex flex-wrap items-center gap-7">
-                <Link href="/menu" aria-label="Order now">
-                  <InteractiveHoverButton className="px-8 py-3.5 text-sm">
-                    Order now
-                  </InteractiveHoverButton>
-                </Link>
-                <Link
-                  href="/menu"
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink transition-all hover:gap-2.5 hover:text-berry"
-                >
-                  Open catalogue <span aria-hidden="true">&#9656;</span>
-                </Link>
-              </div>
             </div>
 
             {/* Product photography. Its own grid column, so copy can never
