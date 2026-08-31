@@ -3,7 +3,7 @@
 **Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase · OpenNext → Cloudflare Workers
 **Live (staging):** https://savor-bakery-staging.savor-bakery.workers.dev
 **Repo:** `savorbydeebakery-hash/savorbydee_website`, branch `master`
-**Last updated:** 2026-08-31 · last commit `c487f04`
+**Last updated:** 2026-08-31 · last commit `829fa2c` + the IST slot fix
 
 Client is a real bakery in Shillong, Meghalaya. Payments are not live yet —
 Razorpay activation is pending on the client's side.
@@ -69,12 +69,16 @@ there is no automated migration step in CI.
 - `global_notice_hours` **2**, `bulk_threshold` 10, `bulk_notice_hours` 24,
   `custom_cake_notice_days` 5
 - `contact_phone` set · **`contact_email` still null** · `about_narrative` empty
-  (About Us falls back to hardcoded copy)
+  (About Us falls back to hardcoded copy) · `upi_id` null while
+  `kyc_pending_mode` is true
+- `weekly_hours` open Mon–Sat 09:00–21:00, **Sunday closed**; `holidays` empty.
+  These are enforced as of this change — see item 8.
 
 ### Flags that no longer do anything
 
-`is_preorder` and `is_special` still exist as columns, but **nothing on the
-storefront reads either**. Preorder became the full catalogue and the Specials
+`is_preorder` and `is_special` still exist as columns. Nothing reads
+`is_preorder`; `is_special` is read only by the `/menu?tag=specials` filter,
+which nothing links to. Preorder became the full catalogue and the Specials
 page was removed. The `is_preorder` admin checkbox was deleted; the
 `is_special` one is still in the UI and is misleading. Columns were kept so
 existing flags aren't lost if a filter is reintroduced.
@@ -85,20 +89,33 @@ existing flags aren't lost if a filter is reintroduced.
 
 ### Ordered by how much they matter
 
-1. **Timezone bug on order slots — not fixed.** The checkout's
-   `datetime-local` input produces a naive local string (`2026-08-30T22:29`).
-   Cloudflare Workers run in UTC, so `new Date(...)` reads it as UTC and slots
-   are stored ~5½ hours off IST. Fix: convert to a real instant client-side
-   (`new Date(localValue).toISOString()`) before sending. This affects real
-   order timing and the server-side notice check inherits the same skew.
+1. ~~**Timezone bug on order slots.**~~ **Fixed.** Everything is IST now, via
+   `lib/time/ist.ts` — read its header comment before touching any date code.
+   A picker's wall clock is always read as IST regardless of the device's zone,
+   and every stored instant is rendered with `timeZone: "Asia/Kolkata"` pinned.
+   `toLocaleString("en-IN")` sets the *locale*, not the zone; there are no bare
+   ones left in the codebase and there should not be new ones.
+
+   Worth knowing what it had broken: the notice guard compared the inflated
+   instant against `Date.now()`, so it under-enforced by 5.5 hours — a rule
+   that exists to protect the kitchen was failing open. The admin dashboard's
+   "today" was a UTC day, so it began at 05:30 IST. Order ids were stamped with
+   the previous day between midnight and 05:30 IST. The confirmation emails
+   render server-side, so customers were emailed UTC times.
+
+   The 20 orders in the live table are all E2E rows, so nothing was backfilled.
+   They are still there — clearing them before go-live is worth doing.
 
 2. **`contact_email` is blank.** The policy pages render a visible yellow "add
    this in Admin → Settings" gap where it belongs. Razorpay's activation review
    reads those pages.
 
-3. **`DEPLOY_URL` repository variable is unset.** This is the only reason the
-   `verify` job fails on every deploy — the guard is deliberate and fails fast.
-   Fix: `gh variable set DEPLOY_URL --body https://savor-bakery-staging.savor-bakery.workers.dev`
+3. ~~**`DEPLOY_URL` repository variable is unset.**~~ **Set** to the staging
+   URL. Note this does not make `verify` green on its own: it runs the full
+   Playwright suite against the deployed worker, and `order-placement` /
+   `admin-alarm` need the worker to have `SUPABASE_SERVICE_ROLE_KEY` set as a
+   Cloudflare secret. That is item 4, and it is a prerequisite, not a
+   follow-up.
 
 4. **Service-role key has never been rotated.** It previously sat in plaintext
    in `scripts/upload-gallery-images.ts` (stripped before commit, so never in
@@ -106,20 +123,51 @@ existing flags aren't lost if a filter is reintroduced.
    Worker has its runtime secrets set at all. `wrangler.jsonc` has
    `"crons": ["*/1 * * * *"]`, so a keyless worker throws every minute.
 
-5. **Admin panel audit — never done.** Client asked for a check that everything
-   is editable via admin and every function works. Not started.
+5. **Admin panel audit — static pass done, live pass not.** See
+   `docs/admin-audit.md`. Coverage is fine: every content table has an admin
+   page. The problem is six controls that save to the database, show a success
+   state, and are read by nothing — the hero image upload is the worst, since
+   it prints "staged, click Save to apply" and `HeroCard` hardcodes its image.
+   The live click-through still needs someone who can sign in.
 
 6. **Menu item photography.** 76 items, essentially none with `image_url`. All
    product cards fall back to a typographic tile. Real photos are the single
    biggest visual improvement available.
 
-7. **`is_special` admin checkbox** still present but inert (see above).
+7. **`is_special` admin checkbox** still present and near-inert. Correction to
+   what this file said before: `components/menu-client.tsx:37` *does* filter on
+   it for `/menu?tag=specials`. Nothing links to that URL, so the flag is
+   reachable only by typing the query string.
+
+8. **Operating hours and holidays are now enforced** — they were dead settings
+   until this change, so Sunday was bookable despite being marked closed, as
+   was 3am on an open day. `validateSlotAgainstHours` in
+   `lib/cart/validation.ts`, called authoritatively from the order API and
+   mirrored in the checkout. Malformed or unset hours deliberately allow
+   everything: a broken setting must not refuse every order on the site.
 
 ---
 
 ## 4. Things that will bite you
 
 Recorded because each cost real time to find.
+
+- **Dates are IST, and only `lib/time/ist.ts` knows that.** Do not reach for
+  `new Date(pickerValue)` or `toLocaleString("en-IN")` again — the first
+  resolves against the runtime's zone (UTC on Workers) and the second sets the
+  locale without setting the zone. Both look correct on a laptop in India and
+  are wrong in production, which is exactly why the bug survived so long.
+
+- **E2E specs must not fill the slot picker with a UTC string.** Three did
+  (`new Date(Date.now() + 48h).toISOString().slice(0, 16)`), which was harmless
+  only while nothing validated opening hours. Use `validSlotInput()` from
+  `e2e/helpers/slot.ts`; it picks midday on the next open day.
+
+- **Two E2E specs were passing without asserting anything.** `bulk-rule` and
+  `checkout-closed-day` both located `input[type='date']`, which the checkout
+  does not have — it uses `datetime-local` — so their whole bodies sat inside a
+  never-true `if (visible)`. Both are real now. Worth grepping for the pattern
+  before trusting any other spec that wraps assertions in a visibility check.
 
 - **The a11y audit is the safety net.** `e2e/a11y-audit.spec.ts` catches
   contrast and horizontal-overflow regressions at 375/768/1440. It caught three
@@ -199,7 +247,7 @@ record disagreeing with the money taken. `NULL` = not quoted; `0` = free.
 ```bash
 npx tsc --noEmit                 # typecheck
 npx eslint .                     # 1 known pre-existing warning in open-next.config.ts
-npx vitest run                   # 58 unit tests
+npx vitest run                   # 87 unit tests
 npx playwright test --workers=1  # 14 e2e; 12 pass, 2 need the service-role key locally
 ```
 
