@@ -88,7 +88,7 @@ export function ProductMiniCard({
             />
 
             {unavailable && (
-              <span className="absolute inset-x-0 bottom-0 bg-bk-fg/75 py-1.5 text-center text-[11px] font-medium uppercase tracking-wide text-white">
+              <span className="absolute inset-x-0 bottom-0 bg-bk-fg py-1.5 text-center text-[11px] font-medium uppercase tracking-wide text-white">
                 Sold Out
               </span>
             )}
@@ -105,7 +105,13 @@ export function ProductMiniCard({
               </span>
             )}
             {unavailable && !hasPhoto && (
-              <span className="rounded-[var(--bk-r-sm)] bg-bk-fg/75 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-white">
+              // Solid, not bg-bk-fg/75. With no image behind it this badge has
+              // no opaque ancestor, so a translucent ground resolved against
+              // the white page and the contrast audit read it as white on
+              // white. --bk-muted against white is 5.7:1, and grey reads as
+              // "unavailable" where the maroon Best Seller badge reads as a
+              // claim.
+              <span className="rounded-[var(--bk-r-sm)] bg-bk-muted px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-white">
                 Sold Out
               </span>
             )}

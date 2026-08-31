@@ -42,8 +42,15 @@ test("admin price edit reflects on storefront", async ({ page }) => {
     await priceInput.fill("99900");
     await page.getByRole("button", { name: /save/i }).click();
 
+    // Assert on the data attribute rather than the rendered price. The price
+    // chip is replaced by "Sold Out" whenever an item is unavailable, and with
+    // stock counters baselined at 0 that is currently every item — so reading
+    // the visible text made this test a assertion about stock, not about the
+    // edit reaching the storefront.
     await page.goto("/menu");
-    await expect(page.getByText(/₹999/).first()).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.locator('[data-item-price="99900"]').first()
+    ).toBeVisible({ timeout: 10_000 });
   } finally {
     await page.goto("/admin/menu-items");
     const restoreInput = await openFirstEditor();
