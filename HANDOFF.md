@@ -1,233 +1,231 @@
-# SAVOR Bakery — Handoff Document
+# SAVOR / Savor by Dee — Handoff
 
-**Project:** SAVOR Bakery (Next.js 16 + OpenNext + Cloudflare Workers)  
-**Status:** Code complete, **staging deployed**, 6/9 E2E passing, **3 failing due to Supabase connectivity**  
-**Last Updated:** 2026-08-23
+**Stack:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Supabase · OpenNext → Cloudflare Workers
+**Live (staging):** https://savor-bakery-staging.savor-bakery.workers.dev
+**Repo:** `savorbydeebakery-hash/savorbydee_website`, branch `master`
+**Last updated:** 2026-08-31 · last commit `c487f04`
 
----
-
-## 🎯 Project Overview
-
-**SAVOR** is a bakery pre-order website with:
-- Public menu browsing with search/filter by category
-- Custom cake inquiry form
-- Shopping cart with multi-step checkout (review → fulfillment → details → confirm)
-- Admin dashboard (orders, menu items, banners, settings)
-- Supabase backend (PostgreSQL + Realtime + Auth)
-- Cloudflare Workers deployment via OpenNext
-
-**Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Supabase, OpenNext, Cloudflare Workers
+Client is a real bakery in Shillong, Meghalaya. Payments are not live yet —
+Razorpay activation is pending on the client's side.
 
 ---
 
-## ✅ What's Complete
+## 1. Where things stand
 
-### Source Code Fixes (committed: 28190a0)
+The homepage was rebuilt against two references the client chose:
 
-| Area | Changes |
-|------|---------|
-| **Label Association** | `components/ui/input.tsx` — `Input`/`Textarea`/`Select` auto-generate `id` from label text when `id`/`name` missing (fixes 3 failing E2E tests) |
-| **Menu Client** | `components/menu-client.tsx` (NEW) — client component with search, category filter, cards, "Add to Cart" buttons wired to `ItemDetailModal` |
-| **Menu Page** | `app/menu/page.tsx` — rewritten to fetch full `MenuItemForCart` fields + render `MenuClient` |
-| **Custom Cake** | `app/custom-cake/page.tsx` — "Flavor Preference" → "Flavour Preference" (British spelling, matches test) |
-| **Modal A11y** | `components/ui/modal.tsx` — `role="dialog"` + `aria-modal="true"` |
-| **Modal Quantity** | `components/item-detail-modal.tsx` — `aria-label="Increase/Decrease quantity"` on +/- buttons |
-| **Type Safety** | `lib/cart/types.ts` — added `category_id: string`, `dietary_tags?: string[]` to `MenuItemForCart` |
-| **Test Fixtures** | `lib/cart/math.test.ts` — added `category_id` to 3 test fixtures |
-| **Cache Strategy** | `open-next.config.ts` — switched from R2 to KV incremental cache (no R2 needed) |
+- **littletoken.in** — layout and rhythm. Sections separated by margin alone, a
+  bold title with a quiet "See All", full-bleed rails, product tiles with no
+  card chrome. That site never leaves a 448px column even on desktop; the brief
+  here was "Little Token on mobile, optimised for desktop", so the vocabulary
+  is kept and the container grows to 1410px.
+- **brookibakehouse.com** — palette, type, the phone bottom bar and the policy
+  page template. Values were read off its live CSS, not eyedropped.
 
-### Test Fixes (9 specs)
+**Watch the unit base:** Brooki's theme runs a 10px rem root. Its "2.4rem" pill
+is **24px** here, not 38px. Every length taken from it was converted.
 
-| Spec | Fix Applied | Status |
-|------|-------------|--------|
-| `admin-alarm.spec.ts` | Credentials + `waitForURL` after login + checkout step navigation | ❌ Failing (API 500) |
-| `admin-menu-edit.spec.ts` | Credentials + `waitForURL` after login | ❌ Failing (API 500) |
-| `order-placement.spec.ts` | Modal confirm + 4-step checkout navigation | ❌ Failing (API 500) |
-| `razorpay-test-checkout.spec.ts` | Modal confirm + 4-step checkout + UPI fallback | ✅ Passing |
-| `bulk-rule.spec.ts` | Modal quantity flow (Increase qty ×14 + dialog confirm) | ✅ Passing |
-| `checkout-closed-day.spec.ts` | Modal confirm step | ✅ Passing |
-| `custom-cake-inquiry.spec.ts` | Label fix covers it | ✅ Passing |
-| `promo-banner.spec.ts` | No changes needed | ✅ Passing |
-| `sold-out-toggle.spec.ts` | "Unavailable" button text | ✅ Passing |
+### Homepage order (`app/page.tsx`)
 
-### Verification Passed
+1. `PromoBanner`
+2. `HeroCard` — kept from the original build
+3. `ReviewsCarousel` — titled "Indulgence Approved", rating 4.6
+4. `MenuTypeShowcase` — Brooki tab strip + product cards
+5. `CustomOrder`
+6. `GalleryRail`
+7. `BestSellers` — horizontal rail
+8. `BehindTheScenes`
+9. `AboutUs`
 
-| Check | Result |
-|-------|--------|
-| `tsc --noEmit` | 0 errors |
-| `eslint` | 0 errors |
-| `vitest run` | 48/48 tests pass |
-| `opennextjs-cloudflare build` | ✅ Success — 4.73 MB server handler |
+### Design tokens
 
----
+Brooki tokens live in `app/globals.css` under `/* Brooki layer */`, prefixed
+`--bk-*`. Key ones: `--bk-fg #000`, `--bk-bg #fff`, `--bk-muted #666`,
+`--bk-pink #e1b5c2`, `--bk-maroon #653230` (buttons, active tab, badges),
+`--bk-page-width 1410px`.
 
-## 🌐 Deployment Status
-
-### Staging Deployed ✅
-- **URL:** `https://savor-bakery-staging.savor-bakery.workers.dev`
-- **Worker Name:** `savor-bakery-staging`
-- **Version:** `22098afe-28ab-48db-8d8f-ea3c998bb78c`
-- **KV Namespaces:** `NEXT_TAG_CACHE_KV` (f093d94fdebf4188aa60ded662505117), `NEXT_INC_CACHE_KV` (53cc6d539bcc4482a941b535d56f9eca)
-- **Secrets:** All 11 set for staging env
-- **Cache:** KV incremental cache (no R2 required)
-
-### ⚠️ Known Issue: Supabase Connectivity
-
-**Orders/menu API returns 500 on staging** — Supabase connectivity from Cloudflare Workers failing.
-
-**Root Cause:** Supabase project (`tkzbroymiyvnigqxcpze`) is in Tokyo region (ap-south-1). Cloudflare Workers edge network has connectivity issues with this region, or Supabase has IP restrictions blocking Cloudflare Workers IPs.
-
-**Impact:** 
-- Orders API returns 500 → 3 E2E tests failing
-- Menu items API may be failing → admin-menu-edit test failing
-- 6/9 E2E tests passing locally against staging
-
-**Workarounds to investigate:**
-1. Enable Supabase "Allow connections from anywhere" or add Cloudflare IP ranges to allowlist
-2. Use Supabase connection pooling (PgBouncer) with session mode
-3. Consider moving Supabase project to a region with better Cloudflare connectivity
-4. Use Supabase Edge Functions / Deno deploy for API routes
+The **older** Savor tokens (`--ink`, `--cocoa`, `--berry`, `--shell`…) still
+exist and still drive `/menu`, `/about`, `/cart` and the admin panel. Those
+pages have **not** been converted to the Brooki palette. That is the largest
+piece of visual inconsistency remaining.
 
 ---
 
-## 🔐 Credentials & Configuration
+## 2. Database
 
-### Admin Credentials (E2E tests)
-| Environment | Email | Password |
-|-------------|-------|----------|
-| **Staging** | `cloudlyconfusing@gmail.com` | `admin123` |
-| Alt admin | `savorbydeebakery@gmail.com` | `admin123` |
+All migrations through **00020 are applied to the live database** (verified by
+querying each). Migrations are applied by hand via the Supabase SQL editor —
+there is no automated migration step in CI.
 
-### Supabase (Live — Tokyo region)
-| Key | Value |
-|-----|-------|
-| Project Ref | `tkzbroymiyvnigqxcpze` |
-| Region | `ap-south-1` (Tokyo — **deviation from planned Mumbai**) |
-| URL | `https://tkzbroymiyvnigqxcpze.supabase.co` |
-| Anon Key | In secrets / `.dev.vars` |
-| Service Role Key | In secrets / `.dev.vars` |
-| Access Token | **STORED LOCALLY** in `.dev.vars` (gitignored) |
+| Migration | Adds | Applied |
+|---|---|---|
+| 00017 | `reviews` table | ✅ |
+| 00018 | `menu_items.is_preorder` | ✅ |
+| 00019 | `behind_the_scenes` table + 3 seeded slots | ✅ |
+| 00020 | `orders.delivery_fee_cents` | ✅ |
 
-### Cloudflare
-| Item | Value |
-|------|-------|
-| Account | `Savorbydeebakery@gmail.com's Account` (ID: `65a52221c847bdcc342307d1def648ef`) |
-| API Token | **STORED LOCALLY** in `$env:CLOUDFLARE_API_TOKEN` / `.dev.vars` (gitignored — not committed) |
-| KV Tag Cache | `f093d94fdebf4188aa60ded662505117` |
-| KV Incremental Cache | `53cc6d539bcc4482a941b535d56f9eca` |
-| Workers.dev Subdomain | `savor-bakery.workers.dev` |
+### Settings currently driving copy (`site_settings`, id=1)
 
-### Token Storage
-| Token | Location |
-|-------|----------|
-| **Cloudflare API Token** | Shell env var `$env:CLOUDFLARE_API_TOKEN` + `.dev.vars` (gitignored) |
-| **Never committed to git** | Token must stay out of tracked files |
+- `global_notice_hours` **2**, `bulk_threshold` 10, `bulk_notice_hours` 24,
+  `custom_cake_notice_days` 5
+- `contact_phone` set · **`contact_email` still null** · `about_narrative` empty
+  (About Us falls back to hardcoded copy)
 
-**To persist token locally:** add `CLOUDFLARE_API_TOKEN=<token>` to `.dev.vars` (gitignored). Do NOT put it in any tracked file.
+### Flags that no longer do anything
+
+`is_preorder` and `is_special` still exist as columns, but **nothing on the
+storefront reads either**. Preorder became the full catalogue and the Specials
+page was removed. The `is_preorder` admin checkbox was deleted; the
+`is_special` one is still in the UI and is misleading. Columns were kept so
+existing flags aren't lost if a filter is reintroduced.
 
 ---
 
-## 🛠️ Build & Deploy Commands
+## 3. Known bugs and open work
 
-### Local Development
-```powershell
-# Build (webpack workaround for Windows symlink EPERM)
-npx opennextjs-cloudflare build
+### Ordered by how much they matter
 
-# Start local worker (needs ~35s to boot)
-Start-Process node.exe -Arg "node_modules/wrangler/bin/wrangler.js","dev","--port","8787" -WorkingDir "." -RedirectStdOut ".open-next/wrangler.log" -RedirectStdErr ".open-next/wrangler.err.log" -WindowStyle Hidden
-Start-Sleep 35
-Invoke-WebRequest http://127.0.0.1:8787/menu  # Should return 200
+1. **Timezone bug on order slots — not fixed.** The checkout's
+   `datetime-local` input produces a naive local string (`2026-08-30T22:29`).
+   Cloudflare Workers run in UTC, so `new Date(...)` reads it as UTC and slots
+   are stored ~5½ hours off IST. Fix: convert to a real instant client-side
+   (`new Date(localValue).toISOString()`) before sending. This affects real
+   order timing and the server-side notice check inherits the same skew.
 
-# Run E2E tests locally
-$env:E2E_BASE_URL="http://127.0.0.1:8787"
-$env:ADMIN_EMAIL="cloudlyconfusing@gmail.com"
-$env:ADMIN_PASSWORD="admin123"
-npx playwright test
+2. **`contact_email` is blank.** The policy pages render a visible yellow "add
+   this in Admin → Settings" gap where it belongs. Razorpay's activation review
+   reads those pages.
+
+3. **`DEPLOY_URL` repository variable is unset.** This is the only reason the
+   `verify` job fails on every deploy — the guard is deliberate and fails fast.
+   Fix: `gh variable set DEPLOY_URL --body https://savor-bakery-staging.savor-bakery.workers.dev`
+
+4. **Service-role key has never been rotated.** It previously sat in plaintext
+   in `scripts/upload-gallery-images.ts` (stripped before commit, so never in
+   git history) but is still live. Also unconfirmed: whether the Cloudflare
+   Worker has its runtime secrets set at all. `wrangler.jsonc` has
+   `"crons": ["*/1 * * * *"]`, so a keyless worker throws every minute.
+
+5. **Admin panel audit — never done.** Client asked for a check that everything
+   is editable via admin and every function works. Not started.
+
+6. **Menu item photography.** 76 items, essentially none with `image_url`. All
+   product cards fall back to a typographic tile. Real photos are the single
+   biggest visual improvement available.
+
+7. **`is_special` admin checkbox** still present but inert (see above).
+
+---
+
+## 4. Things that will bite you
+
+Recorded because each cost real time to find.
+
+- **The a11y audit is the safety net.** `e2e/a11y-audit.spec.ts` catches
+  contrast and horizontal-overflow regressions at 375/768/1440. It caught three
+  real bugs during this work that code review did not. **Run it before every
+  deploy.** It needs a running server:
+  `E2E_BASE_URL=http://localhost:3000 npx playwright test e2e/a11y-audit.spec.ts --workers=1`
+
+- **The preview browser pane lies about two things.** It reports
+  `prefers-reduced-motion: reduce`, so GSAP hero animations and the review
+  carousel's autoplay never start there — they are not broken. It also reports
+  `visibilityState: hidden` and **throttles `setInterval`**, so a 5s timer
+  cannot be observed. Verify motion in a real browser.
+
+- **`resize=cover` in the Supabase image loader was destroying aspect ratios.**
+  Given a width and no height, Supabase leaves the source height untouched —
+  `?width=640` on a 3000×4000 photo returned 640×4000. `lib/images/supabase-loader.ts`
+  now always sends `resize=contain`. Do not change it back.
+
+- **Horizontal overflow can come from somewhere you cannot see.** The Best
+  Sellers rail widened the document by 183px while every element in its chain
+  measured exactly 375px, nothing escaped visually, and `overflow-x: hidden` on
+  every ancestor did nothing. The fix was rebuilding it on `GalleryRail`'s
+  construction — a clipping wrapper around the scroller, fixed card widths, no
+  `vw` units. Mechanism never fully explained.
+
+- **`export const dynamic = "force-dynamic"` is deliberate everywhere.** ISR
+  hangs: OpenNext dispatches revalidation through `memoryQueue`, which
+  revalidates inside the same worker invocation and the Workers runtime kills
+  it. Do not "optimise" this without wiring a real Cloudflare Queue first.
+
+- **Sections hide themselves when their query fails.** Gallery, Best Sellers and
+  Reviews return `null` on an empty list, so a broken database read looks like
+  "the section was removed" rather than an error. Behind the Scenes and About Us
+  have code fallbacks and survive. If a section vanishes, check the data first.
+
+- **The local dev server dies often.** Restart via `preview_start`, and note
+  Next caches env at startup — edit `.env.local` and you must restart.
+
+- **`.env.local` holds only the two public vars.** Server-side secrets live in
+  `.dev.vars`. Two E2E tests (`order-placement`, `admin-alarm`) fail locally
+  because `app/api/orders/route.ts` needs `SUPABASE_SERVICE_ROLE_KEY`, which is
+  not in `.env.local` by design. Do not paste secrets between those files
+  casually — a mis-appended line silently corrupts the anon key and every
+  database read starts failing.
+
+---
+
+## 5. Payments (Razorpay)
+
+Not live. The client must apply; `docs/razorpay-client-onboarding.md` is a
+copy-paste message for her with the full step-by-step (two `<<>>` placeholders
+to fill first).
+
+Two things were fixed on this side and should not regress:
+
+- **The webhook used to fail open.** With `RAZORPAY_WEBHOOK_SECRET` unset it
+  accepted unsigned requests and marked orders paid. It now rejects with 500
+  until the secret exists.
+- **Signature comparisons are constant-time** (`lib/crypto/timing-safe.ts`).
+  Node's `timingSafeEqual` is unavailable on Workers, hence the XOR loop.
+
+The five policy pages Razorpay's review expects are at `/policies/[slug]` —
+terms, privacy, refunds, shipping, contact — linked from the footer. Their
+wording is driven by `site_settings` so it states this bakery's actual terms,
+and renders a visible gap rather than inventing a value it does not have.
+
+**Delivery model:** goods are paid online; the delivery charge is distance-based,
+quoted per order by staff in admin, and collected **in cash**.
+`delivery_fee_cents` is deliberately **not** added to `total_cents` — that value
+is what Razorpay captured, and editing it post-payment would leave the order
+record disagreeing with the money taken. `NULL` = not quoted; `0` = free.
+
+---
+
+## 6. Commands
+
+```bash
+npx tsc --noEmit                 # typecheck
+npx eslint .                     # 1 known pre-existing warning in open-next.config.ts
+npx vitest run                   # 58 unit tests
+npx playwright test --workers=1  # 14 e2e; 12 pass, 2 need the service-role key locally
 ```
 
-### Deploy Staging
-```powershell
-# Cloudflare token is in .dev.vars (gitignored) — loaded automatically
-npx opennextjs-cloudflare build
-npx wrangler deploy --env staging
+Deploy (workflow_dispatch only — pushing does not deploy):
 
-# Run E2E against staging
-$env:E2E_BASE_URL="https://savor-bakery-staging.savor-bakery.workers.dev"
-$env:ADMIN_EMAIL="cloudlyconfusing@gmail.com"
-$env:ADMIN_PASSWORD="admin123"
-npx playwright test
+```bash
+gh workflow run "CI + Deploy" --ref master
 ```
 
----
-
-## ⚠️ Known Issues & Gotchas
-
-### Windows + OpenNext
-- **Symlink EPERM** — OpenNext uses symlinks in `.next` during Turbopack build. **Fixed** by forcing webpack: `buildCommand: "next build --webpack"` in `open-next.config.ts` (spread pattern because `CloudflareOverrides` type rejects `buildCommand` param but return type supports it).
-- **Workerd lock on `.open-next`** — Must kill `workerd`/`wrangler` processes before rebuilding: `Get-Process | Where { $_.ProcessName -match "wrangler|workerd" } | Stop-Process -Force`
-
-### E2E Test Flakiness
-- **Admin tests** — Require real Supabase Auth users. Current tests use `cloudlyconfusing@gmail.com` / `admin123`. Ensure these exist in Supabase Auth dashboard.
-- **Razorpay test** — Falls to UPI branch (keys empty). Update test when Razorpay configured.
-- **checkout-closed-day.spec.ts** — Passes trivially (looks for `input[type='date']`, checkout uses `datetime-local`). Needs rewrite for real coverage.
-
-### Supabase Region
-- **Tokyo (ap-south-1)** — Deviation from planned Mumbai. Documented here.
-
-### Razorpay
-- **Not configured** — Keys empty in secrets. Razorpay test expects UPI fallback. Update when live.
+`check` and `deploy` should go green; `verify` will fail until `DEPLOY_URL` is
+set. Node is pinned to 24 in CI to match the npm that wrote `package-lock.json`
+— npm 10 rejects the lockfile.
 
 ---
 
-## 📂 Key Files Modified (git diff 28190a0^..28190a0)
+## 7. Working style the client expects
 
-### Source
-- `components/ui/input.tsx` — label association fix
-- `components/menu-client.tsx` — NEW
-- `app/menu/page.tsx` — rewrite
-- `app/custom-cake/page.tsx` — "Flavour" spelling
-- `components/ui/modal.tsx` — role="dialog"
-- `components/item-detail-modal.tsx` — aria-labels on qty buttons
-- `lib/cart/types.ts` — MenuItemForCart extended
-- `lib/cart/math.test.ts` — fixtures updated
-- `open-next.config.ts` — KV incremental cache (was R2)
+Short, direct changes shipped one at a time, each verified against the live site
+and deployed immediately. They ask for things conversationally and often mid-
+task; expect to reprioritise. They respond well to being told when a request
+conflicts with something already on the site — several genuine contradictions
+(same-day delivery vs a 12h notice rule, a shipping policy that promised charges
+at checkout) were caught that way.
 
-### Tests
-- `e2e/admin-alarm.spec.ts` — credentials + checkout nav
-- `e2e/admin-menu-edit.spec.ts` — credentials
-- `e2e/order-placement.spec.ts` — checkout nav
-- `e2e/razorpay-test-checkout.spec.ts` — checkout nav
-- `e2e/bulk-rule.spec.ts` — modal quantity flow
-- `e2e/checkout-closed-day.spec.ts` — modal confirm
-- `e2e/admin-menu-edit.spec.ts` — credentials
-
-### Config
-- `wrangler.jsonc` — KV namespaces, no vars, env-specific config
-- `open-next.config.ts` — KV incremental cache (was R2)
-
----
-
-## 📋 Next Steps
-
-1. **Fix Supabase connectivity** — Enable Cloudflare IP ranges in Supabase dashboard, or use connection pooling
-2. **Re-run E2E** — Should reach 9/9 passing once API works
-3. **Create R2 bucket** — Enable R2 in Cloudflare Dashboard, restore `r2_buckets` in wrangler.jsonc, switch `incrementalCache` back to `r2IncrementalCache` in `open-next.config.ts`
-4. **Create admin users in Supabase Auth** — `cloudlyconfusing@gmail.com` / `admin123` and `savorbydeebakery@gmail.com` / `admin123`
-5. **Configure Razorpay** — Add keys when available
-6. **Commit & push** — `git push origin main`
-
----
-
-## 📞 Contact / Context
-
-- **Supabase Project:** `tkzbroymiyvnigqxcpze` (Tokyo)
-- **Admin Emails:** `cloudlyconfusing@gmail.com`, `savorbydeebakery@gmail.com` (both `admin123`)
-- **Seed passwords in .dev.vars** (may differ from actual Auth): `L2lir5kVjYCadOWm` / `xo9VKGgAsJSHzfNR`
-- **Cloudflare Token:** Stored in `.dev.vars` / `$env:CLOUDFLARE_API_TOKEN` (gitignored — see token storage section above)
-- **Razorpay:** Not configured
-- **Region:** Tokyo (not Mumbai as originally planned)
-
----
-
-*Generated 2026-08-23. Staging deployed, 6/9 E2E passing, 3 failing due to Supabase connectivity from Cloudflare Workers.*
+Two standing judgment calls made throughout, worth continuing: **no fabricated
+content** — no invented testimonials, ratings, or stock photos captioned as this
+bakery's work (the reviews table and Behind the Scenes both ship empty rather
+than seeded), and **no misleading imagery** — product cards fall back to
+typographic tiles rather than borrowing an unrelated gallery photo.
