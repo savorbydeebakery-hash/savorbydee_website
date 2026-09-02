@@ -71,7 +71,14 @@ export function NumberTicker({
     <span
       ref={ref}
       className={cn(
-        "inline-block tracking-wider text-black tabular-nums dark:text-white",
+        // No dark variant here on purpose. The site declares
+        // `color-scheme: only light`, but that stops the browser auto-darkening
+        // — it does NOT stop a `dark:` utility from matching, because
+        // prefers-color-scheme still reports the operating system's setting.
+        // This was the last `dark:` utility in the codebase, and dropping it
+        // removes the only prefers-color-scheme block from the built CSS.
+        // Callers pass their own colour (best-bakery-section uses text-white).
+        "inline-block tracking-wider text-black tabular-nums",
         className
       )}
       {...props}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart/store";
 import { calculateUnitPrice, calculateLineTotal, formatPrice } from "@/lib/cart/math";
+import { MAX_LINE_QUANTITY } from "@/lib/cart/validation";
 import type { MenuItemForCart, CartItemSelection } from "@/lib/cart/types";
 import { useCanOrder } from "@/components/shop/shop-status";
 
@@ -66,7 +67,12 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
   const stock = item.stock_count ?? 0;
   const outOfStock = tracked && stock === 0;
   const unavailable = item.is_sold_out || outOfStock;
-  const maxQuantity = tracked ? Math.max(item.min_order_qty, stock) : Infinity;
+  // A tracked item is capped by what is on the shelf. An untracked one is
+  // made to order, so it is capped only by the client's stated ceiling of
+  // 1000 — previously Infinity, which let the picker run away.
+  const maxQuantity = tracked
+    ? Math.min(MAX_LINE_QUANTITY, Math.max(item.min_order_qty, stock))
+    : MAX_LINE_QUANTITY;
 
   const handleAddAddon = (addonName: string) => {
     const current = selections.addons ?? [];
@@ -261,9 +267,9 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                 >
                   <Plus size={16} />
                 </button>
-                {tracked && quantity >= maxQuantity && (
+                {quantity >= maxQuantity && (
                   <span className="text-xs text-ink-faint">
-                    All {stock} available
+                    {tracked ? `All ${stock} available` : `Maximum ${MAX_LINE_QUANTITY} per item`}
                   </span>
                 )}
               </div>

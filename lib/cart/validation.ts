@@ -44,6 +44,13 @@ export interface ValidationResult {
  * loads it — these values are what applies for the moment before that request
  * resolves, and in tests.
  */
+/**
+ * Ceiling on a single line. The client's rule is "preorder can be anything
+ * from qty 1 to 1000" — there is no stock limit on a made-to-order item, but
+ * an unbounded number box invites a typo that reads as a real order.
+ */
+export const MAX_LINE_QUANTITY = 1000;
+
 export const DEFAULT_NOTICE_RULES: SiteNoticeRules = {
   globalNoticeHours: 2,
   bulkThreshold: 12,

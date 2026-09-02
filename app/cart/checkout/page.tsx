@@ -99,6 +99,9 @@ export default function CheckoutPage() {
   // the bakery had switched off. Defaults to true so a settings read that
   // fails does not silently withdraw delivery.
   const [deliveryEnabled, setDeliveryEnabled] = useState(true);
+  // For the bulk-order invite. Null hides the link rather than rendering a
+  // dead wa.me/undefined.
+  const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +112,7 @@ export default function CheckoutPage() {
         const { data } = await supabase
           .from("site_settings")
           .select(
-            "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled"
+            "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled, whatsapp_number"
           )
           .eq("id", 1)
           .single();
@@ -128,6 +131,7 @@ export default function CheckoutPage() {
           holidays: (data.holidays as string[] | null) ?? [],
         });
         setDeliveryEnabled(data.delivery_enabled ?? true);
+        setWhatsappNumber(data.whatsapp_number?.trim() || null);
       } catch {
         // Fail open. The order API applies both rules authoritatively, so a
         // settings read that fails should not strand the customer at checkout.
@@ -376,6 +380,26 @@ export default function CheckoutPage() {
                 ⏰ This order requires {noticeHours}h advance notice due to{" "}
                 {noticeHours >= 120 ? "custom cake" : "bulk order"} requirements.
               </p>
+              {/* Bulk is a conversation, not just a longer wait — the client
+                  wants to quote these directly. */}
+              {noticeHours < 120 && (
+                <p className="mt-1.5 text-sm text-ink-soft">
+                  Ordering this much?{" "}
+                  {whatsappNumber ? (
+                    <a
+                      href={`https://wa.me/${whatsappNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-berry underline underline-offset-2"
+                    >
+                      Message us
+                    </a>
+                  ) : (
+                    <span className="font-semibold text-berry">Get in touch</span>
+                  )}{" "}
+                  &mdash; we offer special rates on bulk orders.
+                </p>
+              )}
             </div>
           )}
         </div>
