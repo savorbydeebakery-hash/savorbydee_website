@@ -10,6 +10,7 @@ import {
   getRequiredNoticeHours,
   getEarliestValidSlot,
   validateSlotAgainstHours,
+  validateDeliveryWindow,
   DEFAULT_NOTICE_RULES,
   type SiteNoticeRules,
   type WeeklyHours,
@@ -102,6 +103,13 @@ export default function CheckoutPage() {
   // For the bulk-order invite. Null hides the link rather than rendering a
   // dead wa.me/undefined.
   const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null);
+  // Delivery runs on a narrower window than the shop, and is free above a
+  // threshold. Both editable in admin.
+  const [deliveryWindow, setDeliveryWindow] = useState<{ from: string; to: string }>({
+    from: "10:00",
+    to: "20:00",
+  });
+  const [freeDeliveryOver, setFreeDeliveryOver] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +120,7 @@ export default function CheckoutPage() {
         const { data } = await supabase
           .from("site_settings")
           .select(
-            "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled, whatsapp_number"
+            "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled, whatsapp_number, delivery_from, delivery_to, free_delivery_threshold_cents"
           )
           .eq("id", 1)
           .single();
@@ -132,6 +140,11 @@ export default function CheckoutPage() {
         });
         setDeliveryEnabled(data.delivery_enabled ?? true);
         setWhatsappNumber(data.whatsapp_number?.trim() || null);
+        setDeliveryWindow({
+          from: data.delivery_from ?? "10:00",
+          to: data.delivery_to ?? "20:00",
+        });
+        setFreeDeliveryOver(data.free_delivery_threshold_cents ?? null);
       } catch {
         // Fail open. The order API applies both rules authoritatively, so a
         // settings read that fails should not strand the customer at checkout.
@@ -202,6 +215,14 @@ export default function CheckoutPage() {
     if (!hoursCheck.valid) {
       setErrors([hoursCheck.error!]);
       return;
+    }
+
+    if (effectiveFulfillment === "delivery") {
+      const windowCheck = validateDeliveryWindow(slot, deliveryWindow.from, deliveryWindow.to);
+      if (!windowCheck.valid) {
+        setErrors([windowCheck.error!]);
+        return;
+      }
     }
 
     setErrors([]);
@@ -443,6 +464,17 @@ export default function CheckoutPage() {
                 We are not delivering at the moment &mdash; collection only.
               </p>
             )}
+            {deliveryEnabled && freeDeliveryOver != null && (
+              <p className="mt-2 text-sm text-ink-soft">
+                {totalCents >= freeDeliveryOver ? (
+                  <span className="font-semibold text-mint-deep">
+                    ✓ This order qualifies for free delivery.
+                  </span>
+                ) : (
+                  <>Delivery is free on orders over {formatPrice(freeDeliveryOver)}.</>
+                )}
+              </p>
+            )}
           </div>
 
           <div>
@@ -450,6 +482,11 @@ export default function CheckoutPage() {
             <Badge color="pink" className="mb-3">
               Minimum {noticeHours}h notice required
             </Badge>
+            {effectiveFulfillment === "delivery" && (
+              <p className="mb-3 text-sm text-ink-soft">
+                We deliver between {deliveryWindow.from} and {deliveryWindow.to} IST.
+              </p>
+            )}
             <Input
               type="datetime-local"
               label="Requested date & time (IST)"

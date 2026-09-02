@@ -244,6 +244,42 @@ export function validateSlotAgainstHours(
 }
 
 /**
+ * Delivery runs on a narrower window than the shop itself.
+ *
+ * The bakery trades 09:00-21:00, but the client delivers 10:00-20:00. A
+ * collection slot at 09:30 is fine; a delivery slot at 09:30 is not. So this
+ * is a second window applied only when the customer chose delivery, rather
+ * than a narrowing of weekly_hours — which would have quietly stopped people
+ * collecting at times the shop is open.
+ *
+ * Malformed or missing bounds return valid, for the same reason
+ * validateSlotAgainstHours does: a broken setting must not refuse every
+ * delivery on the site.
+ */
+export function validateDeliveryWindow(
+  slot: Date,
+  from: string | null | undefined,
+  to: string | null | undefined
+): { valid: boolean; error: string | null } {
+  const openMinutes = parseClockMinutes(from ?? "");
+  const closeMinutes = parseClockMinutes(to ?? "");
+  if (Number.isNaN(openMinutes) || Number.isNaN(closeMinutes)) {
+    return { valid: true, error: null };
+  }
+  if (closeMinutes <= openMinutes) return { valid: true, error: null };
+
+  const slotMinutes = istMinutesOfDay(slot);
+  if (slotMinutes < openMinutes || slotMinutes > closeMinutes) {
+    return {
+      valid: false,
+      error: `We deliver between ${from} and ${to} IST. Please pick a time in that window, or choose collection.`,
+    };
+  }
+
+  return { valid: true, error: null };
+}
+
+/**
  * Validate the full cart for checkout readiness.
  */
 export function validateCart(

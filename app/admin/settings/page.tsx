@@ -30,6 +30,11 @@ interface SiteSettings {
   bulk_notice_hours: number;
   custom_cake_notice_days: number;
   daily_menu_cutoff: string;
+  instagram_url: string | null;
+  facebook_url: string | null;
+  delivery_from: string;
+  delivery_to: string;
+  free_delivery_threshold_cents: number;
   weekly_hours: Record<string, { open: boolean; from: string; to: string }>;
   holidays: string[];
   delivery_enabled: boolean;
@@ -176,6 +181,13 @@ export default function AdminSettingsPage() {
             <Input label="Contact Phone" value={settings.contact_phone ?? ""} onChange={(e) => update("contact_phone", e.target.value)} />
           </div>
           <Input label="WhatsApp Number (with country code, no +)" value={settings.whatsapp_number} onChange={(e) => update("whatsapp_number", e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <Input label="Instagram URL" value={settings.instagram_url ?? ""} onChange={(e) => update("instagram_url", e.target.value)} placeholder="https://www.instagram.com/savorbydee" />
+            <Input label="Facebook URL" value={settings.facebook_url ?? ""} onChange={(e) => update("facebook_url", e.target.value)} placeholder="https://www.facebook.com/savorbydee" />
+          </div>
+          <p className="-mt-2 text-xs text-ink-faint">
+            Leaving one empty hides that icon from the footer.
+          </p>
           <Input label="Footer Text" value={settings.footer_text ?? ""} onChange={(e) => update("footer_text", e.target.value)} />
 
           {/* Hero Image */}
@@ -315,6 +327,33 @@ export default function AdminSettingsPage() {
             Enable Delivery
           </label>
           <Textarea label="Delivery Instructions" value={settings.delivery_instructions ?? ""} onChange={(e) => update("delivery_instructions", e.target.value)} rows={3} />
+
+          <div className="border-t border-ink/8 pt-4">
+            <label className="mb-1 block text-sm font-medium text-ink">Delivery hours</label>
+            <p className="mb-2 text-xs text-ink-faint">
+              Narrower than your opening hours. A collection slot outside this window is
+              still fine &mdash; this only limits delivery.
+            </p>
+            <div className="flex items-center gap-2">
+              <input type="time" value={settings.delivery_from ?? "10:00"} onChange={(e) => update("delivery_from", e.target.value)} className="rounded-lg border border-ink/15 px-3 py-1.5 text-sm" />
+              <span className="text-ink-faint">to</span>
+              <input type="time" value={settings.delivery_to ?? "20:00"} onChange={(e) => update("delivery_to", e.target.value)} className="rounded-lg border border-ink/15 px-3 py-1.5 text-sm" />
+            </div>
+          </div>
+
+          <div className="border-t border-ink/8 pt-4">
+            <Input
+              label="Free delivery over (₹)"
+              type="number"
+              min={0}
+              value={Math.round((settings.free_delivery_threshold_cents ?? 0) / 100)}
+              onChange={(e) => update("free_delivery_threshold_cents", (parseInt(e.target.value) || 0) * 100)}
+            />
+            <p className="mt-1 text-xs text-ink-faint">
+              Orders at or above this total get delivery free automatically &mdash; the fee is
+              recorded as ₹0 instead of waiting for you to quote one.
+            </p>
+          </div>
         </Card>
       )}
 

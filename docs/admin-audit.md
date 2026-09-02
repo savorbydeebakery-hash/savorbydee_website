@@ -1,6 +1,6 @@
 # Admin panel audit
 
-**Run:** 2026-08-31 · **Findings 1-6 fixed 2026-09-01**
+**Run:** 2026-08-31 · **All 6 findings fixed** (1-5 on 2026-09-01, 6 on 2026-09-02)
 **Asked for:** "check that everything is editable via admin and every function works"
 
 ## Scope and method
@@ -36,7 +36,7 @@ un-editable because a page is missing.
 `behind_the_scenes` being update-only is by design: migration 00019 seeds three
 fixed slots and the page edits those three.
 
-## Status: 5 of 6 fixed
+## Status: 6 of 6 fixed
 
 | # | Finding | State |
 |---|---|---|
@@ -45,7 +45,7 @@ fixed slots and the page edits those three.
 | 3 | UPI fallback unreachable | **Fixed** — rendered on unpaid orders |
 | 4 | `razorpay_active` no reader | **Fixed** — gates the payment control |
 | 5 | `footer_text` no reader | **Fixed** — footer reads it |
-| 6 | Footer socials hardcoded | **Half** — WhatsApp now from settings; Instagram/Facebook need migration 00028 |
+| 6 | Footer socials hardcoded | **Fixed** — all three from settings, migration 00028 applied |
 
 An image had in fact been uploaded through finding 1's control and was sitting
 in storage unused, so the homepage was showing the shipped stock photo instead

@@ -9,6 +9,7 @@ import {
   hasCustomNoticeItems,
   DEFAULT_NOTICE_RULES,
   validateSlotAgainstHours,
+  validateDeliveryWindow,
 } from "./validation";
 import type { CartItem } from "./types";
 import { istInputToInstant, istDayName, instantToIstInput } from "@/lib/time/ist";
@@ -310,5 +311,41 @@ describe("hasCustomNoticeItems", () => {
 
   it("returns false when no items require custom notice", () => {
     expect(hasCustomNoticeItems([makeItem(), makeItem()])).toBe(false);
+  });
+});
+
+// --- validateDeliveryWindow ---
+
+describe("validateDeliveryWindow", () => {
+  // The shop trades 09:00-21:00; delivery runs 10:00-20:00.
+  it("rejects a delivery slot before the delivery window opens", () => {
+    const r = validateDeliveryWindow(ist("2026-09-02T09:30"), "10:00", "20:00");
+    expect(r.valid).toBe(false);
+    expect(r.error).toMatch(/between 10:00 and 20:00/);
+  });
+
+  it("rejects a delivery slot after the delivery window closes", () => {
+    expect(validateDeliveryWindow(ist("2026-09-02T20:30"), "10:00", "20:00").valid).toBe(false);
+  });
+
+  it("accepts the boundaries themselves", () => {
+    expect(validateDeliveryWindow(ist("2026-09-02T10:00"), "10:00", "20:00").valid).toBe(true);
+    expect(validateDeliveryWindow(ist("2026-09-02T20:00"), "10:00", "20:00").valid).toBe(true);
+  });
+
+  it("accepts a slot inside the window", () => {
+    expect(validateDeliveryWindow(ist("2026-09-02T14:00"), "10:00", "20:00").valid).toBe(true);
+  });
+
+  it("is narrower than the shop's own hours, which stay valid for collection", () => {
+    // 09:30 is inside weekly_hours but outside the delivery window.
+    expect(validateSlotAgainstHours(ist("2026-09-02T09:30"), weeklyHours).valid).toBe(true);
+    expect(validateDeliveryWindow(ist("2026-09-02T09:30"), "10:00", "20:00").valid).toBe(false);
+  });
+
+  it("accepts anything when the window is unset or malformed", () => {
+    expect(validateDeliveryWindow(ist("2026-09-02T06:00"), null, null).valid).toBe(true);
+    expect(validateDeliveryWindow(ist("2026-09-02T06:00"), "nope", "later").valid).toBe(true);
+    expect(validateDeliveryWindow(ist("2026-09-02T06:00"), "20:00", "10:00").valid).toBe(true);
   });
 });

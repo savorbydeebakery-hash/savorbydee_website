@@ -42,16 +42,13 @@ const INFO = [
 ];
 
 /**
- * Instagram and Facebook are still hardcoded: site_settings has no column for
- * them, and adding one needs a migration applied by hand. WhatsApp is not —
- * whatsapp_number IS a setting, and it was being read by /about and
- * /policies/contact while this footer carried a second, frozen copy of the
- * number. Changing it in admin updated two places out of three.
+ * All three social links now come from site_settings. They used to be
+ * hardcoded here — including a second, frozen copy of the WhatsApp number that
+ * /about and /policies/contact were already reading from settings, so changing
+ * it in admin updated two places out of three.
+ *
+ * An empty setting hides that icon rather than rendering a dead link.
  */
-const SOCIAL_LINKS = [
-  { href: "https://www.instagram.com/savorbydee", label: "Instagram", icon: Instagram },
-  { href: "https://www.facebook.com/savorbydee", label: "Facebook", icon: Facebook },
-];
 
 export async function Footer() {
   const year = new Date().getFullYear();
@@ -60,21 +57,26 @@ export async function Footer() {
   // settings read that breaks must not take the legal line down with it.
   let footerText: string | null = null;
   let whatsappNumber: string | null = null;
+  let instagramUrl: string | null = null;
+  let facebookUrl: string | null = null;
   try {
     const supabase = await createClient();
     const { data } = await supabase
       .from("site_settings")
-      .select("footer_text, whatsapp_number")
+      .select("footer_text, whatsapp_number, instagram_url, facebook_url")
       .eq("id", 1)
       .single();
     footerText = data?.footer_text?.trim() || null;
     whatsappNumber = data?.whatsapp_number?.trim() || null;
+    instagramUrl = data?.instagram_url?.trim() || null;
+    facebookUrl = data?.facebook_url?.trim() || null;
   } catch {
     // defaults below
   }
 
   const socials = [
-    ...SOCIAL_LINKS,
+    ...(instagramUrl ? [{ href: instagramUrl, label: "Instagram", icon: Instagram }] : []),
+    ...(facebookUrl ? [{ href: facebookUrl, label: "Facebook", icon: Facebook }] : []),
     ...(whatsappNumber
       ? [{ href: `https://wa.me/${whatsappNumber}`, label: "WhatsApp", icon: MessageCircle }]
       : []),

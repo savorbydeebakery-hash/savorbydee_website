@@ -9,6 +9,7 @@ import {
   validateDeliveryAddress,
   getRequiredNoticeHours,
   validateSlotAgainstHours,
+  validateDeliveryWindow,
   DEFAULT_NOTICE_RULES,
 } from "@/lib/cart/validation";
 import type { CartItem } from "@/lib/cart/types";
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
     )
       .from("site_settings")
       .select(
-        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, delivery_enabled, bakery_name, address_line1, address_line2, address_city, address_state"
+        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, delivery_enabled, delivery_from, delivery_to, free_delivery_threshold_cents, bakery_name, address_line1, address_line2, address_city, address_state"
       )
       .eq("id", 1)
       .single();
@@ -234,6 +235,19 @@ export async function POST(request: NextRequest) {
     );
     if (!hoursCheck.valid) {
       return NextResponse.json({ error: hoursCheck.error }, { status: 400 });
+    }
+
+    // Delivery runs 10:00-20:00, narrower than the shop's own 09:00-21:00.
+    // Only applied to delivery orders — collection at 09:30 is fine.
+    if (fulfillment === "delivery") {
+      const windowCheck = validateDeliveryWindow(
+        slot,
+        noticeSettings?.delivery_from,
+        noticeSettings?.delivery_to
+      );
+      if (!windowCheck.valid) {
+        return NextResponse.json({ error: windowCheck.error }, { status: 400 });
+      }
     }
 
     // --- Stock (AUTHORITATIVE) ---
@@ -352,6 +366,17 @@ export async function POST(request: NextRequest) {
         delivery_address: fulfillment === "delivery" ? deliveryAddress?.address ?? null : null,
         delivery_landmark: fulfillment === "delivery" ? deliveryAddress?.landmark ?? null : null,
         requested_slot: slot.toISOString(),
+        // NULL means "not quoted yet" and 0 means "free" — see HANDOFF on why
+        // delivery_fee_cents is deliberately not folded into total_cents. An
+        // order over the threshold is free by rule, so it is recorded as 0
+        // here rather than waiting for staff to quote a charge they would then
+        // have to zero by hand. Everything else stays NULL for them to quote.
+        delivery_fee_cents:
+          fulfillment === "delivery" &&
+          noticeSettings?.free_delivery_threshold_cents != null &&
+          totalCents >= noticeSettings.free_delivery_threshold_cents
+            ? 0
+            : null,
         payment_status: "unpaid",
         total_cents: totalCents,
         notes: notes || null,
