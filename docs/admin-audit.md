@@ -163,3 +163,11 @@ The panel can edit all of these today; they are simply empty.
 3. Finding 3 + `upi_id` — the only payment route while Razorpay is pending.
 4. Findings 4–7 — mostly "wire it up or delete the control".
 5. The live click-through, by someone who can sign in.
+
+## Menu data provenance
+
+The Frosted Sponge Cakes category runs on two price lists at once, deliberately.
+Sixteen cakes carry the prices from the client's 31 Aug message (900-1060);
+Funfetti, Choconilla, Spiced Carrot and Sinful carry the printed card's
+(810-1010). The client was shown the conflict and chose this. If the ladder
+looks wrong later, that is why - ask before "fixing" it.
