@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MenuTypeGrid } from "@/components/menu/menu-type-grid";
+import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { MenuFeatureTiles, type FeatureTile } from "@/components/home/menu-feature-tiles";
 import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
 
@@ -98,6 +99,10 @@ export default async function MenuTypePage({
   return (
     <div className="bg-bk-bg">
       <div className="mx-auto w-full max-w-[var(--bk-page-width)] px-4 pb-16 pt-8 md:px-6 md:pt-12">
+        <div className="mb-6">
+          <MenuPageNav current={type} />
+        </div>
+
         <h1 className="bk-section-title text-bk-fg">{menu.label}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-bk-muted md:text-base">
           {menu.blurb}

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { MenuClient } from "@/components/menu-client";
+import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { PropField } from "@/components/props/prop-field";
 import { Macaron, Cherry, Sprinkles } from "@/components/props/pastry-props";
 
@@ -61,6 +62,10 @@ export default async function MenuPage({
           </p>
         </div>
       </section>
+
+      <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
+        <MenuPageNav />
+      </div>
 
       <PropField className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <Macaron size={68} x="-2%" y="6%" depth={0.5} className="hidden xl:block" />

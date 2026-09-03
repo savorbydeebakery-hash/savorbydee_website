@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { ProductMiniCard } from "@/components/home/product-mini-card";
 import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
@@ -24,19 +25,23 @@ import type { MenuItemForCart } from "@/lib/cart/types";
  */
 export function MenuTypeShowcase({
   items,
+  totalCount,
   active = "daily",
 }: {
   items: MenuItemForCart[];
+  /** How many items the active menu holds in total, not just the preview. */
+  totalCount?: number;
   active?: string;
 }) {
   const [selected, setSelected] = useState<MenuItemForCart | null>(null);
-  const [expanded, setExpanded] = useState(false);
 
-  // Two full rows on desktop before the fold. The row used to show four and
-  // stop, which made a 45-item daily menu look like a four-item one.
+  // Two full rows on desktop before the fold. This used to expand in place;
+  // the client asked for it to open the menu's own page instead, which is also
+  // where the category headings and the full list live.
   const PREVIEW_COUNT = 8;
-  const visible = expanded ? items : items.slice(0, PREVIEW_COUNT);
-  const hiddenCount = items.length - PREVIEW_COUNT;
+  const visible = items.slice(0, PREVIEW_COUNT);
+  const total = totalCount ?? items.length;
+  const hiddenCount = Math.max(0, total - PREVIEW_COUNT);
 
   return (
     <section className="mx-auto mt-10 w-full max-w-[var(--bk-page-width)] px-4 md:mt-16 md:px-6">
@@ -68,21 +73,13 @@ export function MenuTypeShowcase({
 
         {hiddenCount > 0 && (
           <div className="mt-7 flex justify-center">
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              aria-expanded={expanded}
+            <Link
+              href={`/menu/${active}`}
               className="glass-pill inline-flex h-12 items-center gap-2 px-7 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2"
             >
-              {expanded ? "Show fewer" : `View ${hiddenCount} more`}
-              <ChevronDown
-                size={16}
-                aria-hidden="true"
-                className={`transition-transform duration-300 motion-reduce:transition-none ${
-                  expanded ? "rotate-180" : ""
-                }`}
-              />
-            </button>
+              View {hiddenCount} more
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
         )}
       </div>

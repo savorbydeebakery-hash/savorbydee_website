@@ -58,6 +58,7 @@ export default async function HomePage() {
     { data: reviews },
     { data: bestsellers },
     { data: bts },
+    { count: dailyTotal },
   ] = await Promise.all([
     supabase
       .from("menu_items")
@@ -101,6 +102,14 @@ export default async function HomePage() {
       .select("id, label, caption, image_url")
       .eq("is_active", true)
       .order("sort_order"),
+    // Just the count. The preview above is capped, so without this the
+    // "View N more" button would be counting against the cap rather than
+    // against the menu.
+    supabase
+      .from("menu_items")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true)
+      .eq("daily_menu", true),
   ]);
 
   const photos = galleryPhotos ?? [];
@@ -124,7 +133,7 @@ export default async function HomePage() {
              the cards sit straight under it. Selecting a tab opens that
              menu's own page. This replaced the Daily | Specials split — two
              menu-pickers on one page was one too many. */}
-      <MenuTypeShowcase items={dailyItems ?? []} />
+      <MenuTypeShowcase items={dailyItems ?? []} totalCount={dailyTotal ?? undefined} />
 
       {/* 4. Best Sellers — a scrolling rail, hidden when nothing is flagged.
              Sits directly under the menu tabs on purpose: a customer who has
