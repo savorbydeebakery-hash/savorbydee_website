@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { ProductMiniCard } from "@/components/home/product-mini-card";
 import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
@@ -29,6 +30,13 @@ export function MenuTypeShowcase({
   active?: string;
 }) {
   const [selected, setSelected] = useState<MenuItemForCart | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  // Two full rows on desktop before the fold. The row used to show four and
+  // stop, which made a 45-item daily menu look like a four-item one.
+  const PREVIEW_COUNT = 8;
+  const visible = expanded ? items : items.slice(0, PREVIEW_COUNT);
+  const hiddenCount = items.length - PREVIEW_COUNT;
 
   return (
     <section className="mx-auto mt-10 w-full max-w-[var(--bk-page-width)] px-4 md:mt-16 md:px-6">
@@ -41,7 +49,7 @@ export function MenuTypeShowcase({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
-            {items.slice(0, 4).map((item, i) => (
+            {visible.map((item, i) => (
               <ProductMiniCard
                 key={item.id}
                 item={item}
@@ -54,6 +62,27 @@ export function MenuTypeShowcase({
                 priority={i < 2}
               />
             ))}
+          </div>
+        )}
+
+
+        {hiddenCount > 0 && (
+          <div className="mt-7 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              aria-expanded={expanded}
+              className="glass-pill inline-flex h-12 items-center gap-2 px-7 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2"
+            >
+              {expanded ? "Show fewer" : `View ${hiddenCount} more`}
+              <ChevronDown
+                size={16}
+                aria-hidden="true"
+                className={`transition-transform duration-300 motion-reduce:transition-none ${
+                  expanded ? "rotate-180" : ""
+                }`}
+              />
+            </button>
           </div>
         )}
       </div>

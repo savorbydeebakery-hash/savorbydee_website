@@ -65,7 +65,10 @@ export default async function HomePage() {
       .eq("is_active", true)
       .eq("daily_menu", true)
       .order("sort_order")
-      .limit(4),
+      // 8 show before the fold, the rest behind "View more". The old limit of
+      // 4 meant a 45-item daily menu rendered as four items with no hint that
+      // anything else existed.
+      .limit(20),
     supabase
       .from("gallery_photos")
       .select("id, image_url, caption")
@@ -89,7 +92,7 @@ export default async function HomePage() {
       .eq("is_active", true)
       .eq("is_bestseller", true)
       .order("sort_order")
-      .limit(10),
+      .limit(16),
     // behind_the_scenes arrives with migration 00019. Same degradation as
     // reviews: the query errors before it is applied, data is null, and the
     // section returns null rather than throwing.

@@ -309,6 +309,90 @@ body {
   filter: url(#liquid-glass);
 }
 
+/* Liquid-glass pill, for a LIGHT ground.
+   .glass above is documented as only working over imagery or the dark bands —
+   over flat cream or white it turns to grey mud, because backdrop-filter with
+   nothing behind it has nothing to blur and the displacement filter has
+   nothing to bend. This variant obeys that rule instead of ignoring it: it
+   BRINGS its own backdrop. A soft pink/maroon blob sits behind the pill, so
+   the refraction has real content to distort and the glass reads as glass on
+   a white section. */
+.glass-pill {
+  position: relative;
+  isolation: isolate;
+  border-radius: 999px;
+  color: var(--bk-fg);
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--bk-fg) 12%, transparent);
+  box-shadow:
+    0 1px 2px rgb(46 33 27 / 0.06),
+    0 12px 30px -14px rgb(101 50 48 / 0.4),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.9);
+  transition:
+    transform 0.3s var(--ease-out),
+    box-shadow 0.3s var(--ease-out);
+}
+
+/* The thing being refracted. */
+.glass-pill::before {
+  content: "";
+  position: absolute;
+  inset: -70% -16%;
+  z-index: -2;
+  border-radius: inherit;
+  background:
+    radial-gradient(46% 62% at 22% 45%, color-mix(in oklab, var(--bk-pink) 85%, transparent), transparent 70%),
+    radial-gradient(46% 62% at 78% 55%, color-mix(in oklab, var(--bk-maroon) 42%, transparent), transparent 72%);
+  filter: blur(14px);
+  opacity: 0.72;
+  transition:
+    opacity 0.3s var(--ease-out),
+    transform 0.5s var(--ease-out);
+}
+
+/* The glass itself. Kept off the element carrying the text — a displacement
+   filter on that would warp the label, which is the same reason
+   .glass-liquid puts it on a ::before. */
+.glass-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in oklab, white 55%, transparent);
+  backdrop-filter: blur(12px) saturate(190%);
+  -webkit-backdrop-filter: blur(12px) saturate(190%);
+  filter: url(#liquid-glass);
+}
+
+.glass-pill:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 2px rgb(46 33 27 / 0.06),
+    0 16px 36px -14px rgb(101 50 48 / 0.5),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.95);
+}
+.glass-pill:hover::before {
+  opacity: 1;
+  transform: scale(1.07);
+}
+.glass-pill:active {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-pill,
+  .glass-pill::before {
+    transition: none;
+  }
+  .glass-pill:hover {
+    transform: none;
+  }
+  .glass-pill:hover::before {
+    transform: none;
+  }
+}
+
 /* Moving specular highlight — this is what makes glass feel alive. */
 .glass-sheen {
   position: relative;
