@@ -110,8 +110,9 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   <strong>{notice} hours</strong> notice. Orders of{" "}
                   <strong>{bulkQty} items or more</strong> require{" "}
                   <strong>{bulkNotice} hours</strong>. Custom cakes require{" "}
-                  <strong>up to {customDays} days</strong>. An order is confirmed only once
-                  payment is received and we have acknowledged it.
+                  <strong>up to {customDays} days</strong>, and we will contact you if yours can
+                  be ready sooner. An order is confirmed only once payment is received
+                  and we have acknowledged it.
                 </p>
               </Section>
               <Section title="Pricing">

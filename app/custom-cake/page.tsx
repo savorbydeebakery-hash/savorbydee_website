@@ -85,11 +85,11 @@ export default function CustomCakePage() {
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <div className="text-center mb-8">
         <Cake className="mx-auto mb-4 text-cocoa" size={40} />
-        <Badge color="lavender" className="mb-3">5 Days Advance Notice</Badge>
+        <Badge color="lavender" className="mb-3">Up to 5 Days&rsquo; Notice</Badge>
         <h1 className="text-h1 text-ink mb-3">Custom Cake Inquiry</h1>
         <p className="text-ink-soft max-w-lg mx-auto">
           Dreaming of something special? Tell us your vision and we&rsquo;ll craft it for you.
-          Custom cakes need up to 5 days&rsquo; notice &mdash; often less, depending on the design.
+          Custom cakes need up to 5 days&rsquo; notice. Our staff will reach out and let you know if yours can be ready sooner.
         </p>
 
         {/* Sets the expectation BEFORE someone describes a design or attaches a
@@ -159,8 +159,9 @@ export default function CustomCakePage() {
 
           <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
             <p className="text-sm text-ink-soft">
-              ⏰ Custom cakes need <strong>up to 5 days&rsquo; notice</strong>, sometimes less. After submitting,
-              our team will review and send you a quote within 24 hours.
+              ⏰ Custom cakes need <strong>up to 5 days&rsquo; notice</strong>. After submitting, our
+              team will review, send you a quote within 24 hours, and let you know if
+              yours can be ready sooner.
             </p>
           </div>
 
