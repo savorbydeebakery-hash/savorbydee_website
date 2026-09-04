@@ -13,6 +13,21 @@ const nextConfig: NextConfig = {
     deviceSizes: [384, 640, 828, 1080, 1200, 1920, 2304],
     imageSizes: [96, 128, 256, 384],
   },
+
+  /**
+   * /menu/preorder moved to /menu when the preorder menu became the full menu.
+   *
+   * A `permanentRedirect()` inside the route component works, but in a
+   * streaming context Next emits it as `<meta http-equiv="refresh">` rather
+   * than an HTTP status — so the browser fetches a whole page before bouncing,
+   * and search engines do not see a real move. Declaring it here makes it a
+   * genuine 308 before any rendering happens.
+   */
+  redirects() {
+    return Promise.resolve([
+      { source: "/menu/preorder", destination: "/menu", permanent: true },
+    ]);
+  },
 };
 
 export default nextConfig;

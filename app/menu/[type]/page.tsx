@@ -65,8 +65,9 @@ export default async function MenuTypePage({
 }) {
   const { type } = await params;
 
-  // The preorder menu is the full menu, and it lives at /menu. This route is
-  // kept only so existing links and bookmarks do not 404.
+  // Belt and braces with the 308 in next.config.ts, which is what actually
+  // serves this. Kept so the route is still correct if that config is ever
+  // dropped, rather than falling through to notFound().
   if (type === "preorder") permanentRedirect("/menu");
 
   const menu = MENUS[type];
