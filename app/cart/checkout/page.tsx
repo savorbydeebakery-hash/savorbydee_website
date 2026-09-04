@@ -38,7 +38,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState<Step>("review");
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup");
   const [requestedSlot, setRequestedSlot] = useState("");
-  const [guest, setGuest] = useState({ name: "", email: "", phone: "" });
+  const [guest, setGuest] = useState({ name: "", phone: "" });
   const [deliveryAddress, setDeliveryAddress] = useState({ address: "", landmark: "" });
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
@@ -55,14 +55,13 @@ export default function CheckoutPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, phone, email, default_address, default_landmark")
+        .select("full_name, phone, default_address, default_landmark")
         .eq("id", user.id)
         .single();
 
       if (profile) {
         setGuest((prev) => ({
           name: prev.name || profile.full_name || "",
-          email: prev.email || profile.email || user.email || "",
           phone: prev.phone || profile.phone || "",
         }));
         setDeliveryAddress((prev) => ({
@@ -284,7 +283,7 @@ export default function CheckoutPage() {
       };
       const orderId = data.order?.human_id || data.order?.humanId;
       clearCart();
-      router.push(`/orders/${orderId}?email=${encodeURIComponent(guest.email)}`);
+      router.push(`/orders/${orderId}?phone=${encodeURIComponent(guest.phone)}`);
     } catch (err) {
       setErrors([err instanceof Error ? err.message : "Something went wrong"]);
     } finally {
@@ -533,15 +532,9 @@ export default function CheckoutPage() {
                 onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
                 placeholder="+91 98365 37447"
               />
-              <div className="sm:col-span-2">
-                <Input
-                  label="Email Address"
-                  type="email"
-                  value={guest.email}
-                  onChange={(e) => setGuest({ ...guest, email: e.target.value })}
-                  placeholder="jane@example.com"
-                />
-              </div>
+              <p className="text-xs text-ink-faint sm:col-span-2">
+                We will confirm your order on this number.
+              </p>
             </div>
           </div>
 
@@ -635,7 +628,6 @@ export default function CheckoutPage() {
             <h3 className="font-semibold text-ink mb-3">Details</h3>
             <div className="flex flex-col gap-2 text-sm">
               <div><span className="text-ink-faint">Name:</span> {guest.name}</div>
-              <div><span className="text-ink-faint">Email:</span> {guest.email}</div>
               <div><span className="text-ink-faint">Phone:</span> {guest.phone}</div>
               <div>
                 <span className="text-ink-faint">Fulfillment:</span>{" "}

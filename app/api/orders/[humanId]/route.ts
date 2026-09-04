@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { samePhone } from "@/lib/customers/phone";
 
 /**
- * GET /api/orders/[humanId]?email=...&phone=...
- * Retrieve a single order by human_id with email+phone verification.
+ * GET /api/orders/[humanId]?phone=...
+ *
+ * Retrieve a single order, verified by the phone number on it. Compared on the
+ * last ten digits — see normalizePhone for why a strict string match would
+ * turn a customer away from their own order.
  * Uses service-role client (bypasses RLS) for guest order retrieval.
  */
 export async function GET(
@@ -13,12 +17,11 @@ export async function GET(
   try {
     const { humanId } = await params;
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get("email");
     const phone = searchParams.get("phone");
 
-    if (!email || !phone) {
+    if (!phone) {
       return NextResponse.json(
-        { error: "Email and phone are required for order lookup" },
+        { error: "A phone number is required for order lookup" },
         { status: 400 }
       );
     }
@@ -38,13 +41,9 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Verify email + phone match
-    if (
-      order.guest_email?.toLowerCase() !== email.toLowerCase() ||
-      order.guest_phone?.replace(/\s/g, "") !== phone.replace(/\s/g, "")
-    ) {
+    if (!samePhone(order.guest_phone, phone)) {
       return NextResponse.json(
-        { error: "Order details do not match. Please check your email and phone." },
+        { error: "That order number and phone number do not match." },
         { status: 403 }
       );
     }

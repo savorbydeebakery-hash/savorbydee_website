@@ -229,43 +229,31 @@ describe("validateCart", () => {
 // --- validateGuestInfo ---
 
 describe("validateGuestInfo", () => {
-  it("passes for valid info", () => {
-    const result = validateGuestInfo({
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+919836537447",
-    });
-    expect(result.valid).toBe(true);
+  it("passes with just a name and a phone", () => {
+    expect(validateGuestInfo({ name: "John Doe", phone: "+919836537447" }).valid).toBe(true);
   });
 
-  it("fails for short name", () => {
-    const result = validateGuestInfo({
-      name: "J",
-      email: "john@example.com",
-      phone: "+919836537447",
-    });
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain("Name is required");
+  it("fails for a short name", () => {
+    const r = validateGuestInfo({ name: "J", phone: "+919836537447" });
+    expect(r.valid).toBe(false);
+    expect(r.errors).toContain("Name is required");
   });
 
-  it("fails for invalid email", () => {
-    const result = validateGuestInfo({
-      name: "John",
-      email: "not-an-email",
-      phone: "+919836537447",
-    });
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain("Valid email is required");
+  it("fails for a phone that is not ten digits", () => {
+    const r = validateGuestInfo({ name: "John", phone: "123" });
+    expect(r.valid).toBe(false);
+    expect(r.errors).toContain("A 10-digit mobile number is required");
   });
 
-  it("fails for invalid phone", () => {
-    const result = validateGuestInfo({
-      name: "John",
-      email: "john@example.com",
-      phone: "123",
-    });
-    expect(result.valid).toBe(false);
-    expect(result.errors).toContain("Valid phone number is required");
+  it("rejects punctuation the old validator accepted", () => {
+    // /^[+]?[\d\s-]{10,15}$/ passed this: ten characters, zero digits.
+    expect(validateGuestInfo({ name: "John", phone: "----------" }).valid).toBe(false);
+  });
+
+  it("accepts a number however it is written", () => {
+    for (const phone of ["9836537447", "+91 98365 37447", "098365-37447"]) {
+      expect(validateGuestInfo({ name: "John", phone }).valid).toBe(true);
+    }
   });
 });
 

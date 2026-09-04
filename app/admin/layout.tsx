@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 import {
   LayoutDashboard,
   Package,
+  Trophy,
   Tag,
   Image as ImageIcon,
   Megaphone,
@@ -32,6 +33,7 @@ const navItems = [
   { href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/customers", label: "Customers", icon: Trophy },
   { href: "/admin/accounts", label: "Accounts", icon: Users },
 ];
 

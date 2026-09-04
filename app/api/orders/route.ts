@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
-import { sendOrderConfirmation, sendStaffNotification } from "@/lib/email/send";
+import { sendStaffNotification } from "@/lib/email/send";
 import {
   validateCart,
   validateGuestInfo,
@@ -15,6 +15,7 @@ import {
 import type { CartItem } from "@/lib/cart/types";
 import { istInputToInstant, formatIstSlot, istDateParts } from "@/lib/time/ist";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
+import { samePhone } from "@/lib/customers/phone";
 
 /**
  * Resolve the logged-in customer id from the request's auth cookies.
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
       totalCents: number;
       fulfillment: "pickup" | "delivery";
       requestedSlot: string;
-      guest: { name: string; phone: string; email: string };
+      guest: { name: string; phone: string };
       deliveryAddress?: {
         address: string;
         landmark?: string;
@@ -403,7 +404,8 @@ export async function POST(request: NextRequest) {
         status: "pending",
         fulfillment,
         guest_name: guest.name,
-        guest_email: guest.email,
+        // No email is collected any more; the column stays for older orders.
+        guest_email: null,
         guest_phone: guest.phone,
         delivery_address: fulfillment === "delivery" ? deliveryAddress?.address ?? null : null,
         delivery_landmark: fulfillment === "delivery" ? deliveryAddress?.landmark ?? null : null,
@@ -474,47 +476,16 @@ export async function POST(request: NextRequest) {
       console.error("[api/orders] Stock decrement threw:", stockError);
     }
 
-    // --- Send emails (non-blocking — don't fail the order if email fails) ---
+    // --- Notify staff (non-blocking — don't fail the order if email fails) ---
     try {
-      // This used to be built by stripping "supabase.co" out of the Supabase
-      // project URL, which produced links like
-      // "https://tkzbroymiyvnigqxcpze.orders/SAV-..." in the customer's
-      // confirmation email. The request's own origin is the site the customer
-      // just ordered from, which is what the link should point at.
-      const orderUrl = `${request.nextUrl.origin}/orders/${humanId}`;
-
       // Zone-pinned. Rendered on a Workers runtime, a bare
       // toLocaleString("en-IN") sets the locale but leaves the zone as UTC, so
-      // customers were emailed a time 5h30m before the slot they booked.
+      // the staff alert used to show a time 5h30m before the booked slot.
       const slotLabel = `${formatIstSlot(slot)} IST`;
 
-      const pickupAddress =
-        [
-          noticeSettings?.bakery_name,
-          noticeSettings?.address_line1,
-          noticeSettings?.address_line2,
-          noticeSettings?.address_city,
-          noticeSettings?.address_state,
-        ]
-          .filter(Boolean)
-          .join(", ") || undefined;
-
-      // Customer confirmation
-      await sendOrderConfirmation(guest.email, {
-        customerName: guest.name,
-        humanId,
-        items: items.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
-          lineTotal: `₹${(item.lineTotalCents / 100).toFixed(0)}`,
-        })),
-        total: `₹${(totalCents / 100).toFixed(0)}`,
-        fulfillment,
-        requestedSlot: slotLabel,
-        pickupAddress: fulfillment === "pickup" ? pickupAddress : undefined,
-        paymentStatus: "Pending",
-        orderUrl,
-      });
+      // orderUrl and pickupAddress went with the customer confirmation email:
+      // both existed only to fill that template, and there is no address to
+      // send it to any more.
 
       // Staff notification (triggers alarm)
       await sendStaffNotification({
@@ -564,19 +535,23 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/orders?id=SAV-XXXXXX-XXXX&email=...&phone=...
- * Guest order retrieval (gap fix) — verifies email + phone match.
+ * GET /api/orders?id=SAV-XXXXXX-XXXX&phone=...
+ *
+ * Guest order retrieval. Email is gone, so the order number plus the phone
+ * number on the order are what identify it. Phones are compared on their last
+ * ten digits: the same customer is stored as both "9836537447" and
+ * "+91 98365 37447" in this table, and a strict string match would refuse
+ * someone their own order for typing the country code.
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const humanId = searchParams.get("id");
-    const email = searchParams.get("email");
     const phone = searchParams.get("phone");
 
-    if (!humanId || !email || !phone) {
+    if (!humanId || !phone) {
       return NextResponse.json(
-        { error: "Order ID, email, and phone are required" },
+        { error: "Order ID and phone number are required" },
         { status: 400 }
       );
     }
@@ -596,11 +571,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Verify email + phone match (service-role client bypasses RLS)
-    if (
-      order.guest_email?.toLowerCase() !== email.toLowerCase() ||
-      order.guest_phone?.replace(/\s/g, "") !== phone.replace(/\s/g, "")
-    ) {
+    // Service-role client bypasses RLS, so this comparison is the only gate.
+    if (!samePhone(order.guest_phone, phone)) {
       return NextResponse.json(
         { error: "Order details do not match" },
         { status: 403 }

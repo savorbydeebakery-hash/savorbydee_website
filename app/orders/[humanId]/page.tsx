@@ -44,17 +44,15 @@ export default function OrderConfirmationPage({
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [needsVerification, setNeedsVerification] = useState(false);
 
-  const fetchOrder = useCallback(async (emailVal: string, phoneVal: string) => {
+  const fetchOrder = useCallback(async (phoneVal: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      const params = new URLSearchParams({ email: emailVal });
-      if (phoneVal) params.set("phone", phoneVal);
+      const params = new URLSearchParams({ phone: phoneVal });
 
       const res = await fetch(`/api/orders/${humanId}?${params}`);
       if (!res.ok) {
@@ -74,13 +72,14 @@ export default function OrderConfirmationPage({
   }, [humanId]);
 
   useEffect(() => {
-    // Try to get email from URL query (set after checkout)
+    // Checkout appends the phone number it just used, so a customer arriving
+    // straight from placing an order never sees the verification form.
     const url = new URL(window.location.href);
-    const emailParam = url.searchParams.get("email");
+    const phoneParam = url.searchParams.get("phone");
     const id = setTimeout(() => {
-      if (emailParam) {
-        setEmail(emailParam);
-        void fetchOrder(emailParam, "");
+      if (phoneParam) {
+        setPhone(phoneParam);
+        void fetchOrder(phoneParam);
       } else {
         setNeedsVerification(true);
         setLoading(false);
@@ -120,7 +119,7 @@ export default function OrderConfirmationPage({
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchOrder(email, phone);
+    fetchOrder(phone);
   };
 
   if (loading) {
@@ -134,7 +133,7 @@ export default function OrderConfirmationPage({
     );
   }
 
-  // Verification form (if no email in URL or verification failed)
+  // Verification form (no phone in the URL, or it did not match)
   if (needsVerification && !order) {
     return (
       <div className="mx-auto max-w-md px-4 py-20 sm:px-6">
@@ -142,19 +141,12 @@ export default function OrderConfirmationPage({
           <Search className="mx-auto mb-4 text-berry" size={40} />
           <h1 className="text-2xl font-bold text-ink mb-2">Find Your Order</h1>
           <p className="text-sm text-ink-soft">
-            Enter your email and phone to view order {humanId}
+Enter the phone number you ordered with to view order {humanId}
           </p>
         </div>
         <form onSubmit={handleVerify} className="flex flex-col gap-4">
           <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            label="Phone"
+            label="Phone number"
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -298,14 +290,14 @@ export default function OrderConfirmationPage({
             totalCents={order.total_cents}
             kycPendingMode={payment.kycPendingMode}
             upiId={payment.upiId ?? undefined}
-            onPaymentSuccess={() => fetchOrder(email, phone)}
+            onPaymentSuccess={() => fetchOrder(phone)}
           />
         </div>
       ) : (
         <div className="rounded-xl bg-mint-soft border border-mint/20 p-4 mb-6">
           <p className="text-sm text-ink-soft">
             💡 We&rsquo;ll confirm your order and send payment instructions to{" "}
-            <strong>{order.guest_email}</strong>.
+            <strong>{order.guest_phone}</strong>.
           </p>
         </div>
       )}

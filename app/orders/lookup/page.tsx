@@ -29,7 +29,6 @@ interface OrderData {
 
 export default function FindMyOrderPage() {
   const [humanId, setHumanId] = useState("");
-  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,8 +36,8 @@ export default function FindMyOrderPage() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!humanId || !email || !phone) {
-      setError("All fields are required");
+    if (!humanId || !phone) {
+      setError("Both fields are required");
       return;
     }
 
@@ -47,7 +46,7 @@ export default function FindMyOrderPage() {
     setOrder(null);
 
     try {
-      const params = new URLSearchParams({ id: humanId, email, phone });
+      const params = new URLSearchParams({ id: humanId, phone });
       const res = await fetch(`/api/orders?${params}`);
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
@@ -78,7 +77,7 @@ export default function FindMyOrderPage() {
         <Search className="mx-auto mb-4 text-berry" size={40} />
         <h1 className="text-h1 text-ink mb-2">Find My Order</h1>
         <p className="text-ink-soft">
-          Enter your order ID, email, and phone to track your order.
+Enter your order number and the phone number you ordered with.
         </p>
       </div>
 
@@ -92,17 +91,9 @@ export default function FindMyOrderPage() {
             placeholder="SAV-260820-0001"
             required
           />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4">
             <Input
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="jane@example.com"
-              required
-            />
-            <Input
-              label="Phone"
+              label="Phone number"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -180,7 +171,7 @@ export default function FindMyOrderPage() {
             </div>
           </Card>
 
-          <Link href={`/orders/${order.human_id}?email=${encodeURIComponent(email)}`}>
+          <Link href={`/orders/${order.human_id}?phone=${encodeURIComponent(phone)}`}>
             <Button variant="outline" className="w-full">View Full Order Details →</Button>
           </Link>
         </div>

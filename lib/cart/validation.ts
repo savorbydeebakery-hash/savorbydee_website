@@ -4,6 +4,7 @@
  * No side effects. Fully unit-testable.
  */
 import type { CartItem } from "./types";
+import { isValidPhone } from "@/lib/customers/phone";
 import {
   IST_OFFSET,
   istDateKey,
@@ -377,9 +378,20 @@ export function validateCart(
 /**
  * Validate guest contact info for checkout.
  */
+/**
+ * Guest details for checkout: a name and a phone number.
+ *
+ * The phone number is the customer's identity — orders are counted against it
+ * and looked up by it — so it is validated strictly. The old rule was
+ * /^[+]?[\d\s-]{10,15}$/, which accepted "----------": ten characters and
+ * not one digit.
+ *
+ * There is deliberately no email field. The client removed it, which means the
+ * site sends the customer nothing in writing — the order page and whatever
+ * staff send on WhatsApp are the whole confirmation.
+ */
 export function validateGuestInfo(info: {
   name: string;
-  email: string;
   phone: string;
 }): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
@@ -388,20 +400,13 @@ export function validateGuestInfo(info: {
     errors.push("Name is required");
   }
 
-  if (!info.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.email)) {
-    errors.push("Valid email is required");
-  }
-
-  if (!info.phone || !/^[+]?[\d\s-]{10,15}$/.test(info.phone)) {
-    errors.push("Valid phone number is required");
+  if (!isValidPhone(info.phone)) {
+    errors.push("A 10-digit mobile number is required");
   }
 
   return { valid: errors.length === 0, errors };
 }
 
-/**
- * Validate delivery address.
- */
 export function validateDeliveryAddress(address: {
   address: string;
   landmark?: string;
