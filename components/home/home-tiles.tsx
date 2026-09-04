@@ -54,7 +54,7 @@ const TILES = [
   },
   {
     href: "/menu",
-    label: "Full Menu",
+    label: "Preorder Menu",
     sub: "Everything we bake",
     key: 2,
     span: "",

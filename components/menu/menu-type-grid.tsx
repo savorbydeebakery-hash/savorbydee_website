@@ -30,7 +30,7 @@ export function MenuTypeGrid({
           href="/menu"
           className="mt-5 inline-flex h-11 items-center justify-center rounded-[var(--bk-r-pill)] bg-bk-btn px-6 text-sm font-medium text-bk-btn-fg transition-opacity hover:opacity-85"
         >
-          Browse the full menu
+          Browse the preorder menu
         </Link>
       </div>
     );

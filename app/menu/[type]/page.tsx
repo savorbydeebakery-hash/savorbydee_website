@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import {
   Truck,
@@ -46,22 +46,6 @@ const MENUS: Record<
       { icon: PackageCheck, label: "In-Stock", sub: "Goodies" },
     ],
   },
-  preorder: {
-    label: "Preorder Menu",
-    // No `column`: preordering IS the whole catalogue. Everything here is
-    // baked to order, so filtering it down to a flagged subset would have
-    // hidden most of the menu behind a distinction customers do not make.
-    blurb:
-      "Everything we bake, open for preorder. Nothing is made until your order comes in, which is why we ask for notice.",
-    empty: "The menu is not up yet. Check back shortly.",
-    tiles: [
-      {
-        icon: CalendarClock,
-        label: "Reserve in Advance",
-        sub: "Secure your favourites early, available on a first-come, first-serve basis.",
-      },
-    ],
-  },
 };
 
 export async function generateMetadata({
@@ -70,6 +54,7 @@ export async function generateMetadata({
   params: Promise<{ type: string }>;
 }) {
   const { type } = await params;
+  if (type === "preorder") return { title: "Preorder Menu – Savor by Dee" };
   const menu = MENUS[type];
   if (!menu) return { title: "Menu – Savor by Dee" };
   return { title: `${menu.label} – Savor by Dee`, description: menu.blurb };
@@ -81,6 +66,11 @@ export default async function MenuTypePage({
   params: Promise<{ type: string }>;
 }) {
   const { type } = await params;
+
+  // The preorder menu is the full menu, and it lives at /menu. This route is
+  // kept only so existing links and bookmarks do not 404.
+  if (type === "preorder") permanentRedirect("/menu");
+
   const menu = MENUS[type];
   if (!menu) notFound();
 
@@ -122,14 +112,8 @@ export default async function MenuTypePage({
           <MenuTypeGrid items={items ?? []} empty={menu.empty} />
         </div>
 
-        <div className="mt-10 border-t border-bk-border pt-6">
-          <Link
-            href="/menu"
-            className="text-sm font-medium text-bk-fg underline-offset-4 hover:underline"
-          >
-            See the full menu instead
-          </Link>
-        </div>
+        {/* The "see the full menu instead" link is gone: the full menu is the
+            preorder menu, and MenuPageNav at the top already offers it. */}
       </div>
     </div>
   );

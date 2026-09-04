@@ -32,10 +32,10 @@ export function MenuPageNav({ current }: { current?: string }) {
       </Link>
 
       <ul className="flex flex-wrap items-center gap-2">
-        {others.map(({ slug, label }) => (
+        {others.map(({ slug, label, href }) => (
           <li key={slug}>
             <Link
-              href={`/menu/${slug}`}
+              href={href}
               className="glass-pill inline-flex h-10 items-center gap-1.5 px-5 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2"
             >
               {label}

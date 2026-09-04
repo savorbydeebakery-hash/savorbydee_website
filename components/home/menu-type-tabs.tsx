@@ -18,9 +18,15 @@ import Link from "next/link";
  * One source of truth for which menus exist; both the strip and
  * app/menu/[type]/page.tsx read from it.
  */
+/**
+ * The href is explicit rather than derived from the slug: the preorder menu IS
+ * the full menu now, so it lives at /menu — the page that used to be called
+ * "the full menu" — while /menu/preorder permanently redirects there. Deriving
+ * `/menu/${slug}` would have sent people through that redirect on every click.
+ */
 export const MENU_TYPE_ORDER = [
-  { slug: "daily", label: "Daily Menu" },
-  { slug: "preorder", label: "Preorder Menu" },
+  { slug: "daily", label: "Daily Menu", href: "/menu/daily" },
+  { slug: "preorder", label: "Preorder Menu", href: "/menu" },
 ] as const;
 
 export function MenuTypeTabs({ active }: { active?: string }) {
@@ -29,12 +35,12 @@ export function MenuTypeTabs({ active }: { active?: string }) {
       {/* Scrolls rather than wraps: three long labels do not fit a 375px row,
           and wrapping them turns a tab strip into a paragraph. */}
       <ul className="no-scrollbar -mx-4 flex items-baseline gap-6 overflow-x-auto px-4 md:mx-0 md:gap-9 md:px-0">
-        {MENU_TYPE_ORDER.map(({ slug, label }) => {
+        {MENU_TYPE_ORDER.map(({ slug, label, href }) => {
           const isActive = slug === active;
           return (
             <li key={slug} className="shrink-0">
               <Link
-                href={`/menu/${slug}`}
+                href={href}
                 aria-current={isActive ? "page" : undefined}
                 className={`block whitespace-nowrap text-[clamp(1.35rem,3.2vw,2rem)] font-medium tracking-[-0.03em] transition-colors ${
                   isActive

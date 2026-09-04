@@ -5,9 +5,9 @@ import { PropField } from "@/components/props/prop-field";
 import { Macaron, Cherry, Sprinkles } from "@/components/props/pastry-props";
 
 export const metadata = {
-  title: "Menu – Savor by Dee",
+  title: "Preorder Menu – Savor by Dee",
   description:
-    "Browse our full menu of cakes, desserts, cookies, and savoury bakes. Pre-order online, made fresh to order.",
+    "Browse the preorder menu: cakes, cheesecakes, desserts, cupcakes and high tea nibbles, all made fresh to order.",
 };
 
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
@@ -32,10 +32,24 @@ export default async function MenuPage({
         "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, requires_custom_notice, daily_menu, is_special, is_chefs_choice, is_bestseller"
       )
       .eq("is_active", true)
+      // The preorder menu is everything NOT on today's list. An item belongs
+      // to exactly one menu — the client's rule — so daily items are excluded
+      // here rather than appearing in both. This is also what removes the four
+      // daily-only categories (All Day Breakfast Bakes, Shortbread Cookies,
+      // Snacks, Mini pizzas) without naming them: every item in them is daily,
+      // so the category ends up empty and is dropped below.
+      .eq("daily_menu", false)
       .order("sort_order"),
     // So the stated wait tracks the admin setting instead of going stale.
     supabase.from("site_settings").select("global_notice_hours").eq("id", 1).single(),
   ]);
+
+  // Only offer a category chip for a category that still has something in it.
+  // MenuClient hides empty SECTIONS on its own, but renders a chip for every
+  // category handed to it, so without this the daily-only categories would
+  // show as chips that filter down to nothing.
+  const usedCategoryIds = new Set((menuItems ?? []).map((i) => i.category_id));
+  const preorderCategories = (categories ?? []).filter((c) => usedCategoryIds.has(c.id));
 
   return (
     <div>
@@ -55,7 +69,7 @@ export default async function MenuPage({
         <div aria-hidden="true" className="hero-grain absolute inset-0" />
         <div className="relative mx-auto max-w-3xl text-center">
           <p className="text-eyebrow mb-3 text-blush">Fresh to order</p>
-          <h1 className="text-h1 text-shell">Our Menu</h1>
+          <h1 className="text-h1 text-shell">Preorder Menu</h1>
           <p className="mx-auto mt-4 max-w-xl text-[#D8CCC0]">
             Every item is made fresh when you order. Please allow at least{" "}
             {settings?.global_notice_hours ?? 2} hours for standard items.
@@ -72,7 +86,7 @@ export default async function MenuPage({
         <Sprinkles size={120} x="94%" y="22%" depth={0.7} className="hidden xl:block" />
         <Cherry size={40} x="-1%" y="62%" depth={0.35} className="hidden xl:block" />
         <MenuClient
-          categories={categories ?? []}
+          categories={preorderCategories}
           menuItems={menuItems ?? []}
           tag={tag}
         />
