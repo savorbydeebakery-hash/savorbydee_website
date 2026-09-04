@@ -26,6 +26,7 @@ interface SiteSettings {
   google_maps_directions_url: string | null;
   footer_text: string | null;
   global_notice_hours: number;
+  preorder_notice_hours: number;
   bulk_threshold: number;
   bulk_notice_hours: number;
   custom_cake_notice_days: number;
@@ -241,7 +242,12 @@ export default function AdminSettingsPage() {
           <div className="rounded-xl bg-pink-soft/50 p-3">
             <p className="text-sm text-ink-soft">Notice windows stack by MAX. The effective notice is the maximum of all applicable windows.</p>
           </div>
-          <Input label="Global Notice (hours)" type="number" value={settings.global_notice_hours} onChange={(e) => update("global_notice_hours", parseInt(e.target.value) || 2)} />
+          <Input label="Daily Menu Notice (hours)" type="number" value={settings.global_notice_hours} onChange={(e) => update("global_notice_hours", parseInt(e.target.value) || 2)} />
+          <Input label="Preorder Notice (hours)" type="number" value={settings.preorder_notice_hours} onChange={(e) => update("preorder_notice_hours", parseInt(e.target.value) || 24)} />
+          <p className="-mt-2 text-xs text-ink-faint">
+            Today&rsquo;s bakes are ready quickly; preorder items are made from scratch.
+            A category or an individual item can override either of these.
+          </p>
           <Input label="Bulk Threshold (per item)" type="number" value={settings.bulk_threshold} onChange={(e) => update("bulk_threshold", parseInt(e.target.value) || 12)} />
           <p className="-mt-2 text-xs text-ink-faint">
             More than this many of any ONE item counts as a bulk order. At 12, ordering 13 of

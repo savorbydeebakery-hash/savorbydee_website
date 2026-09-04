@@ -13,7 +13,10 @@ import {
 } from "@/lib/time/ist";
 
 export interface SiteNoticeRules {
+  /** Default notice for DAILY MENU items. */
   globalNoticeHours: number; // default 2
+  /** Default notice for PREORDER items — those are baked from scratch. */
+  preorderNoticeHours: number; // default 24
   /**
    * Per-ITEM quantity above which an order counts as bulk. 12 means 13 or more
    * of any single item triggers the bulk window; a cart of many different
@@ -53,6 +56,7 @@ export const MAX_LINE_QUANTITY = 1000;
 
 export const DEFAULT_NOTICE_RULES: SiteNoticeRules = {
   globalNoticeHours: 2,
+  preorderNoticeHours: 24,
   bulkThreshold: 12,
   bulkNoticeHours: 24,
   customCakeNoticeDays: 5,
@@ -91,18 +95,85 @@ export function getRequiredNoticeHours(
   items: CartItem[],
   rules: SiteNoticeRules = DEFAULT_NOTICE_RULES
 ): number {
-  const notices: number[] = [rules.globalNoticeHours];
+  if (items.length === 0) return rules.globalNoticeHours;
 
-  const largestLine = items.reduce((max, item) => Math.max(max, item.quantity), 0);
-  if (largestLine > rules.bulkThreshold) {
-    notices.push(rules.bulkNoticeHours);
-  }
+  const notices: number[] = [];
 
-  if (hasCustomNoticeItems(items)) {
-    notices.push(rules.customCakeNoticeDays * 24);
+  for (const item of items) {
+    // Item override, then category override (both already resolved onto the
+    // line when it was added), then the default for whichever menu it came
+    // from. `=== false` rather than a falsy check: a cart line saved before
+    // this existed has no dailyMenu at all, and treating "unknown" as preorder
+    // would silently push a 2-hour order out to 24.
+    const isPreorder = item.dailyMenu === false;
+    const menuDefault = isPreorder ? rules.preorderNoticeHours : rules.globalNoticeHours;
+    notices.push(item.noticeHours ?? menuDefault);
+
+    const threshold = item.bulkThreshold ?? rules.bulkThreshold;
+    if (item.quantity > threshold) notices.push(rules.bulkNoticeHours);
+
+    if (item.requiresCustomNotice) notices.push(rules.customCakeNoticeDays * 24);
   }
 
   return Math.max(...notices);
+}
+
+/** Which menu a line or cart belongs to. */
+export type MenuKind = "daily" | "preorder";
+
+export const MENU_KIND_LABEL: Record<MenuKind, string> = {
+  daily: "Today's Menu",
+  preorder: "Preorder Menu",
+};
+
+export function menuKindOf(item: Pick<CartItem, "dailyMenu">): MenuKind {
+  return item.dailyMenu === false ? "preorder" : "daily";
+}
+
+/**
+ * The menu a cart is committed to, or null while it is empty.
+ *
+ * Reports the kind of the first line. A cart should never hold both — that is
+ * what canAddToCart prevents — but a basket saved before this rule existed
+ * can, so this says what it will be treated as rather than throwing.
+ */
+export function cartMenuKind(items: CartItem[]): MenuKind | null {
+  if (items.length === 0) return null;
+  return menuKindOf(items[0]);
+}
+
+/** True when a cart already holds lines from both menus. */
+export function cartIsMixed(items: CartItem[]): boolean {
+  if (items.length < 2) return false;
+  const first = menuKindOf(items[0]);
+  return items.some((i) => menuKindOf(i) !== first);
+}
+
+/**
+ * Can this item join the cart as it stands?
+ *
+ * Daily bakes are ready in about two hours; preorder items are made from
+ * scratch and need a day or more. An order has ONE collection slot, so a
+ * basket holding both cannot honour either window — the kitchen would have to
+ * bake the preorder item impossibly fast, or hold the fresh one until it is
+ * stale.
+ */
+export function canAddToCart(
+  items: CartItem[],
+  incoming: Pick<CartItem, "dailyMenu">
+): { allowed: boolean; error: string | null } {
+  const current = cartMenuKind(items);
+  if (current === null) return { allowed: true, error: null };
+
+  const next = menuKindOf(incoming);
+  if (next === current) return { allowed: true, error: null };
+
+  return {
+    allowed: false,
+    error:
+      `Your basket has ${MENU_KIND_LABEL[current]} items, which are ready on a different ` +
+      `schedule. Order those first, or empty the basket to start a ${MENU_KIND_LABEL[next]} one.`,
+  };
 }
 
 /** An instant for a given IST calendar day at a given minute-of-day. */

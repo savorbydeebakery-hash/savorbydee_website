@@ -15,6 +15,9 @@ interface Category {
   name: string;
   sort_order: number;
   is_active: boolean;
+  /** Null means inherit the site default. Not the same as 0. */
+  notice_hours: number | null;
+  bulk_threshold: number | null;
 }
 
 export default function AdminCategoriesPage() {
@@ -24,6 +27,8 @@ export default function AdminCategoriesPage() {
   const [editing, setEditing] = useState<Category | null>(null);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [noticeHours, setNoticeHours] = useState<number | null>(null);
+  const [bulkThreshold, setBulkThreshold] = useState<number | null>(null);
 
   const fetchCategories = useCallback(async () => {
     const { data } = await supabase.from("categories").select("*").order("sort_order");
@@ -39,14 +44,16 @@ export default function AdminCategoriesPage() {
   const handleSave = async () => {
     if (!name.trim()) return;
     if (editing) {
-      await supabase.from("categories").update({ name, sort_order: editing.sort_order, is_active: editing.is_active }).eq("id", editing.id);
+      await supabase.from("categories").update({ name, sort_order: editing.sort_order, is_active: editing.is_active, notice_hours: noticeHours, bulk_threshold: bulkThreshold }).eq("id", editing.id);
     } else {
       const maxSort = categories.reduce((max, c) => Math.max(max, c.sort_order), 0);
-      await supabase.from("categories").insert({ name, sort_order: maxSort + 1, is_active: true });
+      await supabase.from("categories").insert({ name, sort_order: maxSort + 1, is_active: true, notice_hours: noticeHours, bulk_threshold: bulkThreshold });
     }
     setEditing(null);
     setCreating(false);
     setName("");
+    setNoticeHours(null);
+    setBulkThreshold(null);
     fetchCategories();
   };
 
@@ -94,7 +101,7 @@ export default function AdminCategoriesPage() {
               <Button size="sm" variant="ghost" onClick={() => toggleActive(cat)}>
                 {cat.is_active ? "Hide" : "Show"}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => { setEditing(cat); setName(cat.name); }}>
+              <Button size="sm" variant="outline" onClick={() => { setEditing(cat); setName(cat.name); setNoticeHours(cat.notice_hours); setBulkThreshold(cat.bulk_threshold); }}>
                 <Pencil size={14} />
               </Button>
               <Button size="sm" variant="ghost" onClick={() => handleDelete(cat.id)}>
@@ -106,11 +113,41 @@ export default function AdminCategoriesPage() {
       </div>
 
       {(editing || creating) && (
-        <Modal open onClose={() => { setEditing(null); setCreating(false); }} title={editing ? "Edit Category" : "Add Category"} size="sm">
+        <Modal open onClose={() => { setEditing(null); setCreating(false); setNoticeHours(null); setBulkThreshold(null); }} title={editing ? "Edit Category" : "Add Category"} size="sm">
           <div className="flex flex-col gap-4">
             <Input label="Category Name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+
+            {/* Empty means "inherit the site default". That is deliberately
+                different from 0, which means "no notice needed", so these
+                cannot use the usual `parseInt(...) || 0` pattern. */}
+            <Input
+              label="Notice hours for this category (leave empty to inherit)"
+              type="number"
+              min={0}
+              value={noticeHours ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                const n = Number.parseInt(raw, 10);
+                setNoticeHours(raw === "" || Number.isNaN(n) ? null : Math.max(0, n));
+              }}
+            />
+            <Input
+              label="Bulk threshold for this category (leave empty to inherit)"
+              type="number"
+              min={1}
+              value={bulkThreshold ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                const n = Number.parseInt(raw, 10);
+                setBulkThreshold(raw === "" || Number.isNaN(n) ? null : Math.max(1, n));
+              }}
+            />
+            <p className="-mt-2 text-xs text-ink-faint">
+              These override the site defaults for every item in this category. An item
+              can override them again on its own.
+            </p>
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => { setEditing(null); setCreating(false); }}>Cancel</Button>
+              <Button variant="ghost" onClick={() => { setEditing(null); setCreating(false); setNoticeHours(null); setBulkThreshold(null); }}>Cancel</Button>
               <Button variant="primary" onClick={handleSave}>Save</Button>
             </div>
           </div>

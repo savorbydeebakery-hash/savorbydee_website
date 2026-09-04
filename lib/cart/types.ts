@@ -2,6 +2,19 @@
  * Cart type definitions for SAVOR Bakery.
  */
 
+export interface CategoryOverrides {
+  notice_hours?: number | null;
+  bulk_threshold?: number | null;
+}
+
+/** Flattens the object-or-array embed into the one row it always is. */
+export function categoryOverrides(
+  value: CategoryOverrides | CategoryOverrides[] | null | undefined
+): CategoryOverrides | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
 export interface CartItemSelection {
   size?: string;
   variant?: string;
@@ -20,6 +33,15 @@ export interface CartItem {
   lineTotalCents: number;
   image_url?: string;
   requiresCustomNotice?: boolean;
+  /**
+   * Which menu this line came from. Daily bakes and preorder items carry
+   * different notice windows and cannot share an order, so the cart has to
+   * know without re-reading the catalogue.
+   */
+  dailyMenu?: boolean;
+  /** Item override, else category override. NULL/undefined means inherit. */
+  noticeHours?: number | null;
+  bulkThreshold?: number | null;
 }
 
 export interface Cart {
@@ -54,6 +76,18 @@ export interface MenuItemForCart {
   min_order_qty: number;
   /** Units available. null = not tracked (no counter shown), 0 = out of stock. */
   stock_count?: number | null;
+  /** Per-item overrides. Null means fall through to the category, then the site. */
+  notice_hours?: number | null;
+  bulk_threshold?: number | null;
+  /**
+   * Joined from the item's category, for the middle step of that fallthrough.
+   *
+   * Typed as object OR array: PostgREST returns a single object for a
+   * many-to-one embed, but the generated types infer an array. Rather than
+   * cast the difference away, both shapes are accepted and normalised by
+   * categoryOverrides() below.
+   */
+  categories?: CategoryOverrides | CategoryOverrides[] | null;
   is_sold_out: boolean;
   requires_custom_notice: boolean;
   image_url?: string;

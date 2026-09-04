@@ -10,6 +10,9 @@ import {
   DEFAULT_NOTICE_RULES,
   validateSlotAgainstHours,
   validateDeliveryWindow,
+  canAddToCart,
+  cartMenuKind,
+  cartIsMixed,
 } from "./validation";
 import type { CartItem } from "./types";
 import { istInputToInstant, istDayName, instantToIstInput } from "@/lib/time/ist";
@@ -347,5 +350,96 @@ describe("validateDeliveryWindow", () => {
     expect(validateDeliveryWindow(ist("2026-09-02T06:00"), null, null).valid).toBe(true);
     expect(validateDeliveryWindow(ist("2026-09-02T06:00"), "nope", "later").valid).toBe(true);
     expect(validateDeliveryWindow(ist("2026-09-02T06:00"), "20:00", "10:00").valid).toBe(true);
+  });
+});
+
+// --- notice resolution: item -> category -> menu default ---
+
+describe("getRequiredNoticeHours across the two menus", () => {
+  const daily = (o: Partial<CartItem> = {}) => makeItem({ dailyMenu: true, ...o });
+  const preorder = (o: Partial<CartItem> = {}) => makeItem({ dailyMenu: false, ...o });
+
+  it("uses the daily default for a daily line", () => {
+    expect(getRequiredNoticeHours([daily()], DEFAULT_NOTICE_RULES)).toBe(2);
+  });
+
+  it("uses the preorder default for a preorder line", () => {
+    expect(getRequiredNoticeHours([preorder()], DEFAULT_NOTICE_RULES)).toBe(24);
+  });
+
+  it("treats a line saved before dailyMenu existed as daily", () => {
+    // An older basket in localStorage has no dailyMenu. Reading that as
+    // preorder would silently push a 2-hour order out to 24.
+    expect(getRequiredNoticeHours([makeItem()], DEFAULT_NOTICE_RULES)).toBe(2);
+  });
+
+  it("lets a per-line override beat the menu default, in both directions", () => {
+    expect(getRequiredNoticeHours([daily({ noticeHours: 48 })], DEFAULT_NOTICE_RULES)).toBe(48);
+    expect(getRequiredNoticeHours([preorder({ noticeHours: 3 })], DEFAULT_NOTICE_RULES)).toBe(3);
+  });
+
+  it("treats an override of 0 as 'no notice', not as 'inherit'", () => {
+    // ?? not ||, or a deliberate zero would fall through to the default.
+    expect(getRequiredNoticeHours([preorder({ noticeHours: 0 })], DEFAULT_NOTICE_RULES)).toBe(0);
+  });
+
+  it("takes the largest window in the basket", () => {
+    const basket = [daily(), preorder({ id: "b" })];
+    expect(getRequiredNoticeHours(basket, DEFAULT_NOTICE_RULES)).toBe(24);
+  });
+
+  it("custom cake notice still wins over everything", () => {
+    const basket = [preorder({ requiresCustomNotice: true })];
+    expect(getRequiredNoticeHours(basket, DEFAULT_NOTICE_RULES)).toBe(120);
+  });
+
+  it("respects a per-line bulk threshold instead of the site one", () => {
+    // Site threshold is 12; this line says 3, so 4 is already bulk.
+    expect(
+      getRequiredNoticeHours([daily({ quantity: 4, bulkThreshold: 3 })], DEFAULT_NOTICE_RULES)
+    ).toBe(24);
+    expect(
+      getRequiredNoticeHours([daily({ quantity: 3, bulkThreshold: 3 })], DEFAULT_NOTICE_RULES)
+    ).toBe(2);
+  });
+});
+
+// --- no mixing ---
+
+describe("canAddToCart", () => {
+  const daily = (o: Partial<CartItem> = {}) => makeItem({ dailyMenu: true, ...o });
+  const preorder = (o: Partial<CartItem> = {}) => makeItem({ dailyMenu: false, ...o });
+
+  it("allows anything into an empty basket", () => {
+    expect(canAddToCart([], { dailyMenu: false }).allowed).toBe(true);
+    expect(canAddToCart([], { dailyMenu: true }).allowed).toBe(true);
+  });
+
+  it("allows another item from the same menu", () => {
+    expect(canAddToCart([daily()], { dailyMenu: true }).allowed).toBe(true);
+    expect(canAddToCart([preorder()], { dailyMenu: false }).allowed).toBe(true);
+  });
+
+  it("refuses the other menu, and names both", () => {
+    const r = canAddToCart([daily()], { dailyMenu: false });
+    expect(r.allowed).toBe(false);
+    expect(r.error).toMatch(/Today's Menu/);
+    expect(r.error).toMatch(/Preorder Menu/);
+  });
+
+  it("refuses in the other direction too", () => {
+    expect(canAddToCart([preorder()], { dailyMenu: true }).allowed).toBe(false);
+  });
+
+  it("reports the kind of a basket, and null when empty", () => {
+    expect(cartMenuKind([])).toBeNull();
+    expect(cartMenuKind([daily()])).toBe("daily");
+    expect(cartMenuKind([preorder()])).toBe("preorder");
+  });
+
+  it("detects a basket saved before the rule existed that holds both", () => {
+    expect(cartIsMixed([daily(), preorder({ id: "b" })])).toBe(true);
+    expect(cartIsMixed([daily(), daily({ id: "b" })])).toBe(false);
+    expect(cartIsMixed([daily()])).toBe(false);
   });
 });

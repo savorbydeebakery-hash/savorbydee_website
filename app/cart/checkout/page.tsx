@@ -120,7 +120,7 @@ export default function CheckoutPage() {
         const { data } = await supabase
           .from("site_settings")
           .select(
-            "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled, whatsapp_number, delivery_from, delivery_to, free_delivery_threshold_cents"
+            "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled, whatsapp_number, delivery_from, delivery_to, free_delivery_threshold_cents"
           )
           .eq("id", 1)
           .single();
@@ -129,6 +129,8 @@ export default function CheckoutPage() {
 
         setNoticeRules({
           globalNoticeHours: data.global_notice_hours ?? DEFAULT_NOTICE_RULES.globalNoticeHours,
+          preorderNoticeHours:
+            data.preorder_notice_hours ?? DEFAULT_NOTICE_RULES.preorderNoticeHours,
           bulkThreshold: data.bulk_threshold ?? DEFAULT_NOTICE_RULES.bulkThreshold,
           bulkNoticeHours: data.bulk_notice_hours ?? DEFAULT_NOTICE_RULES.bulkNoticeHours,
           customCakeNoticeDays:

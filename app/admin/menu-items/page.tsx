@@ -29,6 +29,9 @@ interface MenuItem {
   min_order_qty: number;
   /** Units available. null = not tracked (no counter shown), 0 = out of stock. */
   stock_count: number | null;
+  /** Null means inherit from the category, then the site. Not the same as 0. */
+  notice_hours: number | null;
+  bulk_threshold: number | null;
   dietary_tags: string[];
   image_url: string | null;
   is_sold_out: boolean;
@@ -220,6 +223,8 @@ function MenuItemForm({
       size_options: [],
       min_order_qty: 1,
       stock_count: null,
+      notice_hours: null,
+      bulk_threshold: null,
       dietary_tags: [],
       image_url: null,
       is_sold_out: false,
@@ -301,6 +306,38 @@ function MenuItemForm({
           <Input label="Min Order Qty" type="number" value={form.min_order_qty ?? 1} onChange={(e) => setForm({ ...form, min_order_qty: parseInt(e.target.value) || 1 })} />
           <Input label="Sort Order" type="number" value={form.sort_order ?? 0} onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} />
         </div>
+
+        {/* Same reasoning as the stock box below: empty means "inherit", 0 means
+            "no notice needed", and `parseInt(...) || 0` would conflate them. */}
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="Notice hours (empty = inherit)"
+            type="number"
+            min={0}
+            value={form.notice_hours ?? ""}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              const n = Number.parseInt(raw, 10);
+              setForm({ ...form, notice_hours: raw === "" || Number.isNaN(n) ? null : Math.max(0, n) });
+            }}
+          />
+          <Input
+            label="Bulk threshold (empty = inherit)"
+            type="number"
+            min={1}
+            value={form.bulk_threshold ?? ""}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              const n = Number.parseInt(raw, 10);
+              setForm({ ...form, bulk_threshold: raw === "" || Number.isNaN(n) ? null : Math.max(1, n) });
+            }}
+          />
+        </div>
+        <p className="-mt-2 text-xs text-ink-faint">
+          Leave both empty to use the category&rsquo;s setting, or the site default if
+          the category has none. Daily-menu items fall back to the global notice;
+          preorder items to the preorder notice.
+        </p>
 
         {/* Empty is meaningfully different from 0 here, so this cannot use the
             usual `parseInt(...) || 0` pattern: that would turn a cleared box

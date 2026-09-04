@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     )
       .from("site_settings")
       .select(
-        "global_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, delivery_enabled, delivery_from, delivery_to, free_delivery_threshold_cents, bakery_name, address_line1, address_line2, address_city, address_state"
+        "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, delivery_enabled, delivery_from, delivery_to, free_delivery_threshold_cents, bakery_name, address_line1, address_line2, address_city, address_state"
       )
       .eq("id", 1)
       .single();
@@ -152,6 +152,8 @@ export async function POST(request: NextRequest) {
     const noticeRules = {
       globalNoticeHours:
         noticeSettings?.global_notice_hours ?? DEFAULT_NOTICE_RULES.globalNoticeHours,
+      preorderNoticeHours:
+        noticeSettings?.preorder_notice_hours ?? DEFAULT_NOTICE_RULES.preorderNoticeHours,
       bulkThreshold: noticeSettings?.bulk_threshold ?? DEFAULT_NOTICE_RULES.bulkThreshold,
       bulkNoticeHours:
         noticeSettings?.bulk_notice_hours ?? DEFAULT_NOTICE_RULES.bulkNoticeHours,
@@ -207,48 +209,9 @@ export async function POST(request: NextRequest) {
     }
     const slotMs = slot.getTime();
 
-    const requiredHours = getRequiredNoticeHours(items as CartItem[], noticeRules);
-    // 60s of slack. Someone who picks the earliest valid slot and submits a few
-    // seconds later would otherwise be rejected for being marginally too early,
-    // which is a false failure rather than an attempt to dodge the rule.
-    const earliestMs = Date.now() + requiredHours * 3_600_000 - 60_000;
-
-    if (slotMs < earliestMs) {
-      return NextResponse.json(
-        {
-          error: `This order needs at least ${requiredHours} hours notice. Please choose a later slot.`,
-          requiredNoticeHours: requiredHours,
-        },
-        { status: 400 }
-      );
-    }
-
-    // --- Opening hours (AUTHORITATIVE) ---
-    // weekly_hours and holidays have been editable in the admin panel since it
-    // was built and nothing read either one, so a Sunday marked closed was
-    // still bookable. Enforced here for the same reason the notice window is:
-    // the browser's copy of the rule is advisory.
-    const hoursCheck = validateSlotAgainstHours(
-      slot,
-      noticeSettings?.weekly_hours as Parameters<typeof validateSlotAgainstHours>[1],
-      (noticeSettings?.holidays as string[] | null) ?? []
-    );
-    if (!hoursCheck.valid) {
-      return NextResponse.json({ error: hoursCheck.error }, { status: 400 });
-    }
-
-    // Delivery runs 10:00-20:00, narrower than the shop's own 09:00-21:00.
-    // Only applied to delivery orders — collection at 09:30 is fine.
-    if (fulfillment === "delivery") {
-      const windowCheck = validateDeliveryWindow(
-        slot,
-        noticeSettings?.delivery_from,
-        noticeSettings?.delivery_to
-      );
-      if (!windowCheck.valid) {
-        return NextResponse.json({ error: windowCheck.error }, { status: 400 });
-      }
-    }
+    // Fallback only — replaced by the database-derived value inside the block
+    // below whenever the ordered items are actually found.
+    let requiredHours = getRequiredNoticeHours(items as CartItem[], noticeRules);
 
     // --- Stock (AUTHORITATIVE) ---
     // Same reasoning as the notice window: the modal caps the quantity picker,
@@ -270,8 +233,40 @@ export async function POST(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
         .from("menu_items")
-        .select("id, name, stock_count, is_sold_out, daily_menu")
+        .select("id, name, stock_count, is_sold_out, daily_menu, notice_hours, bulk_threshold, requires_custom_notice, categories(notice_hours, bulk_threshold)")
         .in("id", [...orderedByItem.keys()]);
+
+      // Rebuild the cart from what the database says these items are, then
+      // take the notice window from that. Same shape as a CartItem so the one
+      // resolver covers both sides.
+      const trustedLines = (stockRows ?? []).map((row) => {
+        const cat = Array.isArray(row.categories) ? row.categories[0] : row.categories;
+        return {
+          quantity: orderedByItem.get(row.id) ?? 0,
+          dailyMenu: row.daily_menu,
+          noticeHours: row.notice_hours ?? cat?.notice_hours ?? null,
+          bulkThreshold: row.bulk_threshold ?? cat?.bulk_threshold ?? null,
+          requiresCustomNotice: row.requires_custom_notice,
+        } as unknown as CartItem;
+      });
+
+      if (trustedLines.length > 0) {
+        requiredHours = getRequiredNoticeHours(trustedLines, noticeRules);
+
+        // One order, one collection slot. A basket spanning both menus cannot
+        // honour either window.
+        const kinds = new Set(trustedLines.map((l) => (l.dailyMenu === false ? "preorder" : "daily")));
+        if (kinds.size > 1) {
+          return NextResponse.json(
+            {
+              error:
+                "This order mixes today's menu with preorder items, which are ready on " +
+                "different schedules. Please place them as two separate orders.",
+            },
+            { status: 400 }
+          );
+        }
+      }
 
       for (const row of stockRows ?? []) {
         const wanted = orderedByItem.get(row.id) ?? 0;
@@ -314,6 +309,53 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
+      }
+    }
+
+    // requiredHours was computed above from the DATABASE rows, not from the
+    // posted cart. dailyMenu, noticeHours and bulkThreshold all ride on the
+    // cart line, so a caller could otherwise post a preorder cake claiming to
+    // be a 2-hour daily bake. The fallback below only applies when the item
+    // lookup found nothing at all.
+    // 60s of slack. Someone who picks the earliest valid slot and submits a few
+    // seconds later would otherwise be rejected for being marginally too early,
+    // which is a false failure rather than an attempt to dodge the rule.
+    const earliestMs = Date.now() + requiredHours * 3_600_000 - 60_000;
+
+    if (slotMs < earliestMs) {
+      return NextResponse.json(
+        {
+          error: `This order needs at least ${requiredHours} hours notice. Please choose a later slot.`,
+          requiredNoticeHours: requiredHours,
+        },
+        { status: 400 }
+      );
+    }
+
+    // --- Opening hours (AUTHORITATIVE) ---
+    // weekly_hours and holidays have been editable in the admin panel since it
+    // was built and nothing read either one, so a Sunday marked closed was
+    // still bookable. Enforced here for the same reason the notice window is:
+    // the browser's copy of the rule is advisory.
+    const hoursCheck = validateSlotAgainstHours(
+      slot,
+      noticeSettings?.weekly_hours as Parameters<typeof validateSlotAgainstHours>[1],
+      (noticeSettings?.holidays as string[] | null) ?? []
+    );
+    if (!hoursCheck.valid) {
+      return NextResponse.json({ error: hoursCheck.error }, { status: 400 });
+    }
+
+    // Delivery runs 10:00-20:00, narrower than the shop's own 09:00-21:00.
+    // Only applied to delivery orders — collection at 09:30 is fine.
+    if (fulfillment === "delivery") {
+      const windowCheck = validateDeliveryWindow(
+        slot,
+        noticeSettings?.delivery_from,
+        noticeSettings?.delivery_to
+      );
+      if (!windowCheck.valid) {
+        return NextResponse.json({ error: windowCheck.error }, { status: 400 });
       }
     }
 

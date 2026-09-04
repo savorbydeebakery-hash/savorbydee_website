@@ -17,8 +17,11 @@ interface ItemDetailModalProps {
 }
 
 export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
-  const { addToCart } = useCart();
+  const { addToCart, clearCart } = useCart();
   const [quantity, setQuantity] = useState(1);
+  // Set when the basket already holds the other menu. Cleared whenever the
+  // modal opens on a different item, so a refusal never carries over.
+  const [addError, setAddError] = useState<string | null>(null);
   const [selections, setSelections] = useState<CartItemSelection>({});
 
   // Reset selections when item changes
@@ -40,6 +43,10 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
     }
     init.addons = [];
     const id = setTimeout(() => {
+      // Deferred with the other resets rather than called straight in the
+      // effect body — a synchronous setState there cascades a render, which is
+      // what react-hooks/set-state-in-effect flags.
+      setAddError(null);
       setSelections(init);
       setQuantity(
         item.stock_count != null
@@ -91,7 +98,14 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
     // out-of-hours orders too, so this is about telling the customer early
     // rather than about being the thing that stops it.
     if (!canOrder) return;
-    addToCart(item, selections, quantity);
+
+    const result = addToCart(item, selections, quantity);
+    if (!result?.added) {
+      // A basket holds one menu or the other. Keep the modal open and say why,
+      // rather than closing on a click that did nothing.
+      setAddError(result?.error ?? "That item could not be added.");
+      return;
+    }
     onClose();
   };
 
@@ -243,6 +257,25 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                 <p className="text-sm text-ink-soft">
                   ⏰ This item needs up to 5 days&rsquo; notice. We will be in touch if it can be ready sooner.
                 </p>
+              </div>
+            )}
+
+            {addError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-berry/25 bg-pink-soft p-4"
+              >
+                <p className="text-sm font-medium text-ink">{addError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearCart();
+                    setAddError(null);
+                  }}
+                  className="mt-2 text-sm font-semibold text-berry underline underline-offset-2"
+                >
+                  Empty the basket and add this instead
+                </button>
               </div>
             )}
 

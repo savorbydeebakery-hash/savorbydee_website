@@ -10,6 +10,8 @@ import {
   generateCartLineId,
   isSameCartItem,
 } from "./math";
+import { canAddToCart } from "@/lib/cart/validation";
+import { categoryOverrides } from "@/lib/cart/types";
 
 /**
  * Lightweight cart store using useSyncExternalStore + localStorage.
@@ -87,7 +89,22 @@ export function addToCart(
     lineTotalCents,
     image_url: item.image_url,
     requiresCustomNotice: item.requires_custom_notice,
+    dailyMenu: item.daily_menu,
+    // Resolved here rather than at checkout: the category join is available on
+    // the catalogue payload, and a cart line has to survive in localStorage
+    // without another database read.
+    noticeHours: item.notice_hours ?? categoryOverrides(item.categories)?.notice_hours ?? null,
+    bulkThreshold:
+      item.bulk_threshold ?? categoryOverrides(item.categories)?.bulk_threshold ?? null,
   };
+
+  // A basket holds one menu or the other. Daily bakes are ready in about two
+  // hours and preorder items take a day or more; an order has one collection
+  // slot, so a mixed basket cannot honour either.
+  const gate = canAddToCart(state.items, newItem);
+  if (!gate.allowed) {
+    return { added: false as const, error: gate.error };
+  }
 
   // Check if identical item already in cart → merge by incrementing quantity
   const existingIdx = state.items.findIndex((existing) =>
@@ -113,6 +130,7 @@ export function addToCart(
   }
 
   persist();
+  return { added: true as const, error: null };
 }
 
 export function removeFromCart(cartLineId: string) {

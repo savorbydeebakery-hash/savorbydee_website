@@ -13,7 +13,7 @@ import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
 
 const SELECT_FIELDS =
-  "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, requires_custom_notice, daily_menu, is_special, is_bestseller";
+  "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold), requires_custom_notice, daily_menu, is_special, is_bestseller";
 
 /**
  * One page per curated menu, at /menu/daily, /menu/preorder and /menu/specials.
