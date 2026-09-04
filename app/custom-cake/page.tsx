@@ -89,7 +89,7 @@ export default function CustomCakePage() {
         <h1 className="text-h1 text-ink mb-3">Custom Cake Inquiry</h1>
         <p className="text-ink-soft max-w-lg mx-auto">
           Dreaming of something special? Tell us your vision and we&rsquo;ll craft it for you.
-          Custom cakes need at least 5 days notice.
+          Custom cakes need up to 5 days&rsquo; notice &mdash; often less, depending on the design.
         </p>
 
         {/* Sets the expectation BEFORE someone describes a design or attaches a
@@ -159,7 +159,7 @@ export default function CustomCakePage() {
 
           <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
             <p className="text-sm text-ink-soft">
-              ⏰ Custom cakes require <strong>5 days advance notice</strong>. After submitting,
+              ⏰ Custom cakes need <strong>up to 5 days&rsquo; notice</strong>, sometimes less. After submitting,
               our team will review and send you a quote within 24 hours.
             </p>
           </div>

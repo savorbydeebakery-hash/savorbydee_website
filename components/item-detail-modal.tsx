@@ -241,7 +241,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
             {item.requires_custom_notice && (
               <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
                 <p className="text-sm text-ink-soft">
-                  ⏰ This item requires 5 days advance notice.
+                  ⏰ This item needs up to 5 days&rsquo; notice, sometimes less.
                 </p>
               </div>
             )}

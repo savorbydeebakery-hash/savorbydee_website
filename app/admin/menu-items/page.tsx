@@ -346,7 +346,7 @@ function MenuItemForm({
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input type="checkbox" checked={form.requires_custom_notice ?? false} onChange={(e) => setForm({ ...form, requires_custom_notice: e.target.checked })} />
-            Requires Custom Notice (5 days)
+            Requires Custom Notice (up to 5 days)
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input type="checkbox" checked={form.daily_menu ?? false} onChange={(e) => setForm({ ...form, daily_menu: e.target.checked })} />

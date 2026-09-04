@@ -110,7 +110,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   <strong>{notice} hours</strong> notice. Orders of{" "}
                   <strong>{bulkQty} items or more</strong> require{" "}
                   <strong>{bulkNotice} hours</strong>. Custom cakes require{" "}
-                  <strong>{customDays} days</strong>. An order is confirmed only once
+                  <strong>up to {customDays} days</strong>. An order is confirmed only once
                   payment is received and we have acknowledged it.
                 </p>
               </Section>
@@ -187,7 +187,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   You may cancel for a full refund any time <strong>before baking has
                   started</strong> — in practice, up to the notice period for your order
                   ({notice} hours for standard items, {bulkNotice} hours for orders of{" "}
-                  {bulkQty} or more, {customDays} days for custom cakes). After that
+                  {bulkQty} or more, up to {customDays} days for custom cakes). After that
                   point ingredients have been bought and work has begun, and we cannot
                   offer a refund.
                 </p>
@@ -238,7 +238,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   order is delivered locally or collected in person. You choose a pickup
                   or delivery slot at checkout, and your order is ready at that slot,
                   subject to the notice periods: {notice} hours for standard items,{" "}
-                  {bulkNotice} hours for {bulkQty} items or more, and {customDays} days
+                  {bulkNotice} hours for {bulkQty} items or more, and up to {customDays} days
                   for custom cakes.
                 </p>
               </Section>

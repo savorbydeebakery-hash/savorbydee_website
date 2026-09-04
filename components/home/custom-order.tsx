@@ -21,7 +21,7 @@ export function CustomOrder({ noticeDays }: { noticeDays: number }) {
 
         <p className="-mt-1 max-w-2xl text-sm leading-relaxed text-bk-muted md:text-base">
           Tell us the flavours, the design and the occasion, and we will bake it
-          to order. Custom cakes need {noticeDays} days notice.
+          to order. Custom cakes need up to {noticeDays} days&rsquo; notice, often less.
         </p>
 
         <Link

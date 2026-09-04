@@ -248,7 +248,7 @@ export default function AdminSettingsPage() {
             something triggers the bulk notice below; a basket of many different items never does.
           </p>
           <Input label="Bulk Notice (hours)" type="number" value={settings.bulk_notice_hours} onChange={(e) => update("bulk_notice_hours", parseInt(e.target.value) || 24)} />
-          <Input label="Custom Cake Notice (days)" type="number" value={settings.custom_cake_notice_days} onChange={(e) => update("custom_cake_notice_days", parseInt(e.target.value) || 5)} />
+          <Input label="Custom Cake Notice (max days)" type="number" value={settings.custom_cake_notice_days} onChange={(e) => update("custom_cake_notice_days", parseInt(e.target.value) || 5)} />
         </Card>
       )}
 
