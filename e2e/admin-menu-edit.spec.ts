@@ -45,12 +45,21 @@ test("admin price edit reflects on storefront", async ({ page }) => {
     // Assert on the data attribute rather than the rendered price. The price
     // chip is replaced by "Sold Out" whenever an item is unavailable, and with
     // stock counters baselined at 0 that is currently every item — so reading
-    // the visible text made this test a assertion about stock, not about the
-    // edit reaching the storefront.
+    // the visible text made this a assertion about stock, not about the edit
+    // reaching the storefront.
+    //
+    // Checked across both menus because an item now belongs to exactly one of
+    // them: /menu is preorder only, /menu/daily is today's list. This spec
+    // edits whichever item happens to be first in admin, so it cannot know in
+    // advance which page that item appears on.
+    const priced = '[data-item-price="99900"]';
     await page.goto("/menu");
-    await expect(
-      page.locator('[data-item-price="99900"]').first()
-    ).toBeVisible({ timeout: 10_000 });
+    let found = await page.locator(priced).first().isVisible().catch(() => false);
+    if (!found) {
+      await page.goto("/menu/daily");
+      found = await page.locator(priced).first().isVisible().catch(() => false);
+    }
+    expect(found, "edited price did not appear on either menu").toBe(true);
   } finally {
     await page.goto("/admin/menu-items");
     const restoreInput = await openFirstEditor();

@@ -1,10 +1,8 @@
 import { notFound, permanentRedirect } from "next/navigation";
-import Link from "next/link";
 import {
   Truck,
   ShieldCheck,
   PackageCheck,
-  CalendarClock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MenuTypeGrid } from "@/components/menu/menu-type-grid";
