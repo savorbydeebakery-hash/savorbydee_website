@@ -49,7 +49,9 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
   await customerPage.getByRole("button", { name: /review order/i }).click();
 
   await customerPage.getByRole("button", { name: /place order/i }).click();
-  await expect(customerPage.getByText(/SAV-/)).toBeVisible({ timeout: 15_000 });
+  // .first(): the order number shows in the header and again as the payment
+  // panel's reference.
+  await expect(customerPage.getByText(/SAV-/).first()).toBeVisible({ timeout: 15_000 });
 
   // Admin sees the new order appear (realtime or poll fallback)
   await expect(adminPage.getByText(/Alarm Test/).first()).toBeVisible({ timeout: 20_000 });

@@ -46,5 +46,8 @@ test("customer can place a pre-order from menu to confirmation", async ({ page }
   await page.getByRole("button", { name: /place order/i }).click();
 
   // 9. Confirmation page shows order reference
-  await expect(page.getByText(/SAV-/)).toBeVisible({ timeout: 15_000 });
+  // .first(): the order number appears twice on the confirmation page — in
+  // the header and as the payment panel's "Reference:" line, which became
+  // visible once RetryPaymentButton was actually rendered.
+  await expect(page.getByText(/SAV-/).first()).toBeVisible({ timeout: 15_000 });
 });
