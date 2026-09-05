@@ -9,11 +9,12 @@ import { MenuTypeGrid } from "@/components/menu/menu-type-grid";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { MenuFeatureTiles, type FeatureTile } from "@/components/home/menu-feature-tiles";
 import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
+import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
 
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
 
 const SELECT_FIELDS =
-  "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold), requires_custom_notice, daily_menu, is_special, is_bestseller";
+  "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold, weight_multipliers), requires_custom_notice, daily_menu, is_special, is_bestseller";
 
 /**
  * One page per curated menu, at /menu/daily, /menu/preorder and /menu/specials.
@@ -108,7 +109,7 @@ export default async function MenuTypePage({
         </div>
 
         <div className="mt-8 md:mt-10">
-          <MenuTypeGrid items={items ?? []} empty={menu.empty} />
+          <MenuTypeGrid items={applyDerivedWeights(items)} empty={menu.empty} />
         </div>
 
         {/* The "see the full menu instead" link is gone: the full menu is the

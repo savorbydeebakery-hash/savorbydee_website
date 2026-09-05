@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
@@ -77,6 +78,11 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
   // A tracked item is capped by what is on the shelf. An untracked one is
   // made to order, so it is capped only by the client's stated ceiling of
   // 1000 — previously Infinity, which let the picker run away.
+  // "Custom" is not a priced tier — it is a route out. A custom design is
+  // quoted individually, so pretending a flat delta covers it would either
+  // undercharge the bakery or overcharge the customer.
+  const wantsCustomDecoration = selections.decoration === "Custom";
+
   const maxQuantity = tracked
     ? Math.min(MAX_LINE_QUANTITY, Math.max(item.min_order_qty, stock))
     : MAX_LINE_QUANTITY;
@@ -98,6 +104,9 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
     // out-of-hours orders too, so this is about telling the customer early
     // rather than about being the thing that stops it.
     if (!canOrder) return;
+    // Belt and braces with the disabled button: a custom design has no price
+    // yet, so it must not become a cart line.
+    if (wantsCustomDecoration) return;
 
     const result = addToCart(item, selections, quantity);
     if (!result?.added) {
@@ -260,6 +269,25 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
               </div>
             )}
 
+            {wantsCustomDecoration && (
+              <div className="rounded-xl border border-berry/25 bg-pink-soft p-4">
+                <p className="text-sm font-medium text-ink">
+                  Custom designs are quoted individually.
+                </p>
+                <p className="mt-1 text-sm text-ink-soft">
+                  Tell us what you have in mind and we will come back with a price. Custom
+                  cakes need up to 5 days&rsquo; notice, and we will let you know if yours
+                  can be ready sooner.
+                </p>
+                <Link
+                  href="/custom-cake"
+                  className="mt-3 inline-flex h-11 items-center rounded-[var(--bk-r-pill)] bg-bk-btn px-6 text-sm font-medium text-bk-btn-fg transition-opacity hover:opacity-85"
+                >
+                  Start a custom cake enquiry
+                </Link>
+              </div>
+            )}
+
             {addError && (
               <div
                 role="alert"
@@ -313,7 +341,12 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                   <p className="text-xs text-ink-faint">Total</p>
                   <p className="text-lg font-bold text-gold-deep">{formatPrice(lineTotal)}</p>
                 </div>
-                <Button onClick={handleAddToCart} size="md" variant="primary">
+                <Button
+                  onClick={handleAddToCart}
+                  size="md"
+                  variant="primary"
+                  disabled={wantsCustomDecoration}
+                >
                   <ShoppingBag size={16} /> Add to Cart
                 </Button>
               </div>

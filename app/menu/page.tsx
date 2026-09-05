@@ -3,6 +3,7 @@ import { MenuClient } from "@/components/menu-client";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { PropField } from "@/components/props/prop-field";
 import { Macaron, Cherry, Sprinkles } from "@/components/props/pastry-props";
+import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
 
 export const metadata = {
   title: "Preorder Menu – Savor by Dee",
@@ -29,7 +30,7 @@ export default async function MenuPage({
     supabase
       .from("menu_items")
       .select(
-        "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold), requires_custom_notice, daily_menu, is_special, is_chefs_choice, is_bestseller"
+        "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold, weight_multipliers), requires_custom_notice, daily_menu, is_special, is_chefs_choice, is_bestseller"
       )
       .eq("is_active", true)
       // The preorder menu is everything NOT on today's list. An item belongs
@@ -87,7 +88,7 @@ export default async function MenuPage({
         <Cherry size={40} x="-1%" y="62%" depth={0.35} className="hidden xl:block" />
         <MenuClient
           categories={preorderCategories}
-          menuItems={menuItems ?? []}
+          menuItems={applyDerivedWeights(menuItems)}
           tag={tag}
         />
       </PropField>

@@ -8,6 +8,7 @@ import { ReviewsCarousel } from "@/components/home/reviews-carousel";
 import { BestSellers } from "@/components/home/best-sellers";
 import { BehindTheScenes } from "@/components/home/behind-the-scenes";
 import { AboutUs } from "@/components/home/about-us";
+import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
 
 // NOTE: this was briefly `export const revalidate = 60` to avoid Supabase
 // round-trips to Tokyo per request. That engages OpenNext's ISR path, which
@@ -49,7 +50,7 @@ export default async function HomePage() {
   const supabase = await createClient();
 
   const SELECT_FIELDS =
-    "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold), requires_custom_notice, daily_menu, is_special, is_bestseller";
+    "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold, weight_multipliers), requires_custom_notice, daily_menu, is_special, is_bestseller";
 
   const [
     { data: dailyItems },
@@ -133,7 +134,7 @@ export default async function HomePage() {
              the cards sit straight under it. Selecting a tab opens that
              menu's own page. This replaced the Daily | Specials split — two
              menu-pickers on one page was one too many. */}
-      <MenuTypeShowcase items={dailyItems ?? []} totalCount={dailyTotal ?? undefined} />
+      <MenuTypeShowcase items={applyDerivedWeights(dailyItems)} totalCount={dailyTotal ?? undefined} />
 
       {/* 4. Best Sellers — a scrolling rail, hidden when nothing is flagged.
              Sits directly under the menu tabs on purpose: a customer who has
