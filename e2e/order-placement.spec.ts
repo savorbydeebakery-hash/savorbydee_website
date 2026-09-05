@@ -40,7 +40,6 @@ test("customer can place a pre-order from menu to confirmation", async ({ page }
   // 7. Step 3 (Details) — fill guest info
   await page.getByLabel(/name/i).fill("E2E Test Customer");
   await page.getByLabel(/phone/i).fill("9836537447");
-  await page.getByLabel(/email/i).fill("e2e@example.com");
   await page.getByRole("button", { name: /review order/i }).click();
 
   // 8. Step 4 (Confirm) — place order

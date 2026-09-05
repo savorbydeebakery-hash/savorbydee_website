@@ -20,6 +20,11 @@
 -- fixed size; offering "2 kg" of a 250 g bento would be nonsense. That
 -- condition lives in the code, keyed on daily_menu.
 
+-- NOTE: the ½ below does NOT survive the Supabase management API's SQL
+-- endpoint — it arrives as U+FFFD. This file is correct; the label was
+-- re-applied over the REST API afterwards, which handles the encoding. Check
+-- it before trusting a replay of this migration.
+
 alter table public.categories
   add column if not exists weight_multipliers jsonb;
 

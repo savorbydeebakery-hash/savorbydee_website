@@ -46,7 +46,6 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
 
   await customerPage.getByLabel(/name/i).fill("Alarm Test");
   await customerPage.getByLabel(/phone/i).fill("9836537447");
-  await customerPage.getByLabel(/email/i).fill("alarm@example.com");
   await customerPage.getByRole("button", { name: /review order/i }).click();
 
   await customerPage.getByRole("button", { name: /place order/i }).click();

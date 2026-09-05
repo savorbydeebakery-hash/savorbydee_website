@@ -27,7 +27,6 @@ test("pay online opens Razorpay checkout modal", async ({ page }) => {
 
   await page.getByLabel(/name/i).fill("Razorpay Test");
   await page.getByLabel(/phone/i).fill("9836537447");
-  await page.getByLabel(/email/i).fill("rzp@example.com");
   await page.getByRole("button", { name: /review order/i }).click();
 
   // If Razorpay is active, "Pay Online" button appears on confirm step
