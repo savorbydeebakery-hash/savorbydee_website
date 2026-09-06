@@ -8,6 +8,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Save, Check, Upload, X } from "lucide-react";
 import { uploadFile } from "@/lib/storage/upload-helper";
+import { GalleryPhotoPicker } from "@/components/admin/gallery-photo-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,9 @@ interface SiteSettings {
   kyc_pending_mode: boolean;
   upi_id: string | null;
   hero_image_url: string | null;
+  /** The two homepage menu cards. NULL lets the homepage pick a gallery photo. */
+  daily_menu_image_url: string | null;
+  preorder_menu_image_url: string | null;
 }
 
 const TABS = [
@@ -218,6 +222,29 @@ export default function AdminSettingsPage() {
                 Hero image staged. Click <span className="font-semibold">Save</span> at the bottom to apply it.
               </p>
             )}
+          </div>
+
+          {/* The homepage leads with two big cards, one per menu. Which photo
+              fronts a menu is a claim about that menu — a tier cake on the
+              preorder card suggests the preorder menu is tier cakes when it is
+              mostly tea cakes and cheesecakes — so it is the client's call,
+              not a hardcoded one. */}
+          <div className="border-t border-ink/8 pt-4">
+            <p className="mb-3 text-sm font-semibold text-ink">Homepage menu cards</p>
+            <div className="flex flex-col gap-5">
+              <GalleryPhotoPicker
+                label="Today's Menu card"
+                value={settings.daily_menu_image_url}
+                onChange={(url) => update("daily_menu_image_url", url)}
+                hint="Pick something that is actually on today's list — a bento cake, the counter."
+              />
+              <GalleryPhotoPicker
+                label="Preorder Menu card"
+                value={settings.preorder_menu_image_url}
+                onChange={(url) => update("preorder_menu_image_url", url)}
+                hint="Pick something made to order — a tea cake, a cheesecake, cupcakes."
+              />
+            </div>
           </div>
         </Card>
       )}

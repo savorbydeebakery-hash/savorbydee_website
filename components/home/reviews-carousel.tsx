@@ -86,8 +86,10 @@ export function ReviewsCarousel({
 
   if (count === 0) return null;
 
+  // mt-4 on a phone, not mt-8: this sits directly under the hero and the
+  // client asked for the two to be closer. Desktop keeps its full rhythm.
   return (
-    <section className="mx-auto mt-8 w-full max-w-[var(--bk-page-width)] px-4 md:mt-14 md:px-6">
+    <section className="mx-auto mt-4 w-full max-w-[var(--bk-page-width)] px-4 md:mt-14 md:px-6">
       <div className="mb-3 flex items-baseline gap-2.5 md:mb-5">
         <h2 className="bk-section-title text-bk-fg">{title}</h2>
         {rating != null && (

@@ -544,20 +544,38 @@ export default function CheckoutPage() {
                 <MapPin size={20} className="text-cocoa" /> Delivery Address
               </h2>
 
-              {/* Disclosed HERE, at the moment delivery is chosen, and again on
-                  the confirm step beside the total. The delivery charge depends
-                  on distance and is set by staff after the order comes in, so
-                  it cannot be shown at checkout — which makes telling the
-                  customer up front the whole basis on which that is fair.
-                  Someone who pays online and is then quoted a fee they were
-                  never warned about has a legitimate complaint, and a disputed
-                  charge against a new payment account is expensive. */}
-              <p className="mb-4 rounded-xl bg-pink-soft px-4 py-3 text-sm leading-relaxed text-ink">
-                <strong>Delivery is charged separately.</strong> The amount you
-                pay now covers the bakes only. We work out the delivery charge
-                from your address and confirm it with you before we set off —
-                it is paid in cash when your order arrives.
-              </p>
+              {/* Two panels, because the two situations are opposite and the
+                  page used to show only the warning. An order over the free
+                  threshold got a green "qualifies for free delivery" line at
+                  the fulfilment step and then this, flatly contradicting it,
+                  the moment Delivery was picked.
+
+                  Below the threshold the warning stays, and has to: the charge
+                  depends on distance and is set by staff after the order comes
+                  in, so it cannot be shown at checkout. Someone who pays online
+                  and is then quoted a fee they were never warned about has a
+                  legitimate complaint, and a disputed charge against a new
+                  payment account is expensive. */}
+              {freeDeliveryOver != null && totalCents >= freeDeliveryOver ? (
+                <p className="mb-4 rounded-xl bg-mint-soft px-4 py-3 text-sm leading-relaxed text-ink">
+                  <strong>Delivery is on us.</strong> This order is over{" "}
+                  {formatPrice(freeDeliveryOver)}, so there is nothing more to pay
+                  when it arrives — the amount you see below is the whole of it.
+                </p>
+              ) : (
+                <p className="mb-4 rounded-xl bg-pink-soft px-4 py-3 text-sm leading-relaxed text-ink">
+                  <strong>Delivery is charged separately.</strong> The amount you
+                  pay now covers the bakes only. We work out the delivery charge
+                  from your address and confirm it with you before we set off —
+                  it is paid in cash when your order arrives.
+                  {freeDeliveryOver != null && (
+                    <>
+                      {" "}
+                      Orders over {formatPrice(freeDeliveryOver)} are delivered free.
+                    </>
+                  )}
+                </p>
+              )}
               <div className="flex flex-col gap-4">
                 <Textarea
                   label="Full Address"

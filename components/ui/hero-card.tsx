@@ -90,13 +90,18 @@ export function HeroCard({
 
   return (
     <section ref={scope} className={className}>
-      <div className="relative bg-bk-pink px-3 pb-24 pt-3 sm:px-5 sm:pb-32 sm:pt-5">
+      {/* pb was 24 on a phone (96px) purely so the pink field had room to
+          dissolve below the card. With the 32px margin the next section brings
+          its own, that put 128px of empty pink between the hero and the first
+          review — most of a phone screen. 48px here, and the fade below is
+          shortened to match, closes it without losing the soft edge. */}
+      <div className="relative bg-bk-pink px-3 pb-12 pt-3 sm:px-5 sm:pb-32 sm:pt-5">
         <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
           <HeroBackdrop className="absolute inset-0 opacity-90" />
           {/* The field used to stop dead at the card's edge, leaving a hard
               pink band. It now runs past the card and dissolves into the page
               background, so the hero has no seam under it. */}
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-bk-bg" />
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-bk-bg sm:h-40" />
         </div>
 
         <div className="relative mx-auto max-w-[1400px] overflow-hidden rounded-[28px] bg-white shadow-[0_40px_120px_-40px_rgb(46_33_27_/_0.45)] sm:rounded-[40px]">
