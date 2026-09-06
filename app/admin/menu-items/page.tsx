@@ -10,6 +10,17 @@ import { Modal } from "@/components/ui/modal";
 import { uploadFile, deleteFile } from "@/lib/storage/upload-helper";
 import { formatPrice } from "@/lib/cart/math";
 import type { PriceOption, Addon } from "@/lib/cart/types";
+import { OptionRowsEditor } from "@/components/admin/option-rows-editor";
+import { paiseToRupeeInput, rupeeInputToPaise } from "@/lib/admin/money";
+import {
+  toOptionDrafts,
+  fromOptionDrafts,
+  toAddonDrafts,
+  fromAddonDrafts,
+  type OptionRowDraft,
+} from "@/lib/admin/option-rows";
+import { resolveNotice, resolveBulk } from "@/lib/admin/effective-rules";
+import { describeWriteError } from "@/lib/admin/write-error";
 import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -48,25 +59,59 @@ interface MenuItem {
 interface Category {
   id: string;
   name: string;
+  /** Needed to tell the client what a blank item field will actually inherit. */
+  notice_hours: number | null;
+  bulk_threshold: number | null;
 }
+
+/** The site defaults, the last rung of the inherit ladder. */
+interface RuleDefaults {
+  global_notice_hours: number;
+  preorder_notice_hours: number;
+  bulk_threshold: number;
+  custom_cake_notice_days: number;
+}
+
+const FALLBACK_DEFAULTS: RuleDefaults = {
+  global_notice_hours: 2,
+  preorder_notice_hours: 24,
+  bulk_threshold: 12,
+  custom_cake_notice_days: 5,
+};
 
 export default function AdminMenuItemsPage() {
   const supabase = createClient();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [defaults, setDefaults] = useState<RuleDefaults>(FALLBACK_DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const [{ data: menuData }, { data: catData }] = await Promise.all([
+    const [{ data: menuData }, { data: catData }, { data: settingsData }] = await Promise.all([
       supabase.from("menu_items").select("*").order("sort_order"),
-      supabase.from("categories").select("id, name").eq("is_active", true).order("sort_order"),
+      supabase
+        .from("categories")
+        .select("id, name, notice_hours, bulk_threshold")
+        .eq("is_active", true)
+        .order("sort_order"),
+      supabase
+        .from("site_settings")
+        .select("global_notice_hours, preorder_notice_hours, bulk_threshold, custom_cake_notice_days")
+        .eq("id", 1)
+        .maybeSingle(),
     ]);
     setItems((menuData as MenuItem[]) ?? []);
-    setCategories(catData ?? []);
+    setCategories((catData as Category[]) ?? []);
+    // Falling back rather than blocking: the defaults are only used to explain
+    // what a blank box inherits, and a settings hiccup should not stop the
+    // client editing a price.
+    if (settingsData) setDefaults({ ...FALLBACK_DEFAULTS, ...(settingsData as Partial<RuleDefaults>) });
     setLoading(false);
   }, [supabase]);
 
@@ -75,27 +120,45 @@ export default function AdminMenuItemsPage() {
     return () => clearTimeout(id);
   }, [fetchData]);
 
+  /**
+   * supabase-js resolves on a database error — it returns `{ error }` and does
+   * not throw — so the try/catch that used to wrap this was dead code. Every
+   * refused write closed the modal, refetched, and showed the client their old
+   * value back with nothing to explain it. The failures most likely here are
+   * exactly the ones that look like nothing happened: a check constraint on
+   * notice hours, an expired session hitting RLS, a deleted category.
+   */
   const handleSave = async (item: Partial<MenuItem>) => {
     setSaving(true);
-    try {
-      if (item.id) {
-        await supabase.from("menu_items").update(item).eq("id", item.id);
-      } else {
-        await supabase.from("menu_items").insert(item);
-      }
-      setEditing(null);
-      setCreating(false);
-      fetchData();
-    } catch (err) {
-      console.error("Save error:", err);
-    } finally {
-      setSaving(false);
+    setSaveError(null);
+
+    const { error } = item.id
+      ? await supabase.from("menu_items").update(item).eq("id", item.id)
+      : await supabase.from("menu_items").insert(item);
+
+    setSaving(false);
+
+    if (error) {
+      // The modal stays open so the edit is not lost on the way out.
+      setSaveError(describeWriteError(error, "this item"));
+      return;
     }
+
+    setEditing(null);
+    setCreating(false);
+    fetchData();
   };
 
   const handleDelete = async (id: string, imageUrl: string | null) => {
     if (!confirm("Delete this menu item?")) return;
-    await supabase.from("menu_items").delete().eq("id", id);
+    setListError(null);
+    const { error } = await supabase.from("menu_items").delete().eq("id", id);
+    if (error) {
+      setListError(describeWriteError(error, "this item"));
+      return;
+    }
+    // Only after the row is gone: deleting the photo first would strand the
+    // item with a broken image if the delete were refused.
     if (imageUrl) {
       const path = imageUrl.split("/menu-items/")[1];
       if (path) await deleteFile("menu-items", path);
@@ -104,7 +167,15 @@ export default function AdminMenuItemsPage() {
   };
 
   const toggleSoldOut = async (item: MenuItem) => {
-    await supabase.from("menu_items").update({ is_sold_out: !item.is_sold_out }).eq("id", item.id);
+    setListError(null);
+    const { error } = await supabase
+      .from("menu_items")
+      .update({ is_sold_out: !item.is_sold_out })
+      .eq("id", item.id);
+    if (error) {
+      setListError(describeWriteError(error, "that change"));
+      return;
+    }
     fetchData();
   };
 
@@ -125,6 +196,10 @@ export default function AdminMenuItemsPage() {
           <Plus size={18} /> Add Item
         </Button>
       </div>
+
+      {listError && (
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{listError}</p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
@@ -182,9 +257,11 @@ export default function AdminMenuItemsPage() {
         <MenuItemForm
           item={editing}
           categories={categories}
+          defaults={defaults}
           onSave={handleSave}
-          onClose={() => { setEditing(null); setCreating(false); }}
+          onClose={() => { setEditing(null); setCreating(false); setSaveError(null); }}
           saving={saving}
+          saveError={saveError}
           uploading={uploading}
           onUpload={handleUpload}
         />
@@ -197,16 +274,20 @@ function MenuItemForm({
   item,
   categories,
   onSave,
+  defaults,
   onClose,
   saving,
+  saveError,
   uploading,
   onUpload,
 }: {
   item: MenuItem | null;
   categories: Category[];
+  defaults: RuleDefaults;
   onSave: (item: Partial<MenuItem>) => void;
   onClose: () => void;
   saving: boolean;
+  saveError: string | null;
   uploading: boolean;
   onUpload: (file: File) => Promise<string | null>;
 }) {
@@ -239,6 +320,47 @@ function MenuItemForm({
     }
   );
 
+  // The option lists live as rows of raw text while the modal is open and are
+  // converted back once, on save. Seeded from the item and never re-derived
+  // from `form`, so nothing the client types can be overwritten mid-edit.
+  const [priceRows, setPriceRows] = useState<OptionRowDraft[]>(() =>
+    toOptionDrafts(item?.price_options, "price", paiseToRupeeInput)
+  );
+  const [sizeRows, setSizeRows] = useState<OptionRowDraft[]>(() =>
+    toOptionDrafts(item?.size_options, "price_delta", paiseToRupeeInput)
+  );
+  const [variantRows, setVariantRows] = useState<OptionRowDraft[]>(() =>
+    toOptionDrafts(item?.variants, "price_delta", paiseToRupeeInput)
+  );
+  const [decorationRows, setDecorationRows] = useState<OptionRowDraft[]>(() =>
+    toOptionDrafts(item?.decoration_tiers, "price_delta", paiseToRupeeInput)
+  );
+  const [addonRows, setAddonRows] = useState<OptionRowDraft[]>(() =>
+    toAddonDrafts(item?.addons, paiseToRupeeInput)
+  );
+
+  // Base price is edited in rupees. It was labelled "(paise)" and holding
+  // 90000 for a ₹900 cake, so typing the number you meant priced it at ₹9.
+  const [priceText, setPriceText] = useState(() => paiseToRupeeInput(item?.base_price_cents ?? 0));
+
+  const category = categories.find((c) => c.id === form.category_id) ?? null;
+  const notice = resolveNotice({
+    itemHours: form.notice_hours,
+    categoryHours: category?.notice_hours,
+    categoryName: category?.name,
+    dailyMenu: form.daily_menu ?? false,
+    globalNoticeHours: defaults.global_notice_hours,
+    preorderNoticeHours: defaults.preorder_notice_hours,
+    requiresCustomNotice: form.requires_custom_notice,
+    customCakeNoticeDays: defaults.custom_cake_notice_days,
+  });
+  const bulk = resolveBulk({
+    itemThreshold: form.bulk_threshold,
+    categoryThreshold: category?.bulk_threshold,
+    categoryName: category?.name,
+    siteThreshold: defaults.bulk_threshold,
+  });
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -249,7 +371,15 @@ function MenuItemForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    onSave({
+      ...form,
+      base_price_cents: rupeeInputToPaise(priceText) ?? 0,
+      price_options: fromOptionDrafts(priceRows, "price"),
+      size_options: fromOptionDrafts(sizeRows, "price_delta"),
+      variants: fromOptionDrafts(variantRows, "price_delta"),
+      decoration_tiers: fromOptionDrafts(decorationRows, "price_delta"),
+      addons: fromAddonDrafts(addonRows),
+    });
   };
 
   return (
@@ -294,7 +424,14 @@ function MenuItemForm({
         <Textarea label="Description" value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
 
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Base Price (paise)" type="number" value={form.base_price_cents ?? 0} onChange={(e) => setForm({ ...form, base_price_cents: parseInt(e.target.value) || 0 })} />
+          <Input
+            label="Base Price (₹)"
+            type="number"
+            step="0.01"
+            min={0}
+            value={priceText}
+            onChange={(e) => setPriceText(e.target.value)}
+          />
           <Select label="Price Model" value={form.price_model ?? "flat"} onChange={(e) => setForm({ ...form, price_model: e.target.value })}>
             <option value="flat">Flat</option>
             <option value="weight_tiers">Weight Tiers</option>
@@ -333,11 +470,20 @@ function MenuItemForm({
             }}
           />
         </div>
-        <p className="-mt-2 text-xs text-ink-faint">
-          Leave both empty to use the category&rsquo;s setting, or the site default if
-          the category has none. Daily-menu items fall back to the global notice;
-          preorder items to the preorder notice.
-        </p>
+        {/* Blank-means-inherit is the right storage rule but a poor thing to
+            look at: an empty box gives no clue whether this cake needs two
+            hours or five days. These print the resolved answer, using the same
+            item -> category -> menu chain the order API enforces. */}
+        <div className="-mt-2 rounded-xl bg-shell/50 px-4 py-3 text-xs text-ink-soft">
+          <p>
+            <strong className="font-semibold text-ink">Notice for this item:</strong>{" "}
+            {notice.explanation}
+          </p>
+          <p className="mt-1">
+            <strong className="font-semibold text-ink">Counts as bulk at:</strong>{" "}
+            {bulk.explanation}
+          </p>
+        </div>
 
         {/* Empty is meaningfully different from 0 here, so this cannot use the
             usual `parseInt(...) || 0` pattern: that would turn a cleared box
@@ -403,37 +549,56 @@ function MenuItemForm({
           </label>
         </div>
 
-        {/* JSON fields for advanced options */}
-        <Textarea
-          label="Price Options (JSON: weight tiers)"
-          value={JSON.stringify(form.price_options ?? [], null, 2)}
-          onChange={(e) => { try { setForm({ ...form, price_options: JSON.parse(e.target.value) }); } catch {} }}
-          rows={3}
-        />
-        <Textarea
-          label="Addons (JSON: [{name, price, is_active}])"
-          value={JSON.stringify(form.addons ?? [], null, 2)}
-          onChange={(e) => { try { setForm({ ...form, addons: JSON.parse(e.target.value) }); } catch {} }}
-          rows={3}
-        />
-        <Textarea
-          label="Variants (JSON: [{label, price_delta}])"
-          value={JSON.stringify(form.variants ?? [], null, 2)}
-          onChange={(e) => { try { setForm({ ...form, variants: JSON.parse(e.target.value) }); } catch {} }}
-          rows={3}
-        />
-        <Textarea
-          label="Decoration Tiers (JSON: [{label, price_delta}])"
-          value={JSON.stringify(form.decoration_tiers ?? [], null, 2)}
-          onChange={(e) => { try { setForm({ ...form, decoration_tiers: JSON.parse(e.target.value) }); } catch {} }}
-          rows={3}
-        />
-        <Textarea
-          label="Size Options (JSON: [{label, price_delta}])"
-          value={JSON.stringify(form.size_options ?? [], null, 2)}
-          onChange={(e) => { try { setForm({ ...form, size_options: JSON.parse(e.target.value) }); } catch {} }}
-          rows={3}
-        />
+        {/* The choices a customer sees on the item. These were five JSON
+            textareas that could not be typed into, so every weight tier and
+            decoration on the live site was set by hand-written SQL. */}
+        <div className="flex flex-col gap-5 border-t border-ink/8 pt-4">
+          <OptionRowsEditor
+            label="Weight / size prices"
+            amountLabel="Price (₹)"
+            labelPlaceholder="1 kg"
+            rows={priceRows}
+            onChange={setPriceRows}
+            hint="A full price for each weight, not an extra. Used when Price Model is Weight Tiers. Frosted Sponge Cakes leave this empty — their weights are worked out from the base price by the category's multipliers."
+          />
+          <OptionRowsEditor
+            label="Decoration"
+            amountLabel="Extra (₹)"
+            labelPlaceholder="Basic"
+            rows={decorationRows}
+            onChange={setDecorationRows}
+            hint="Added to the price. A choice named Custom sends the customer to the custom cake enquiry instead of the basket."
+          />
+          <OptionRowsEditor
+            label="Add-ons"
+            amountLabel="Price (₹)"
+            labelPlaceholder="Candles"
+            rows={addonRows}
+            onChange={setAddonRows}
+            withActive
+            hint="Optional extras the customer can tick. Switch one off to hide it without losing the price."
+          />
+          <OptionRowsEditor
+            label="Variants"
+            amountLabel="Extra (₹)"
+            labelPlaceholder="Eggless"
+            rows={variantRows}
+            onChange={setVariantRows}
+            hint="One-of choices that change the price, such as eggless."
+          />
+          <OptionRowsEditor
+            label="Sizes"
+            amountLabel="Extra (₹)"
+            labelPlaceholder="6 inch"
+            rows={sizeRows}
+            onChange={setSizeRows}
+            hint="Added to the base price. Leave empty if the item comes one size."
+          />
+        </div>
+
+        {saveError && (
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{saveError}</p>
+        )}
 
         <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

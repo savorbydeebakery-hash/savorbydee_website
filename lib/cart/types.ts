@@ -54,6 +54,27 @@ export interface PriceOption {
   label: string;
   price?: number; // in cents (weight_tiers price_options)
   price_delta?: number; // in cents (variants/decoration_tiers/size_options)
+  /**
+   * Some rows were seeded with `name` where the rest of the schema uses
+   * `label`. See optionLabel below; migration 00035 normalises them.
+   */
+  name?: string;
+}
+
+/**
+ * The text on an option, whichever key it was stored under.
+ *
+ * The `variants` column was seeded with `{name, price_delta}` while every
+ * reader looks for `label` — so Pannacotta Cup's six flavours, and the choices
+ * on three other items, rendered as blank buttons, and the selection could
+ * never be matched back for pricing. Migration 00035 renames the key in place;
+ * this keeps a straggler, or a cart saved in someone's browser before it ran,
+ * from rendering as nothing.
+ */
+export function optionLabel(option: PriceOption | Addon | null | undefined): string {
+  if (!option) return "";
+  const withLabel = option as PriceOption;
+  return withLabel.label ?? option.name ?? "";
 }
 
 export interface Addon {

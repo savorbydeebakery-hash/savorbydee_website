@@ -298,3 +298,26 @@ describe("isSameCartItem", () => {
     ).toBe(false);
   });
 });
+
+describe("variants seeded under the wrong key", () => {
+  it("applies a variant delta stored as {name, price_delta}", () => {
+    // The live `variants` column uses `name` where every reader looked for
+    // `label`, so the customer's choice matched nothing and the delta was
+    // silently skipped. Migration 00035 renames the key; optionLabel keeps a
+    // cart saved before that from breaking.
+    const item = {
+      id: "1",
+      name: "Pannacotta Cup",
+      base_price_cents: 20000,
+      price_model: "flat" as const,
+      price_options: [],
+      addons: [],
+      variants: [{ name: "Coffee", price_delta: 5000 }],
+      decoration_tiers: [],
+      size_options: [],
+      min_order_qty: 1,
+    } as unknown as MenuItemForCart;
+
+    expect(calculateUnitPrice(item, { variant: "Coffee" })).toBe(25000);
+  });
+});

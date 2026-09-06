@@ -8,6 +8,7 @@ import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart/store";
 import { calculateUnitPrice, calculateLineTotal, formatPrice } from "@/lib/cart/math";
 import { MAX_LINE_QUANTITY } from "@/lib/cart/validation";
+import { optionLabel } from "@/lib/cart/types";
 import type { MenuItemForCart, CartItemSelection } from "@/lib/cart/types";
 import { useCanOrder } from "@/components/shop/shop-status";
 
@@ -37,7 +38,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
       init.size = item.size_options[0].label;
     }
     if (item.variants.length > 0) {
-      init.variant = item.variants[0].label;
+      init.variant = optionLabel(item.variants[0]);
     }
     if (item.decoration_tiers.length > 0) {
       init.decoration = item.decoration_tiers[0].label;
@@ -205,8 +206,10 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
               <SelectionGroup
                 label="Flavor / Variant"
                 options={item.variants.map((v) => ({
-                  label: v.label,
-                  value: v.label,
+                  // `variants` was seeded under `name`; optionLabel reads
+                  // either, so these render as text and not empty buttons.
+                  label: optionLabel(v),
+                  value: optionLabel(v),
                   priceText: v.price_delta ? `+${formatPrice(v.price_delta)}` : "",
                 }))}
                 selected={selections.variant}

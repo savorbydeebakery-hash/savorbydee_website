@@ -2,6 +2,7 @@
  * Cart math utilities — pure functions for calculating line totals and cart totals.
  * No side effects, no React, no localStorage. Fully unit-testable.
  */
+import { optionLabel } from "./types";
 import type { CartItem, CartItemSelection, MenuItemForCart } from "./types";
 
 /**
@@ -35,7 +36,7 @@ export function calculateUnitPrice(
 
   // Variant price delta
   if (selections.variant) {
-    const variant = item.variants.find((v) => v.label === selections.variant);
+    const variant = item.variants.find((v) => optionLabel(v) === selections.variant);
     if (variant?.price_delta) {
       price += variant.price_delta;
     }

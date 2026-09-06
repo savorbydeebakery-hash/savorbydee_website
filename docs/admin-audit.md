@@ -1,6 +1,7 @@
 # Admin panel audit
 
 **Run:** 2026-08-31 · **All 6 findings fixed** (1-5 on 2026-09-01, 6 on 2026-09-02)
+**Second pass:** 2026-09-06 · **6 more found and fixed** (8-13, below)
 **Asked for:** "check that everything is editable via admin and every function works"
 
 ## Scope and method
@@ -14,6 +15,97 @@ Two passes were planned. Only the first was completed.
   agent that wrote this cannot perform. `e2e/admin-alarm.spec.ts` covers the
   login and the order alarm on CI, where `ADMIN_EMAIL` / `ADMIN_PASSWORD` are
   set; the rest of the panel still needs a human pass.
+
+## Second pass, 2026-09-06: controls that exist and do not work
+
+The first pass asked "is there a field for this?" and the answer was yes
+everywhere. It did not ask "does the field accept input?", and for five of them
+the answer was no.
+
+### 8. The five option lists could not be typed into
+
+**Menu Items -> edit.** Weight tiers, add-ons, variants, decoration and sizes
+were edited as raw JSON in a controlled textarea:
+
+```
+value={JSON.stringify(form.price_options ?? [], null, 2)}
+onChange={(e) => { try { setForm({ ...form, price_options: JSON.parse(e.target.value) }); } catch {} }}
+```
+
+React restores a controlled input's DOM value after every change event, so a
+keystroke leaving the text un-parseable was reverted. Adding an object to `[]`
+passes through `[{` on the way, which never parses. Verified against the
+running app: typing a complete, valid array one character at a time left the
+box on `[]`.
+
+So every weight tier and decoration on the live site was set by hand-written
+SQL. Migrations 00022 and 00034 are that history, and there was no other way to
+do it.
+
+**Fixed** - replaced with row editors (name, amount, remove) that hold raw text
+and convert once on save. `e2e/admin-option-rows.spec.ts` guards it; a unit
+test cannot, because `JSON.parse` was working perfectly.
+
+### 9. Menu item and category writes failed silently
+
+supabase-js resolves on a database error - it returns `{ error }` and does not
+throw - so the `try/catch` around the menu item save was dead code, and the
+categories page ignored the result of all six of its writes. A refused write
+closed the modal, refetched, and showed the client their old value with nothing
+on screen. The likely causes are exactly the ones that look like nothing
+happened: a check constraint on notice hours, an expired session hitting RLS, a
+category deleted in another tab.
+
+**Fixed** - both pages check `error`, keep the modal open so the edit is not
+lost, and print a sentence the client can act on (`lib/admin/write-error.ts`).
+
+### 10. The base price box was in paise
+
+Labelled "Base Price (paise)" and holding 90000 for a ₹900 cake. Typing the
+number you mean priced the cake at ₹9, with no warning and an immediate change
+on the storefront.
+
+**Fixed** - the box takes rupees and converts at the edge of the form.
+
+### 11. `weight_multipliers` had no control at all
+
+Added by migration 00034 and editable only in SQL, so the category that decides
+a kilo costs twice the half could not be changed or copied to a new category.
+
+**Fixed** - a row editor on the category modal.
+
+### 12. Blank inherit boxes explained nothing
+
+Notice hours and bulk threshold are blank-means-inherit, which is the right
+storage rule - null and 0 have to stay different. But it left the client
+looking at an empty box with no way to know whether this cake needs two hours
+or five days.
+
+**Fixed** - the resolved value is printed under the boxes, naming where it came
+from ("24 hours - inherited from Cheesecakes"). `lib/admin/effective-rules.ts`
+mirrors the chain the order API enforces.
+
+### 13. Variants were stored under the wrong key - customer-facing
+
+Found while checking that the new editor would not eat data on save. Every
+option list uses `{label, ...}` and every reader looks for `label`, but
+`variants` was seeded as `{name, price_delta}`. So four preorder items rendered
+their flavour buttons with no text on them:
+
+| Item | Flavours |
+|---|---|
+| Pannacotta Cup | 6 |
+| Gourmet Cupcake | 4 |
+| Tartlettes - Fresh Fruits | 2 |
+| Tartlettes - Chocolate with Sea Salt | 2 |
+
+No money was lost - every `price_delta` is 0 - but a customer choosing from six
+identical blank buttons was choosing nothing, and the order reached the kitchen
+without a flavour on it.
+
+**Fixed** - migration 00035 renames the key in place (applied over REST,
+verified: 4 items, 14 flavours). `optionLabel` in `lib/cart/types.ts` reads
+either key so a cart saved in someone's browser beforehand still works.
 
 ## Coverage: good
 

@@ -29,9 +29,11 @@ test("admin price edit reflects on storefront", async ({ page }) => {
   await page.goto("/admin/menu-items");
   await expect(page.getByRole("heading", { name: /menu items/i })).toBeVisible();
 
+  // Addressed by its label rather than "the first number input": the editor
+  // now has several, and the price is the one that matters.
   const openFirstEditor = async () => {
     await page.locator("button", { hasText: /edit/i }).first().click();
-    return page.locator("input[type='number']").first();
+    return page.getByLabel("Base Price (₹)");
   };
 
   const priceInput = await openFirstEditor();
@@ -39,7 +41,9 @@ test("admin price edit reflects on storefront", async ({ page }) => {
   expect(originalPrice, "could not read the original price to restore it").toBeTruthy();
 
   try {
-    await priceInput.fill("99900");
+    // ₹999. The box takes rupees now — it used to be labelled "(paise)" and
+    // this filled 99900 meaning ₹999, which would now be ₹99,900.
+    await priceInput.fill("999");
     await page.getByRole("button", { name: /save/i }).click();
 
     // Assert on the data attribute rather than the rendered price. The price
