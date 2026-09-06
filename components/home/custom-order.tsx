@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { SectionHead } from "@/components/home/section-head";
+import { PhotoLinkCard } from "@/components/home/photo-link-card";
 
 /**
  * Custom Order.
@@ -10,26 +8,43 @@ import { SectionHead } from "@/components/home/section-head";
  * a Preorder tab that opens the same 76 items was the same destination twice,
  * and the tab strip and footer already link there.
  *
- * Full width rather than a lonely half, so the row does not read as something
- * that failed to load.
+ * Now the same photo card as the two menus, on the client's instruction, and
+ * through the same component rather than a copy of its markup: three cards
+ * that are meant to look like one object have to be one object in the code, or
+ * the third quietly drifts from the other two.
+ *
+ * Wider than it is tall on desktop, and full width — a custom cake is the
+ * third way to order, not a third of a row, and a single card in a two-column
+ * grid reads as something that failed to load.
  */
-export function CustomOrder({ noticeDays }: { noticeDays: number }) {
+export function CustomOrder({
+  noticeDays,
+  imageUrl,
+}: {
+  noticeDays: number;
+  /** site_settings.custom_order_image_url, else a gallery fallback. */
+  imageUrl?: string | null;
+}) {
   return (
     <section className="mx-auto mt-8 w-full max-w-[var(--bk-page-width)] px-4 md:mt-14 md:px-6">
-      <div className="rounded-[var(--bk-r-block)] border border-bk-border bg-bk-pink-soft p-5 md:p-8">
-        <SectionHead title="Custom Order" href="/custom-cake" linkLabel="Enquire" />
+      <h2 className="bk-section-title text-bk-fg">Something of your own</h2>
+      <p className="mt-2 max-w-2xl text-sm text-bk-muted md:text-base">
+        Tell us the flavours, the design and the occasion, and we will bake it to order.
+      </p>
 
-        <p className="-mt-1 max-w-2xl text-sm leading-relaxed text-bk-muted md:text-base">
-          Tell us the flavours, the design and the occasion, and we will bake it
-          to order. Custom cakes need up to {noticeDays} days&rsquo; notice &mdash; we will let you know if yours can be ready sooner.
-        </p>
-
-        <Link
+      <div className="mt-5 md:mt-7">
+        <PhotoLinkCard
           href="/custom-cake"
-          className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[var(--bk-r-pill)] bg-bk-btn px-7 text-sm font-medium text-bk-btn-fg transition-opacity hover:opacity-85"
-        >
-          Start your inquiry <ArrowRight size={16} />
-        </Link>
+          title="Custom Order"
+          blurb="A cake designed around your occasion, quoted individually."
+          imageUrl={imageUrl}
+          // "Up to", and staff confirm if it is sooner — the client was
+          // specific about this wording, because quoting a flat five days
+          // loses orders that could in fact be baked in two.
+          meta={`Up to ${noticeDays} days' notice`}
+          sizes="(max-width: 768px) 92vw, 1400px"
+          aspect="aspect-[4/3] md:aspect-[21/9]"
+        />
       </div>
     </section>
   );

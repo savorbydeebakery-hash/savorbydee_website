@@ -13,6 +13,7 @@ import {
   pickMenuPhoto,
   DAILY_MENU_PHOTO_KEYWORDS,
   PREORDER_MENU_PHOTO_KEYWORDS,
+  CUSTOM_ORDER_PHOTO_KEYWORDS,
 } from "@/lib/menu/menu-photo";
 
 // NOTE: this was briefly `export const revalidate = 60` to avoid Supabase
@@ -175,7 +176,13 @@ export default async function HomePage() {
       <BestSellers items={applyDerivedWeights(bestsellers)} />
 
       {/* 5. Custom Order */}
-      <CustomOrder noticeDays={settings?.custom_cake_notice_days ?? 5} />
+      <CustomOrder
+        noticeDays={settings?.custom_cake_notice_days ?? 5}
+        imageUrl={
+          settings?.custom_order_image_url?.trim() ||
+          pickMenuPhoto(photos, CUSTOM_ORDER_PHOTO_KEYWORDS, 2)
+        }
+      />
 
       {/* 6. Gallery — below the menu so the page leads with what is for
              sale and follows with what it looks like. */}

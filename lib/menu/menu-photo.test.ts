@@ -3,6 +3,7 @@ import {
   pickMenuPhoto,
   DAILY_MENU_PHOTO_KEYWORDS,
   PREORDER_MENU_PHOTO_KEYWORDS,
+  CUSTOM_ORDER_PHOTO_KEYWORDS,
 } from "./menu-photo";
 
 // The opening of the live gallery, in order. It leads with custom-order work,
@@ -72,5 +73,20 @@ describe("pickMenuPhoto", () => {
     expect(pickMenuPhoto(null, ["bento"])).toBeNull();
     expect(pickMenuPhoto(undefined, ["bento"])).toBeNull();
     expect(pickMenuPhoto([{ image_url: null, caption: "x" }], ["bento"])).toBeNull();
+  });
+});
+
+describe("custom order photo", () => {
+  it("picks a showpiece — the thing a custom order actually is", () => {
+    // Tier and 3D cakes are custom-order work, which is precisely why they are
+    // the wrong default for the two menus and the right one here.
+    expect(pickMenuPhoto(liveGallery, CUSTOM_ORDER_PHOTO_KEYWORDS, 2)).toBe("/tier-1.jpg");
+  });
+
+  it("does not collide with the menu cards on the same gallery", () => {
+    const daily = pickMenuPhoto(liveGallery, DAILY_MENU_PHOTO_KEYWORDS, 0);
+    const preorder = pickMenuPhoto(liveGallery, PREORDER_MENU_PHOTO_KEYWORDS, 1);
+    const custom = pickMenuPhoto(liveGallery, CUSTOM_ORDER_PHOTO_KEYWORDS, 2);
+    expect(new Set([daily, preorder, custom]).size).toBe(3);
   });
 });

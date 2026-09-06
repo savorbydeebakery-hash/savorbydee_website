@@ -50,3 +50,6 @@ export function pickMenuPhoto(
 /** Keywords per menu, kept next to each other so the two cannot drift apart. */
 export const DAILY_MENU_PHOTO_KEYWORDS = ["bento", "bakery"];
 export const PREORDER_MENU_PHOTO_KEYWORDS = ["cupcake", "cookie", "bakery"];
+// The one place the gallery's showpieces belong: tier and 3D cakes ARE custom
+// orders, which is exactly why they are the wrong default for the two menus.
+export const CUSTOM_ORDER_PHOTO_KEYWORDS = ["tier", "3d", "custom"];

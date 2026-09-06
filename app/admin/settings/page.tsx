@@ -48,6 +48,7 @@ interface SiteSettings {
   /** The two homepage menu cards. NULL lets the homepage pick a gallery photo. */
   daily_menu_image_url: string | null;
   preorder_menu_image_url: string | null;
+  custom_order_image_url: string | null;
 }
 
 const TABS = [
@@ -243,6 +244,12 @@ export default function AdminSettingsPage() {
                 value={settings.preorder_menu_image_url}
                 onChange={(url) => update("preorder_menu_image_url", url)}
                 hint="Pick something made to order — a tea cake, a cheesecake, cupcakes."
+              />
+              <GalleryPhotoPicker
+                label="Custom Order card"
+                value={settings.custom_order_image_url}
+                onChange={(url) => update("custom_order_image_url", url)}
+                hint="Pick a showpiece — a tier cake, a 3D cake, a custom set."
               />
             </div>
           </div>

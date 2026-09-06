@@ -12,7 +12,8 @@ import {
   validateDeliveryWindow,
   DEFAULT_NOTICE_RULES,
 } from "@/lib/cart/validation";
-import type { CartItem } from "@/lib/cart/types";
+import type { CartItem, MenuItemForCart } from "@/lib/cart/types";
+import { repriceCart, postedTotalIsShort, type RepriceResult } from "@/lib/cart/server-pricing";
 import { istInputToInstant, formatIstSlot, istDateParts } from "@/lib/time/ist";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 import { samePhone } from "@/lib/customers/phone";
@@ -228,13 +229,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (orderedByItem.size > 0) {
+    // Every line has to name a real menu item, or there is nothing to price it
+    // against. Previously a line with no menuItemId skipped the lookup and was
+    // written to order_items with whatever name and price the body carried.
+    if (orderedByItem.size === 0) {
+      return NextResponse.json(
+        { error: "This order does not reference any menu items. Please rebuild your basket." },
+        { status: 400 }
+      );
+    }
+
+    // Filled in below from the catalogue. The order's money comes from here,
+    // never from the request body.
+    let pricing: RepriceResult | null = null;
+
+    {
       const { data: stockRows } = await createPublicClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
         .from("menu_items")
-        .select("id, name, stock_count, is_sold_out, daily_menu, notice_hours, bulk_threshold, requires_custom_notice, categories(notice_hours, bulk_threshold)")
+        // The pricing columns are here so the total can be recomputed from the
+        // catalogue rather than taken from the request body — including
+        // categories.weight_multipliers, without which a sponge cake's "2 kg"
+        // would match no tier and the server would price it at the half-kilo.
+        .select(
+          "id, name, stock_count, is_sold_out, daily_menu, notice_hours, bulk_threshold, requires_custom_notice, is_active, base_price_cents, price_model, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, categories(notice_hours, bulk_threshold, weight_multipliers)"
+        )
         .in("id", [...orderedByItem.keys()]);
 
       // Rebuild the cart from what the database says these items are, then
@@ -269,8 +290,43 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // --- Price (AUTHORITATIVE) ---
+      // unit_price_cents, line_total_cents and total_cents used to be written
+      // straight from the request body, so a ₹3,600 cake could be ordered for
+      // ₹1 and nothing downstream would know. Recomputed here from these rows,
+      // with the same function the checkout uses so the two cannot drift.
+      pricing = repriceCart(items as CartItem[], (stockRows ?? []) as unknown as MenuItemForCart[]);
+      if (pricing.errors.length > 0) {
+        return NextResponse.json({ error: pricing.errors.join(" ") }, { status: 400 });
+      }
+
+      // A basket priced before an increase, or a body that was edited. Only
+      // fires when the posted total is LOWER — a price that has come down
+      // since the page loaded is charged at the cheaper figure and the sale
+      // goes through.
+      if (postedTotalIsShort(totalCents, pricing.totalCents)) {
+        return NextResponse.json(
+          {
+            error:
+              "Prices have changed since you added these to your basket. " +
+              "Please go back to the basket and check the total before ordering.",
+            totalCents: pricing.totalCents,
+          },
+          { status: 409 }
+        );
+      }
+
       for (const row of stockRows ?? []) {
         const wanted = orderedByItem.get(row.id) ?? 0;
+
+        // A hidden item is not for sale. The menu never renders it, so this
+        // only catches a stale tab or a hand-made request.
+        if (row.is_active === false) {
+          return NextResponse.json(
+            { error: `${row.name} is not available at the moment. Please remove it from your cart.` },
+            { status: 400 }
+          );
+        }
 
         // Today's bakes stop being orderable before the shop shuts, so the
         // last of them can be handed over. Preorders are unaffected — they are
@@ -312,6 +368,16 @@ export async function POST(request: NextRequest) {
         }
       }
     }
+
+    // Unreachable in practice — the block above always runs and returns on any
+    // failure — but it is what makes the money below a definite number rather
+    // than a possibly-null one, and a 500 is the right answer if it ever is.
+    if (!pricing) {
+      console.error("[api/orders] pricing was never computed");
+      return NextResponse.json({ error: "Could not price this order." }, { status: 500 });
+    }
+    const chargedTotalCents = pricing.totalCents;
+    const pricedLines = pricing.lines;
 
     // requiredHours was computed above from the DATABASE rows, not from the
     // posted cart. dailyMenu, noticeHours and bulkThreshold all ride on the
@@ -418,11 +484,11 @@ export async function POST(request: NextRequest) {
         delivery_fee_cents:
           fulfillment === "delivery" &&
           noticeSettings?.free_delivery_threshold_cents != null &&
-          totalCents >= noticeSettings.free_delivery_threshold_cents
+          chargedTotalCents >= noticeSettings.free_delivery_threshold_cents
             ? 0
             : null,
         payment_status: "unpaid",
-        total_cents: totalCents,
+        total_cents: chargedTotalCents,
         notes: notes || null,
         razorpay_order_id: idempotencyKey ? `idem-${idempotencyKey}` : null,
       })
@@ -438,14 +504,16 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Create order items ---
-    const orderItems = items.map((item) => ({
+    // From the repriced lines, so the name, the unit price and the line total
+    // all come from the catalogue. The body's copies are never written.
+    const orderItems = pricedLines.map((line) => ({
       order_id: order.id,
-      menu_item_id: item.menuItemId,
-      name: item.name,
-      unit_price_cents: item.unitPriceCents,
-      quantity: item.quantity,
-      selections: item.selections,
-      line_total_cents: item.lineTotalCents,
+      menu_item_id: line.menuItemId,
+      name: line.name,
+      unit_price_cents: line.unitPriceCents,
+      quantity: line.quantity,
+      selections: line.selections,
+      line_total_cents: line.lineTotalCents,
     }));
 
     const { error: itemsError } = await supabase
@@ -492,11 +560,14 @@ export async function POST(request: NextRequest) {
         humanId,
         customerName: guest.name,
         customerPhone: guest.phone,
-        items: items.map((item) => ({
-          name: item.name,
-          quantity: item.quantity,
+        // The repriced lines, not the posted ones. This email is what the
+        // kitchen works from, so it has to agree with the order row — telling
+        // staff a total the database does not hold would be its own bug.
+        items: pricedLines.map((line) => ({
+          name: line.name,
+          quantity: line.quantity,
         })),
-        total: `₹${(totalCents / 100).toFixed(0)}`,
+        total: `₹${(chargedTotalCents / 100).toFixed(0)}`,
         fulfillment,
         requestedSlot: slotLabel,
         deliveryAddress:
