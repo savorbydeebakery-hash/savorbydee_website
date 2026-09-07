@@ -695,30 +695,67 @@ body {
 }
 
 /* ---------- Flipping book ----------
-   The menu loading screen. The cake animation still plays above it; this is
-   the "we are fetching a menu" signal specifically, so a visitor waiting on
-   /menu sees something that says menu rather than a generic spinner.
+   The menu loading screen.
 
-   Each page turns from the spine, and the three are staggered by a third of
-   the cycle so one is always mid-turn. The reset from -180deg back to flat
-   happens between 55% and 99%, while the page is at opacity 0 — otherwise
-   every page would visibly whip backwards once per loop. */
-@keyframes book-page-turn {
-  0%   { transform: rotateY(0deg);    opacity: 1; }
-  45%  { transform: rotateY(-180deg); opacity: 1; }
-  55%  { transform: rotateY(-180deg); opacity: 0; }
-  99%  { transform: rotateY(0deg);    opacity: 0; }
-  100% { transform: rotateY(0deg);    opacity: 1; }
+   A leaf has two sides. The first version animated a single element with
+   `backface-visibility: hidden`, so the page turned to 90 degrees, presented
+   its back to the viewer, and vanished — half a turn, read as a flicker
+   rather than a page. Each leaf is now a container with a front and a back
+   face, and it is the container that rotates.
+
+   The reset from -180 back to flat happens between 58% and 99%, while the
+   leaf is at opacity 0. Without that every leaf would visibly whip backwards
+   once per cycle. */
+@keyframes book-leaf-turn {
+  0%,
+  6% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateY(-180deg);
+    opacity: 1;
+  }
+  58% {
+    transform: rotateY(-180deg);
+    opacity: 0;
+  }
+  99% {
+    transform: rotateY(0deg);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateY(0deg);
+    opacity: 1;
+  }
 }
-.book-page {
+
+.book-leaf {
   transform-origin: left center;
-  animation: book-page-turn 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  transform-style: preserve-3d;
+  animation: book-leaf-turn 2.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+/* Only the side facing the viewer is drawn, so the ruled lines never show
+   through from behind. This belongs on the FACES, not on the leaf — putting it
+   on the leaf is what hid the second half of the turn. */
+.book-leaf-face {
+  position: absolute;
+  inset: 0;
   backface-visibility: hidden;
 }
+
+.book-leaf-back {
+  transform: rotateY(180deg);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  /* The book stays, closed and still. The page is telling you it is loading
-     through role="status" either way, so nothing is lost by holding it. */
-  .book-page {
+  /* The book stays, closed and still. The page announces itself as loading
+     through role="status" either way, so nothing is lost by holding it.
+     NOTE: if the book looks frozen on a real device, this is why — Windows
+     Settings > Accessibility > Visual effects > Animation effects, or macOS
+     Accessibility > Display > Reduce motion. */
+  .book-leaf {
     animation: none;
     opacity: 1;
     transform: rotateY(0deg);
