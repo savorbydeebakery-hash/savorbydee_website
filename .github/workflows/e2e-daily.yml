@@ -92,6 +92,20 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Remove the rows this run created
+        # if: always() — a failed suite still leaves orders behind, and those
+        # are exactly the runs nobody comes back to tidy up. The script never
+        # exits non-zero: a run that tested fine but could not tidy up is a
+        # housekeeping problem, not a broken site.
+        if: always()
+        shell: bash
+        run: node scripts/purge-e2e-rows.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
