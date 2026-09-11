@@ -13,6 +13,7 @@ import {
   canAddToCart,
   cartMenuKind,
   cartIsMixed,
+  explainRequiredNotice,
 } from "./validation";
 import type { CartItem } from "./types";
 import { istInputToInstant, istDayName, instantToIstInput } from "@/lib/time/ist";
@@ -429,5 +430,70 @@ describe("canAddToCart", () => {
     expect(cartIsMixed([daily(), preorder({ id: "b" })])).toBe(true);
     expect(cartIsMixed([daily(), daily({ id: "b" })])).toBe(false);
     expect(cartIsMixed([daily()])).toBe(false);
+  });
+});
+
+describe("explainRequiredNotice", () => {
+  const rules = {
+    globalNoticeHours: 2,
+    preorderNoticeHours: 24,
+    bulkThreshold: 12,
+    bulkNoticeHours: 24,
+    customCakeNoticeDays: 5,
+  };
+  const line = (over: Partial<CartItem> = {}): CartItem =>
+    ({
+      id: "l", menuItemId: "m", name: "Plain Vanilla", unitPriceCents: 34000,
+      quantity: 1, selections: {}, lineTotalCents: 34000, dailyMenu: false,
+      ...over,
+    }) as CartItem;
+
+  it("blames the menu, not bulk, for one preorder cake", () => {
+    // The bug: the checkout inferred the reason from the number, so a single
+    // Plain Vanilla was told it needed 24h "due to bulk order requirements"
+    // and offered bulk rates.
+    const r = explainRequiredNotice([line()], rules);
+    expect(r).toMatchObject({ hours: 24, cause: "menu" });
+  });
+
+  it("blames bulk only when the quantity actually passes the threshold", () => {
+    expect(explainRequiredNotice([line({ quantity: 12 })], rules).cause).toBe("menu");
+    // 13 is over the threshold — but bulk is also 24h here, and the menu rule
+    // got there first, so the honest cause is still the menu.
+    expect(explainRequiredNotice([line({ quantity: 13 })], rules).cause).toBe("menu");
+  });
+
+  it("blames bulk when bulk is genuinely the longer rule", () => {
+    // A daily item is 2h, so 13 of them is driven by the bulk rule alone.
+    const r = explainRequiredNotice([line({ dailyMenu: true, quantity: 13 })], rules);
+    expect(r).toMatchObject({ hours: 24, cause: "bulk" });
+  });
+
+  it("blames the custom cake when that is the longest", () => {
+    const r = explainRequiredNotice([line({ requiresCustomNotice: true })], rules);
+    expect(r).toMatchObject({ hours: 120, cause: "custom" });
+  });
+
+  it("names an item-level override as such", () => {
+    const r = explainRequiredNotice([line({ noticeHours: 48 })], rules);
+    expect(r).toMatchObject({ hours: 48, cause: "item", itemName: "Plain Vanilla" });
+  });
+
+  it("agrees with getRequiredNoticeHours on the number", () => {
+    // Two implementations of the same rule would drift; this pins them.
+    const carts = [
+      [line()],
+      [line({ quantity: 13 })],
+      [line({ dailyMenu: true })],
+      [line({ dailyMenu: true, quantity: 20 })],
+      [line({ requiresCustomNotice: true })],
+      [line({ noticeHours: 48 }), line({ dailyMenu: true })],
+      [],
+    ];
+    for (const cart of carts) {
+      expect(explainRequiredNotice(cart, rules).hours).toBe(
+        getRequiredNoticeHours(cart, rules)
+      );
+    }
   });
 });

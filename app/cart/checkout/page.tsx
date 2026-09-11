@@ -8,6 +8,7 @@ import {
   validateGuestInfo,
   validateDeliveryAddress,
   getRequiredNoticeHours,
+  explainRequiredNotice,
   getEarliestValidSlot,
   validateSlotAgainstHours,
   validateDeliveryWindow,
@@ -167,6 +168,10 @@ export default function CheckoutPage() {
   const effectiveFulfillment = deliveryEnabled ? fulfillment : "pickup";
 
   const noticeHours = getRequiredNoticeHours(items, noticeRules);
+  // WHY the wait is this long, rather than inferring it from the number. See
+  // explainRequiredNotice: guessing gave "bulk order requirements" for a single
+  // made-to-order cake, because 24 is not 120.
+  const notice = explainRequiredNotice(items, noticeRules);
 
   // The earliest slot that clears the notice window *and* lands inside opening
   // hours. `datetime-local` reads and writes a naive wall clock, which is
@@ -399,12 +404,29 @@ export default function CheckoutPage() {
           {noticeHours > noticeRules.globalNoticeHours && (
             <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
               <p className="text-sm text-ink-soft">
-                ⏰ This order requires {noticeHours}h advance notice due to{" "}
-                {noticeHours >= 120 ? "custom cake" : "bulk order"} requirements.
+                ⏰{" "}
+                {notice.cause === "custom" ? (
+                  <>
+                    This order needs up to {Math.round(notice.hours / 24)} days&rsquo; notice
+                    &mdash; custom cakes are designed and quoted individually, and we will let
+                    you know if yours can be ready sooner.
+                  </>
+                ) : notice.cause === "bulk" ? (
+                  <>
+                    This order needs {notice.hours}h notice because of the quantity
+                    {notice.itemName ? ` of ${notice.itemName}` : ""}.
+                  </>
+                ) : (
+                  <>
+                    These are made fresh to order, so this one needs {notice.hours}h notice.
+                  </>
+                )}
               </p>
               {/* Bulk is a conversation, not just a longer wait — the client
-                  wants to quote these directly. */}
-              {noticeHours < 120 && (
+                  wants to quote these directly. Only offered when the quantity
+                  is genuinely what drove the window; it used to appear on any
+                  single preorder cake. */}
+              {notice.cause === "bulk" && (
                 <p className="mt-1.5 text-sm text-ink-soft">
                   Ordering this much?{" "}
                   {whatsappNumber ? (

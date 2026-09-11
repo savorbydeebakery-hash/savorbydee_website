@@ -119,6 +119,60 @@ export function getRequiredNoticeHours(
   return Math.max(...notices);
 }
 
+/**
+ * The notice window AND what caused it.
+ *
+ * The checkout used to print the reason by guessing from the number: 120 hours
+ * or more meant "custom cake", anything else meant "bulk order". One Plain
+ * Vanilla — a single made-to-order tea cake — therefore told the customer the
+ * order "requires 24h advance notice due to bulk order requirements" and
+ * offered them bulk rates, because 24 is not 120. The 24 hours had nothing to
+ * do with quantity; it is simply what a preorder item takes.
+ *
+ * Guessing the cause from the effect cannot work here, because three different
+ * rules produce overlapping numbers. This reports which one actually won.
+ */
+export type NoticeCause = "menu" | "item" | "bulk" | "custom";
+
+export interface NoticeExplanation {
+  hours: number;
+  cause: NoticeCause;
+  /** The line that set the window, when one item is responsible. */
+  itemName?: string;
+}
+
+export function explainRequiredNotice(
+  items: CartItem[],
+  rules: SiteNoticeRules = DEFAULT_NOTICE_RULES
+): NoticeExplanation {
+  if (items.length === 0) return { hours: rules.globalNoticeHours, cause: "menu" };
+
+  let best: NoticeExplanation = { hours: -1, cause: "menu" };
+  const consider = (hours: number, cause: NoticeCause, itemName?: string) => {
+    // Strictly greater, so the first rule to reach a given number keeps the
+    // credit. The order of the pushes below is the tie-break, and it runs
+    // least-surprising first: "this is a preorder item" explains a 24 better
+    // than "this is a bulk order" when the customer bought one cake.
+    if (hours > best.hours) best = { hours, cause, itemName };
+  };
+
+  for (const item of items) {
+    const isPreorder = item.dailyMenu === false;
+    const menuDefault = isPreorder ? rules.preorderNoticeHours : rules.globalNoticeHours;
+    const own = item.noticeHours ?? menuDefault;
+    consider(own, item.noticeHours != null ? "item" : "menu", item.name);
+
+    const threshold = item.bulkThreshold ?? rules.bulkThreshold;
+    if (item.quantity > threshold) consider(rules.bulkNoticeHours, "bulk", item.name);
+
+    if (item.requiresCustomNotice) {
+      consider(rules.customCakeNoticeDays * 24, "custom", item.name);
+    }
+  }
+
+  return best;
+}
+
 /** Which menu a line or cart belongs to. */
 export type MenuKind = "daily" | "preorder";
 
