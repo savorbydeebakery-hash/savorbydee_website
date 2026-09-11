@@ -1,0 +1,100 @@
+name: Daily E2E (business hours)
+
+# Why this exists, separately from CI + Deploy.
+#
+# Five specs — admin-alarm, bulk-rule, checkout-closed-day, order-placement and
+# razorpay-test-checkout — place an order, and the API refuses orders outside
+# business hours. They call skipWhenClosed and bow out when the shop is shut,
+# which is the honest outcome for a scenario that genuinely cannot run.
+#
+# The catch is that deploys happen when someone is working, which is mostly
+# evenings and weekends. Those five skipped on nearly every run for weeks, so a
+# change that broke all five looked green until a deploy happened to land at
+# 14:42 IST on a weekday. Green meant "not tested", and nothing said so.
+#
+# This runs the same suite at a time the bakery is definitely open, so the
+# checkout flow is exercised whether or not anyone pushed.
+#
+# NOTE: it deploys nothing. It tests whatever is currently live at DEPLOY_URL.
+
+on:
+  schedule:
+    # 05:30 UTC = 11:00 IST, Monday to Saturday. Sunday is the one day the
+    # bakery is closed in the live settings, so a Sunday run would skip the
+    # very specs this exists for.
+    #
+    # GitHub can delay a scheduled run by a good few minutes under load. 11:00
+    # sits four hours inside the 09:00-21:00 window, so even an hour late is
+    # still comfortably open.
+    - cron: "30 5 * * 1-6"
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-daily
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Require a deploy URL
+        run: |
+          if [ -z "${{ vars.DEPLOY_URL }}" ]; then
+            echo "::error::DEPLOY_URL repository variable is not set."
+            exit 1
+          fi
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: E2E against the deployed URL
+        id: e2e
+        # `shell: bash` on purpose. The default Linux shell is `bash -e {0}`
+        # with no pipefail, so piping into tee would mask Playwright's exit
+        # code and every failing run would report success.
+        shell: bash
+        run: npx playwright test --workers=2 2>&1 | tee e2e-output.txt
+        env:
+          E2E_BASE_URL: ${{ vars.DEPLOY_URL }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+
+      - name: Report what actually ran
+        # A skip is not a pass, and the whole point of this workflow is the
+        # specs that used to skip. Surfaced in the job summary so a run that
+        # skipped them is visible without opening the log — on a holiday that
+        # is expected, on an ordinary Tuesday it means something is wrong with
+        # the opening hours.
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Daily E2E"
+            echo
+            if [ -f e2e-output.txt ]; then
+              tail -4 e2e-output.txt
+              echo
+              SKIPPED=$(grep -cE '^[[:space:]]+-[[:space:]]+[0-9]+ \[chromium\]' e2e-output.txt || true)
+              if [ "${SKIPPED:-0}" -gt 0 ]; then
+                echo "**${SKIPPED} spec(s) skipped.** The order-flow specs skip when the"
+                echo "shop is closed. At 11:00 IST on a weekday they should not — check"
+                echo "Settings -> Operating Hours and the holiday list if they did."
+                grep -E '^[[:space:]]+-[[:space:]]+[0-9]+ \[chromium\]' e2e-output.txt || true
+              fi
+            else
+              echo "The suite produced no output."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-daily
+          path: playwright-report/
+          retention-days: 7
