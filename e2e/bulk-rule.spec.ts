@@ -37,7 +37,19 @@ test("bulk orders enforce 24h notice window", async ({ page }) => {
 
   const slotInput = page.locator("input[type='datetime-local']");
   await expect(slotInput).toBeVisible();
-  await expect(page.getByText(/minimum 24h notice required/i)).toBeVisible();
+
+  // Read the number rather than asserting 24 outright. The window is the
+  // LARGEST rule that applies, so an item that already needs longer than the
+  // bulk rule — a custom cake at five days — legitimately shows more. Pinning
+  // 24 made this spec depend on which item happens to sit first on the menu,
+  // and it broke the moment a category was reordered in admin.
+  const badge = page.getByText(/minimum \d+h notice required/i);
+  await expect(badge).toBeVisible();
+  const stated = Number(/(\d+)h/.exec((await badge.innerText()) ?? "")?.[1]);
+  expect(
+    stated,
+    "15 of one item must not be offered a window shorter than the bulk rule"
+  ).toBeGreaterThanOrEqual(24);
 
   // The slot step's Continue is labelled "Checking availability…" and disabled
   // until site_settings arrives, so waiting for it here is what guarantees the

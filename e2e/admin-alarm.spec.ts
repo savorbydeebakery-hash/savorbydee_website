@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { skipWhenClosed } from "./helpers/shop-open";
-import { validSlotInput } from "./helpers/slot";
+import { fillEarliestSlot } from "./helpers/slot";
 
 /**
  * T6.7: Admin alarm fires on new order.
@@ -39,9 +39,7 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
 
   // Navigate checkout steps: review → fulfillment → details → confirm
   await customerPage.getByRole("button", { name: /continue/i }).click();
-  await customerPage
-    .locator("input[type='datetime-local']")
-    .fill(validSlotInput());
+  await fillEarliestSlot(customerPage);
   await customerPage.getByRole("button", { name: /continue/i }).click();
 
   await customerPage.getByLabel(/name/i).fill("Alarm Test");
