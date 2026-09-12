@@ -40,10 +40,21 @@ test("admin price edit reflects on storefront", async ({ page }) => {
   const originalPrice = await priceInput.inputValue();
   expect(originalPrice, "could not read the original price to restore it").toBeTruthy();
 
+  // One rupee more than it costs, not a flat ₹999.
+  //
+  // This spec has now corrupted a live price twice. The second time it left
+  // Chocochunks 100gms — a ₹110 packet of cookies — on sale at ₹999 for
+  // however long it took someone to notice. A test that writes to production
+  // will occasionally fail to put things back: the process gets killed, the
+  // workflow is cancelled, the save is refused. What it must not do is make
+  // the damage expensive when that happens. A penny over is still visibly a
+  // change to assert on, and still roughly the right price if it sticks.
+  const originalPaise = Math.round(Number(originalPrice) * 100);
+  expect(Number.isFinite(originalPaise), `unreadable price "${originalPrice}"`).toBe(true);
+  const editedPaise = originalPaise + 100;
+
   try {
-    // ₹999. The box takes rupees now — it used to be labelled "(paise)" and
-    // this filled 99900 meaning ₹999, which would now be ₹99,900.
-    await priceInput.fill("999");
+    await priceInput.fill(String(editedPaise / 100));
     await page.getByRole("button", { name: /save/i }).click();
 
     // Assert on the data attribute rather than the rendered price. The price
@@ -56,7 +67,7 @@ test("admin price edit reflects on storefront", async ({ page }) => {
     // them: /menu is preorder only, /menu/daily is today's list. This spec
     // edits whichever item happens to be first in admin, so it cannot know in
     // advance which page that item appears on.
-    const priced = '[data-item-price="99900"]';
+    const priced = `[data-item-price="${editedPaise}"]`;
     await page.goto("/menu");
     let found = await page.locator(priced).first().isVisible().catch(() => false);
     if (!found) {
@@ -69,7 +80,17 @@ test("admin price edit reflects on storefront", async ({ page }) => {
     const restoreInput = await openFirstEditor();
     await restoreInput.fill(originalPrice);
     await page.getByRole("button", { name: /save/i }).click();
-    // Confirm the restore actually persisted rather than trusting the click.
     await expect(page.locator("button", { hasText: /edit/i }).first()).toBeVisible();
+
+    // Read it back. The old version asserted that an Edit button was visible,
+    // which is true whether or not the price went back — so a refused save
+    // looked exactly like a successful restore, and the spec reported green
+    // over a corrupted price.
+    const check = await openFirstEditor();
+    await expect(
+      check,
+      "the price was not restored — fix it in admin before trusting this suite"
+    ).toHaveValue(originalPrice);
+    await page.getByRole("button", { name: /cancel/i }).click();
   }
 });

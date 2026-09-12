@@ -79,9 +79,18 @@ jobs:
 
   verify:
     # Smoke-tests what actually shipped, rather than trusting the build.
+    #
+    # Tests the environment the deploy job just wrote to. It used to test
+    # DEPLOY_URL unconditionally, so a manual production deploy came back green
+    # having exercised staging and never touched the thing that shipped.
     needs: deploy
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      TARGET_URL: >-
+        ${{ github.event.inputs.environment == 'production'
+            && vars.PRODUCTION_URL
+            || vars.DEPLOY_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -90,21 +99,23 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Require a deploy URL
+      - name: Require a URL for the environment that was deployed
         # An unset repository variable expands to "", which silently falls back
         # to localhost where nothing is running. That surfaced as 14 identical
         # navigation errors; one clear message is cheaper to read.
+        shell: bash
         run: |
-          if [ -z "${{ vars.DEPLOY_URL }}" ]; then
-            echo "::error::DEPLOY_URL repository variable is not set."
+          if [ -z "$TARGET_URL" ]; then
+            echo "::error::No URL for this environment. Set the DEPLOY_URL (staging) or PRODUCTION_URL repository variable."
             exit 1
           fi
+          echo "Verifying $TARGET_URL"
 
       - run: npx playwright install --with-deps chromium
       - name: E2E against the deployed URL
         run: npx playwright test --workers=2
         env:
-          E2E_BASE_URL: ${{ vars.DEPLOY_URL }}
+          E2E_BASE_URL: ${{ env.TARGET_URL }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       - uses: actions/upload-artifact@v4
