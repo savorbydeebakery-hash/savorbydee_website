@@ -82,10 +82,17 @@ test("admin price edit reflects on storefront", async ({ page }) => {
     await page.getByRole("button", { name: /save/i }).click();
     await expect(page.locator("button", { hasText: /edit/i }).first()).toBeVisible();
 
-    // Read it back. The old version asserted that an Edit button was visible,
-    // which is true whether or not the price went back — so a refused save
-    // looked exactly like a successful restore, and the spec reported green
-    // over a corrupted price.
+    // Read it back from a fresh page load. The old version asserted that an
+    // Edit button was visible, which is true whether or not the price went
+    // back — so a refused save looked exactly like a successful restore.
+    //
+    // The reload is not optional. Saving closes the modal and kicks off a
+    // refetch, but the list keeps rendering the old rows until it lands, so
+    // reopening the editor straight away initialises it from the stale row and
+    // reads back the value that was just replaced. That raced on CI and failed
+    // this spec against a price that had in fact been restored correctly.
+    await page.goto("/admin/menu-items");
+    await expect(page.getByRole("heading", { name: /menu items/i })).toBeVisible();
     const check = await openFirstEditor();
     await expect(
       check,
