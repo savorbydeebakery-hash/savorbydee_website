@@ -14,25 +14,36 @@ import { test, expect } from "@playwright/test";
  *   lib/cart/store.ts       refuses the add, so no UI can bypass it
  *   app/api/orders/route.ts refuses a mixed body, for a hand-made request
  *
- * Needs an orderable item on today's menu. Every daily item currently sits at
- * stock_count 0, so this will skip until stock is entered — and it says so
- * rather than skipping quietly, because a rule nobody can exercise is a rule
- * nobody knows is broken.
+ * Needs an orderable item on today's menu. It skips, loudly and with a count,
+ * when there is none — a rule nobody can exercise is a rule nobody knows is
+ * broken, and a quiet skip reports green.
  */
 test("a daily item locks the basket out of the preorder menu", async ({ page }) => {
   await page.goto("/menu/daily");
+
+  const cards = page.locator("main .menu-item-card");
+  await expect(cards.first()).toBeVisible();
 
   const orderable = page
     .locator('main .menu-item-card[data-orderable="true"]')
     .filter({ has: page.getByRole("button", { name: /add to cart/i }) })
     .first();
 
-  const available = await orderable.count();
+  // Wait for one rather than counting the instant the page arrives. Counting
+  // immediately skipped on CI against a menu that had 45 orderable items,
+  // while the same spec passed three times in a row locally — a skip that
+  // says "there is no stock" when there is stock is worse than a failure,
+  // because it reports green.
+  const available = await orderable
+    .waitFor({ state: "attached", timeout: 15_000 })
+    .then(() => true)
+    .catch(() => false);
+
   test.skip(
-    available === 0,
-    "No item on today's menu is orderable — every daily item is at stock_count 0, " +
-      "so the one-menu-per-basket rule cannot be exercised. Enter stock in " +
-      "Admin > Menu Items to turn this back on."
+    !available,
+    `No item on today's menu is orderable (${await cards.count()} cards on the page). ` +
+      "Every daily item is probably at stock_count 0, so the one-menu-per-basket " +
+      "rule cannot be exercised. Enter stock in Admin > Menu Items to turn this back on."
   );
 
   // Start from an empty basket regardless of what a previous spec left.
