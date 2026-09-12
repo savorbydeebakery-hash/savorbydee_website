@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/cart/math";
+import { deliveryChargeFor } from "@/lib/cart/delivery-charge";
 import {
   validateCart,
   validateGuestInfo,
@@ -172,6 +173,11 @@ export default function CheckoutPage() {
   // explainRequiredNotice: guessing gave "bulk order requirements" for a single
   // made-to-order cake, because 24 is not 120.
   const notice = explainRequiredNotice(items, noticeRules);
+  // One answer for all four places that mention the delivery charge. They were
+  // written separately and drifted: an order over the threshold was told it
+  // qualified for free delivery, then that delivery was charged separately,
+  // then that the charge depended on distance and was payable on arrival.
+  const deliveryCharge = deliveryChargeFor(totalCents, freeDeliveryOver);
 
   // The earliest slot that clears the notice window *and* lands inside opening
   // hours. `datetime-local` reads and writes a naive wall clock, which is
@@ -489,9 +495,9 @@ export default function CheckoutPage() {
             )}
             {deliveryEnabled && freeDeliveryOver != null && (
               <p className="mt-2 text-sm text-ink-soft">
-                {totalCents >= freeDeliveryOver ? (
+                {deliveryCharge === "free" ? (
                   <span className="font-semibold text-mint-deep">
-                    ✓ This order qualifies for free delivery.
+                    🎉 Congratulations &mdash; delivery on this order is free.
                   </span>
                 ) : (
                   <>Delivery is free on orders over {formatPrice(freeDeliveryOver)}.</>
@@ -578,11 +584,14 @@ export default function CheckoutPage() {
                   and is then quoted a fee they were never warned about has a
                   legitimate complaint, and a disputed charge against a new
                   payment account is expensive. */}
-              {freeDeliveryOver != null && totalCents >= freeDeliveryOver ? (
+              {deliveryCharge === "free" ? (
                 <p className="mb-4 rounded-xl bg-mint-soft px-4 py-3 text-sm leading-relaxed text-ink">
-                  <strong>Delivery is on us.</strong> This order is over{" "}
-                  {formatPrice(freeDeliveryOver)}, so there is nothing more to pay
-                  when it arrives — the amount you see below is the whole of it.
+                  {/* Non-null whenever deliveryCharge is "free" — a missing
+                      threshold resolves to "quoted" — but the compiler cannot
+                      see that through the derived value. */}
+                  <strong>🎉 Congratulations &mdash; your delivery is free!</strong> This
+                  order is over {formatPrice(freeDeliveryOver ?? 0)}, so it comes to you
+                  on us. There is nothing to pay when it arrives.
                 </p>
               ) : (
                 <p className="mb-4 rounded-xl bg-pink-soft px-4 py-3 text-sm leading-relaxed text-ink">
@@ -654,11 +663,30 @@ export default function CheckoutPage() {
                 <span className="font-bold text-gold-deep text-lg">{formatPrice(totalCents)}</span>
               </div>
 
+              {/* The last thing the customer reads before placing the order,
+                  so it has to agree with the two panels above it. This one was
+                  unconditional: a ₹12,000 basket was told delivery was on us
+                  at the address step, then that a charge would be confirmed
+                  and paid in cash, on the very next screen. */}
               {effectiveFulfillment === "delivery" && (
-                <p className="mt-3 rounded-xl bg-pink-soft px-4 py-3 text-xs leading-relaxed text-ink">
-                  This total is for the bakes only. Your delivery charge depends
-                  on the distance, and we will confirm it with you before
-                  delivery — payable in cash on arrival.
+                <p
+                  className={`mt-3 rounded-xl px-4 py-3 text-xs leading-relaxed text-ink ${
+                    deliveryCharge === "free" ? "bg-mint-soft" : "bg-pink-soft"
+                  }`}
+                >
+                  {deliveryCharge === "free" ? (
+                    <>
+                      <strong>🎉 Congratulations &mdash; delivery is free on this order.</strong>{" "}
+                      You are over {formatPrice(freeDeliveryOver ?? 0)}, so {formatPrice(totalCents)}{" "}
+                      is the whole of it. Nothing to pay on arrival.
+                    </>
+                  ) : (
+                    <>
+                      This total is for the bakes only. Your delivery charge depends
+                      on the distance, and we will confirm it with you before
+                      delivery &mdash; payable in cash on arrival.
+                    </>
+                  )}
                 </p>
               )}
             </div>

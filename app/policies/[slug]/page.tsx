@@ -35,6 +35,7 @@ interface Settings {
   custom_cake_notice_days?: number | null;
   delivery_enabled?: boolean | null;
   delivery_instructions?: string | null;
+  free_delivery_threshold_cents?: number | null;
 }
 
 const SLUGS = ["terms", "privacy", "refunds", "shipping", "contact"] as const;
@@ -78,6 +79,11 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
   const bulkQty = s.bulk_threshold ?? 10;
   const bulkNotice = s.bulk_notice_hours ?? 24;
   const customDays = s.custom_cake_notice_days ?? 5;
+  // Null means no threshold is configured, not a threshold of zero — see
+  // lib/cart/delivery-charge.ts. The sentence is dropped rather than promising
+  // free delivery over ₹0.
+  const freeOverCents: number | null = s.free_delivery_threshold_cents ?? null;
+  const freeOver = freeOverCents != null ? `₹${(freeOverCents / 100).toFixed(0)}` : null;
   const address = [s.address_line1, s.address_line2, s.address_city, s.address_state]
     .filter(Boolean)
     .join(", ");
@@ -250,6 +256,17 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   travelling, so we work it out from your address once your order
                   comes in.
                 </p>
+                {/* The threshold was missing here entirely, so the policy said
+                    delivery is always charged while the checkout was telling
+                    larger orders it was free. This page is what a customer is
+                    pointed at in a dispute, so it has to state the exception. */}
+                {freeOver && (
+                  <p>
+                    Orders over <strong>{freeOver}</strong> are delivered free. There is
+                    nothing to pay on arrival for those, and the total you pay online is
+                    the whole cost of the order.
+                  </p>
+                )}
                 <p>
                   We confirm the delivery charge with you before we set off, and
                   it is paid in cash when your order arrives. You will never be
