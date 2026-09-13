@@ -68,12 +68,23 @@ test("admin price edit reflects on storefront", async ({ page }) => {
     // edits whichever item happens to be first in admin, so it cannot know in
     // advance which page that item appears on.
     const priced = `[data-item-price="${editedPaise}"]`;
-    await page.goto("/menu");
-    let found = await page.locator(priced).first().isVisible().catch(() => false);
-    if (!found) {
-      await page.goto("/menu/daily");
-      found = await page.locator(priced).first().isVisible().catch(() => false);
-    }
+
+    // waitFor, not isVisible. isVisible() answers immediately without waiting,
+    // so it read the menu before the cards rendered and reported the edit
+    // missing — a flake that failed this spec on CI and passed it on retry,
+    // on a test that writes to live prices.
+    const appearsOn = async (path: string) => {
+      await page.goto(path);
+      await expect(page.locator("main .menu-item-card").first()).toBeVisible();
+      return page
+        .locator(priced)
+        .first()
+        .waitFor({ state: "attached", timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false);
+    };
+
+    const found = (await appearsOn("/menu")) || (await appearsOn("/menu/daily"));
     expect(found, "edited price did not appear on either menu").toBe(true);
   } finally {
     await page.goto("/admin/menu-items");
