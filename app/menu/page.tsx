@@ -16,10 +16,10 @@ export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on mem
 export default async function MenuPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tag?: string }>;
+  searchParams: Promise<{ tag?: string; category?: string }>;
 }) {
   const supabase = await createClient();
-  const { tag } = await searchParams;
+  const { tag, category } = await searchParams;
 
   const [{ data: categories }, { data: menuItems }, { data: settings }] = await Promise.all([
     supabase
@@ -90,6 +90,7 @@ export default async function MenuPage({
           categories={preorderCategories}
           menuItems={applyDerivedWeights(menuItems)}
           tag={tag}
+          initialCategory={category}
         />
       </PropField>
     </div>

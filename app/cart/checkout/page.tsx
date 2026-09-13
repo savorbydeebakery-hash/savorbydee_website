@@ -558,7 +558,7 @@ export default function CheckoutPage() {
                 type="tel"
                 value={guest.phone}
                 onChange={(e) => setGuest({ ...guest, phone: e.target.value })}
-                placeholder="+91 98365 37447"
+                placeholder="+91 98765 43210"
               />
               <p className="text-xs text-ink-faint sm:col-span-2">
                 We will confirm your order on this number.

@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input, Textarea, Select } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
+import Link from "next/link";
+import { categorySlug } from "@/lib/menu/category-slug";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Cake, Upload, Check, X } from "lucide-react";
+import { Cake, Upload, Check, X, ArrowRight } from "lucide-react";
 import { uploadFile } from "@/lib/storage/upload-helper";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +24,9 @@ export default function CustomCakePage() {
   const [form, setForm] = useState({
     customer_name: "",
     customer_phone: "",
-    customer_email: "",
-    cake_type: "configured",
+    // Every enquiry is fully custom. A standard cake is ordered from the menu,
+    // where the price is known up front — see the link above the form.
+    cake_type: "fully_custom",
     flavor: "",
     weight: "",
     decoration: "",
@@ -74,7 +77,7 @@ export default function CustomCakePage() {
           Thank you for your interest! Our team will review your request and contact you
           within 24 hours with a quote.
         </p>
-        <Button onClick={() => { setSubmitted(false); setForm({ customer_name: "", customer_phone: "", customer_email: "", cake_type: "configured", flavor: "", weight: "", decoration: "", message_on_cake: "", description: "", requested_date: "" }); setReferenceUrl(null); }} variant="outline">
+        <Button onClick={() => { setSubmitted(false); setForm({ customer_name: "", customer_phone: "", cake_type: "fully_custom", flavor: "", weight: "", decoration: "", message_on_cake: "", description: "", requested_date: "" }); setReferenceUrl(null); }} variant="outline">
           Submit Another Inquiry
         </Button>
       </div>
@@ -104,6 +107,28 @@ export default function CustomCakePage() {
         </p>
       </div>
 
+      {/* "Configured (pick from our options)" used to be a choice on this form,
+          which had people describe a menu cake in free text — flavour, weight —
+          and wait for a quote on something that already has a price. Those
+          cakes are on the menu, where they can pick a weight and add it to the
+          basket, so this sends them there and the form is for designs of their
+          own. The link lands on the sponge cakes rather than the whole menu. */}
+      <Link
+        href={`/menu?category=${categorySlug("Frosted Sponge Cakes")}`}
+        className="group mb-6 flex items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-porcelain p-4 transition-colors hover:border-berry/40"
+      >
+        <div>
+          <p className="font-semibold text-ink">Want one of our cakes?</p>
+          <p className="mt-0.5 text-sm text-ink-soft">
+            Pick a flavour and weight from our sponge cakes and order it straight away.
+          </p>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-berry">
+          See the cakes
+          <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </Link>
+
       {error && (
         <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-3">
           <p className="text-sm text-red-600">⚠️ {error}</p>
@@ -116,12 +141,6 @@ export default function CustomCakePage() {
             <Input label="Your Name" value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} required />
             <Input label="Phone" type="tel" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} required />
           </div>
-          <Input label="Email" type="email" value={form.customer_email} onChange={(e) => setForm({ ...form, customer_email: e.target.value })} required />
-
-          <Select label="Cake Type" value={form.cake_type} onChange={(e) => setForm({ ...form, cake_type: e.target.value })}>
-            <option value="configured">Configured (pick from our options)</option>
-            <option value="fully_custom">Fully Custom (describe your vision)</option>
-          </Select>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input label="Flavour Preference" value={form.flavor} onChange={(e) => setForm({ ...form, flavor: e.target.value })} placeholder="Chocolate, Vanilla, Red Velvet..." />

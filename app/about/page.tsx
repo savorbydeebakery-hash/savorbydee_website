@@ -38,7 +38,6 @@ export default async function AboutPage() {
   const whatsapp = settings?.whatsapp_number ?? "919836537447";
   const addressLine1 = settings?.address_line1 ?? "Near Laban Police Station, Myliem";
   const addressCity = settings?.address_city ?? "Shillong, Meghalaya";
-  const mapsEmbed = settings?.google_maps_embed_url;
   const mapsDirections = settings?.google_maps_directions_url;
 
   return (
@@ -88,8 +87,11 @@ export default async function AboutPage() {
         </section>
       )}
 
-      {/* Contact + Map */}
-      <section className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      {/* Contact. The map beside it is gone on the client's instruction —
+          no embed was ever configured, so it rendered a pink box reading "Map
+          will appear here" to every visitor. Get Directions still opens the
+          real Google Maps link, which is the part a customer actually uses. */}
+      <section className="mx-auto max-w-xl">
         <Card className="flex flex-col gap-4">
           <h2 className="text-xl font-semibold text-ink">Visit & Contact</h2>
           <div className="flex items-start gap-3">
@@ -131,26 +133,6 @@ export default async function AboutPage() {
           )}
         </Card>
 
-        <Card className="overflow-hidden p-0">
-          {mapsEmbed ? (
-            <iframe
-              src={mapsEmbed}
-              width="100%"
-              height="300"
-              style={{ border: 0 }}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Savor by Dee location"
-            />
-          ) : (
-            <div className="flex h-[300px] items-center justify-center bg-pink-soft">
-              <div className="text-center">
-                <MapPin className="mx-auto mb-2 text-berry" size={32} />
-                <p className="text-sm text-ink-soft">Map will appear here</p>
-              </div>
-            </div>
-          )}
-        </Card>
       </section>
     </div>
   );

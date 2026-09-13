@@ -30,6 +30,7 @@ interface Settings {
   address_city?: string | null;
   address_state?: string | null;
   global_notice_hours?: number | null;
+  preorder_notice_hours?: number | null;
   bulk_threshold?: number | null;
   bulk_notice_hours?: number | null;
   custom_cake_notice_days?: number | null;
@@ -76,6 +77,11 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
 
   const name = s.bakery_name?.trim() || "Savor by Dee";
   const notice = s.global_notice_hours ?? 2;
+  // The cancellation window per menu, read from the same settings the checkout
+  // enforces as notice — "cancel up to the notice period" was already the rule,
+  // it is just stated per menu now.
+  const dailyCancelHours = s.global_notice_hours ?? 2;
+  const preorderCancelHours = s.preorder_notice_hours ?? 24;
   const bulkQty = s.bulk_threshold ?? 10;
   const bulkNotice = s.bulk_notice_hours ?? 24;
   const customDays = s.custom_cake_notice_days ?? 5;
@@ -192,11 +198,23 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
               <Section title="Cancellations">
                 <p>
                   You may cancel for a full refund any time <strong>before baking has
-                  started</strong> — in practice, up to the notice period for your order
-                  ({notice} hours for standard items, {bulkNotice} hours for orders of{" "}
-                  {bulkQty} or more, up to {customDays} days for custom cakes). After that
-                  point ingredients have been bought and work has begun, and we cannot
-                  offer a refund.
+                  started</strong>. In practice that means:
+                </p>
+                <ul className="list-disc pl-5">
+                  <li>
+                    <strong>Today&rsquo;s Menu</strong> &mdash; up to{" "}
+                    <strong>{dailyCancelHours} hours</strong> before your collection or
+                    delivery time
+                  </li>
+                  <li>
+                    <strong>Preorder Menu</strong> &mdash; up to{" "}
+                    <strong>{preorderCancelHours} hours</strong> before your collection or
+                    delivery time
+                  </li>
+                </ul>
+                <p>
+                  After that point ingredients have been bought and work has begun, and
+                  we cannot offer a refund.
                 </p>
               </Section>
               <Section title="If something is wrong">
@@ -208,9 +226,13 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
               </Section>
               <Section title="How refunds are paid">
                 <p>
-                  Approved refunds are returned to the original payment method through
-                  Razorpay. Banks typically take <strong>5 to 7 working days</strong> to
-                  post the money back to your account. We cannot speed that step up.
+                  We pay approved refunds back to you <strong>directly by UPI</strong>,
+                  within <strong>3 working days</strong>. We will ask you for your UPI ID
+                  when we confirm the refund.
+                </p>
+                <p>
+                  Refunds are not sent back through Razorpay or to the card you paid with,
+                  whichever way you paid.
                 </p>
               </Section>
               <Section title="What we cannot refund">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { resolveCategoryParam } from "@/lib/menu/category-slug";
 import { Search } from "lucide-react";
 import { MenuItemCard } from "@/components/menu-item-card";
 import { ItemDetailModal } from "@/components/item-detail-modal";
@@ -17,6 +18,8 @@ interface MenuClientProps {
   categories: MenuCategory[];
   menuItems: MenuItemForCart[];
   tag?: string;
+  /** `?category=`, a slug or id. Unknown values show the whole menu. */
+  initialCategory?: string;
 }
 
 const tagTitles: Record<string, string> = {
@@ -26,9 +29,11 @@ const tagTitles: Record<string, string> = {
   bestseller: "Most Ordered",
 };
 
-export function MenuClient({ categories, menuItems, tag }: MenuClientProps) {
+export function MenuClient({ categories, menuItems, tag, initialCategory }: MenuClientProps) {
   const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeCategory, setActiveCategory] = useState(() =>
+    resolveCategoryParam(initialCategory, categories)
+  );
   const [selectedItem, setSelectedItem] = useState<MenuItemForCart | null>(null);
 
   const taggedItems = useMemo(() => {

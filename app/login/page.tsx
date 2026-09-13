@@ -170,7 +170,7 @@ function LoginForm() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+91 98365 37447"
+                placeholder="+91 98765 43210"
                 required
               />
             </>

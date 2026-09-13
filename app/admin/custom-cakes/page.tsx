@@ -17,7 +17,8 @@ interface Inquiry {
   id: string;
   customer_name: string;
   customer_phone: string;
-  customer_email: string;
+  /** No longer collected; only older enquiries have one. */
+  customer_email: string | null;
   cake_type: string;
   flavor: string | null;
   weight: string | null;
@@ -102,9 +103,11 @@ export default function AdminCustomCakesPage() {
               <div className="flex items-center gap-2 text-ink-soft">
                 <Phone size={14} /> {inquiry.customer_phone}
               </div>
-              <div className="flex items-center gap-2 text-ink-soft">
-                <Mail size={14} /> {inquiry.customer_email}
-              </div>
+              {inquiry.customer_email && (
+                <div className="flex items-center gap-2 text-ink-soft">
+                  <Mail size={14} /> {inquiry.customer_email}
+                </div>
+              )}
               {inquiry.requested_date && (
                 <div className="flex items-center gap-2 text-ink-soft">
                   <Calendar size={14} /> {formatIstDate(inquiry.requested_date)}
