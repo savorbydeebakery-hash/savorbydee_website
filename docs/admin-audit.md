@@ -2,6 +2,7 @@
 
 **Run:** 2026-08-31 · **All 6 findings fixed** (1-5 on 2026-09-01, 6 on 2026-09-02)
 **Second pass:** 2026-09-06 · **6 more found and fixed** (8-13, below)
+**Third pass:** 2026-09-14 · **live click-through as admin and staff; 4 more fixed, 2 upgrades** (14-17)
 **Asked for:** "check that everything is editable via admin and every function works"
 
 ## Scope and method
@@ -15,6 +16,55 @@ Two passes were planned. Only the first was completed.
   agent that wrote this cannot perform. `e2e/admin-alarm.spec.ts` covers the
   login and the order alarm on CI, where `ADMIN_EMAIL` / `ADMIN_PASSWORD` are
   set; the rest of the panel still needs a human pass.
+
+## Third pass, 2026-09-14: a live click-through, as admin and as staff
+
+The first two passes read the code. This one signed in — with a one-time link
+minted from the service key, so no password was handled — and used the panel.
+All 12 pages loaded with no console errors, and all 24 write paths were tested
+as the real admin and again as staff, each change restored immediately.
+
+Everything worked for admin. Staff could do every day-to-day task, and could not
+make themselves admin (403). What that turned up:
+
+### 14. The Orders page never showed what was ordered — fixed
+
+The order modal showed name, phone, slot and notes, but not the items, their
+weights and choices, or the total. Staff could only learn what to bake from the
+notification email. Verified on a real order: the database held a Chocolate
+Mousse Cake and eight buns; the modal showed none of it. Items and total now
+load when an order is opened.
+
+### 15. Status changes and delivery fees updated the screen whether or not they saved — fixed
+
+Both called a function returning success or failure and ignored it, updating the
+modal first. Staff could mark an order Ready and see it confirmed when the
+database had refused. Worse than silent. Both now change only once saved.
+
+### 16. Banners, Gallery and Custom Cakes ignored every error — fixed
+
+Eleven writes. Gallery was also deleting the image file even when deleting the
+row failed, leaving a live entry pointing at a missing picture, and let a photo
+used on a homepage card be deleted with no warning. Custom Cakes took quotes in
+paise ("150000 = ₹1500"), the same trap already fixed on menu prices.
+
+### 17. Staff could change where customers pay — fixed
+
+`settings_write_staff` let any staff account update every settings column,
+including `upi_id`. One staff login could send payments to another account.
+Row-level security cannot restrict columns, so migration 00040 adds a trigger
+refusing changes to the three payment fields by a signed-in non-admin. It
+compares old and new, because the Settings page saves the whole row: verified
+that staff can still save opening hours, and are refused the moment the UPI ID
+differs.
+
+### Upgrades added
+
+- **Menu Items search and filters** — by name, menu and category. It was 124
+  cards and nothing else.
+- **Today's Stock** (`/admin/stock`) — every daily item in one list, saved in a
+  single all-or-nothing call (migration 00041). A blank box is left alone rather
+  than untracked, so a stray backspace cannot make an item unlimited.
 
 ## Second pass, 2026-09-06: controls that exist and do not work
 

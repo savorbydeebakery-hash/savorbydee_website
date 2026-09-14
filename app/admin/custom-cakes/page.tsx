@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { describeWriteError } from "@/lib/admin/write-error";
+import { paiseToRupeeInput, rupeeInputToPaise } from "@/lib/admin/money";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +51,9 @@ export default function AdminCustomCakesPage() {
   const [quoteCents, setQuoteCents] = useState("");
   const [staffNotes, setStaffNotes] = useState("");
   const [newStatus, setNewStatus] = useState("");
+  // This page ignored the result of its only write, so a refused quote closed
+  // the modal and looked saved.
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchInquiries = useCallback(async () => {
     const { data } = await supabase.from("custom_cake_inquiries").select("*").order("created_at", { ascending: false });
@@ -63,18 +68,29 @@ export default function AdminCustomCakesPage() {
 
   const openEdit = (inquiry: Inquiry) => {
     setEditing(inquiry);
-    setQuoteCents(inquiry.quote_cents?.toString() ?? "");
+    // Shown in rupees. The box used to take paise — "150000 = ₹1500" — so
+    // typing the price you meant quoted the customer a hundredth of it.
+    setQuoteCents(paiseToRupeeInput(inquiry.quote_cents));
+    setSaveError(null);
     setStaffNotes(inquiry.staff_notes ?? "");
     setNewStatus(inquiry.status);
   };
 
   const handleSave = async () => {
     if (!editing) return;
-    await supabase.from("custom_cake_inquiries").update({
-      quote_cents: quoteCents ? parseInt(quoteCents) : null,
-      staff_notes: staffNotes,
-      status: newStatus,
-    }).eq("id", editing.id);
+    setSaveError(null);
+    const { error } = await supabase
+      .from("custom_cake_inquiries")
+      .update({
+        quote_cents: rupeeInputToPaise(quoteCents),
+        staff_notes: staffNotes,
+        status: newStatus,
+      })
+      .eq("id", editing.id);
+    if (error) {
+      setSaveError(describeWriteError(error, "this quote"));
+      return;
+    }
     setEditing(null);
     fetchInquiries();
   };
@@ -93,7 +109,9 @@ export default function AdminCustomCakesPage() {
                 <Cake className="text-lavender" size={20} />
                 <div>
                   <h3 className="font-semibold text-ink">{inquiry.customer_name}</h3>
-                  <p className="text-xs text-ink-faint">{inquiry.cake_type}</p>
+                  {inquiry.cake_type === "configured" && (
+                    <p className="text-xs text-ink-faint">From the menu options</p>
+                  )}
                 </div>
               </div>
               <Badge color={statusColors[inquiry.status] ?? "neutral"}>{inquiry.status}</Badge>
@@ -121,7 +139,7 @@ export default function AdminCustomCakesPage() {
             {inquiry.message_on_cake && <p className="text-sm text-ink-soft">Message: &ldquo;{inquiry.message_on_cake}&rdquo;</p>}
             {inquiry.description && <p className="text-sm text-ink-soft italic">&ldquo;{inquiry.description}&rdquo;</p>}
 
-            {inquiry.quote_cents && (
+            {inquiry.quote_cents != null && (
               <div className="rounded-lg bg-mint-soft p-2">
                 <span className="text-sm font-semibold text-mint">Quote: {formatPrice(inquiry.quote_cents)}</span>
               </div>
@@ -158,11 +176,13 @@ export default function AdminCustomCakesPage() {
             </Select>
 
             <Input
-              label="Quote Amount (in paise, e.g. 150000 = ₹1500)"
+              label="Quote (₹)"
               type="number"
+              step="1"
+              min={0}
               value={quoteCents}
               onChange={(e) => setQuoteCents(e.target.value)}
-              placeholder="150000"
+              placeholder="1500"
             />
 
             <Textarea
@@ -172,6 +192,10 @@ export default function AdminCustomCakesPage() {
               rows={3}
               placeholder="Internal notes about this inquiry..."
             />
+
+            {saveError && (
+              <p className="rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700">{saveError}</p>
+            )}
 
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
               <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>

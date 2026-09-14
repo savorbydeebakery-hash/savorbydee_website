@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,8 @@ import {
 } from "@/lib/admin/option-rows";
 import { resolveNotice, resolveBulk } from "@/lib/admin/effective-rules";
 import { describeWriteError } from "@/lib/admin/write-error";
-import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
+import { filterMenuItems, type MenuScope } from "@/lib/admin/menu-filter";
+import { Plus, Pencil, Trash2, X, Upload, Search } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,11 @@ export default function AdminMenuItemsPage() {
   const [uploading, setUploading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  // Search and filters. The page showed all 124 items as one grid, so finding
+  // one packet of cookies meant scrolling past every cake on the menu.
+  const [query, setQuery] = useState("");
+  const [categoryScope, setCategoryScope] = useState("all");
+  const [menuScope, setMenuScope] = useState<MenuScope>("all");
 
   const fetchData = useCallback(async () => {
     const [{ data: menuData }, { data: catData }, { data: settingsData }] = await Promise.all([
@@ -186,6 +192,11 @@ export default function AdminMenuItemsPage() {
     return result.url;
   };
 
+  const visibleItems = useMemo(
+    () => filterMenuItems(items, { query, category: categoryScope, menu: menuScope }),
+    [items, query, categoryScope, menuScope]
+  );
+
   if (loading) return <div className="text-center py-20 text-ink-soft">Loading...</div>;
 
   return (
@@ -201,8 +212,68 @@ export default function AdminMenuItemsPage() {
         <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{listError}</p>
       )}
 
+      <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-ink/10 bg-white p-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name or description"
+            aria-label="Search menu items"
+            className="w-full rounded-xl border border-ink/15 bg-white py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-pink focus:outline-none focus:ring-2 focus:ring-pink/20"
+          />
+        </div>
+        <select
+          value={menuScope}
+          onChange={(e) => setMenuScope(e.target.value as MenuScope)}
+          aria-label="Filter by menu"
+          className="rounded-xl border border-ink/15 bg-white px-3 py-2.5 text-sm text-ink focus:border-pink focus:outline-none"
+        >
+          <option value="all">Both menus</option>
+          <option value="daily">Today&apos;s Menu</option>
+          <option value="preorder">Preorder Menu</option>
+        </select>
+        <select
+          value={categoryScope}
+          onChange={(e) => setCategoryScope(e.target.value)}
+          aria-label="Filter by category"
+          className="rounded-xl border border-ink/15 bg-white px-3 py-2.5 text-sm text-ink focus:border-pink focus:outline-none"
+        >
+          <option value="all">All categories</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+          <option value="none">Uncategorized</option>
+        </select>
+      </div>
+
+      <p className="mb-3 text-xs text-ink-faint" aria-live="polite">
+        {visibleItems.length === items.length
+          ? `${items.length} items`
+          : `Showing ${visibleItems.length} of ${items.length} items`}
+      </p>
+
+      {visibleItems.length === 0 && (
+        <Card className="py-12 text-center">
+          <p className="text-sm text-ink-soft">No items match. Try a different search or filter.</p>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="mt-3"
+            onClick={() => { setQuery(""); setCategoryScope("all"); setMenuScope("all"); }}
+          >
+            Clear filters
+          </Button>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) => (
+        {visibleItems.map((item) => (
           <Card key={item.id} className="flex flex-col gap-3">
             {item.image_url && (
               <div className="aspect-[4/3] overflow-hidden rounded-xl bg-pink-soft">

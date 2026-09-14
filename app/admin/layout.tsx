@@ -20,11 +20,14 @@ import {
   X,
   Star,
   Camera,
+  ClipboardList,
 } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: Package },
+  // Straight after Orders: it is the other thing touched every morning.
+  { href: "/admin/stock", label: "Today's Stock", icon: ClipboardList },
   { href: "/admin/menu-items", label: "Menu Items", icon: Tag },
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/banners", label: "Promo Banners", icon: Megaphone },

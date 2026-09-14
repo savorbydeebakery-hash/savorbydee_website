@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { describeSelections } from "@/lib/orders/line-summary";
+import { describeWriteError } from "@/lib/admin/write-error";
 import { useOrdersRealtime } from "@/lib/realtime/use-orders-realtime";
 import { useAlarmClient } from "@/lib/alarm/alarm-client";
 import { Card } from "@/components/ui/card";
@@ -41,6 +44,21 @@ const statusColors: Record<string, "pink" | "mint" | "lavender" | "peach" | "sky
   cancelled: "neutral",
 };
 
+interface OrderLine {
+  id: string;
+  name: string;
+  quantity: number;
+  selections: unknown;
+  unit_price_cents: number;
+  line_total_cents: number;
+}
+
+/** "in_progress" -> "In progress". Staff were shown the raw database value. */
+function statusLabel(status: string): string {
+  const spaced = status.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 export default function AdminOrdersPage() {
   const { orders, connected, acknowledgeOrder, updateOrderStatus, setDeliveryFee } = useOrdersRealtime();
   useAlarmClient();
@@ -49,6 +67,14 @@ export default function AdminOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  // What was actually ordered. Loaded when an order is opened: the list is a
+  // realtime subscription on `orders` alone, and joining items into it would
+  // resend every line of every order on each status change.
+  const [lines, setLines] = useState<OrderLine[]>([]);
+  const [linesState, setLinesState] = useState<"idle" | "loading" | "error">("idle");
+  // A save that was refused. The status buttons and fee box used to update the
+  // screen whether or not the database accepted the change.
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const unacknowledgedCount = orders.filter((o) => !o.acknowledged_at).length;
 
@@ -68,20 +94,52 @@ export default function AdminOrdersPage() {
   }, [orders, filterStatus, searchQuery]);
 
   const handleAcknowledge = async (orderId: string) => {
+    setActionError(null);
     const success = await acknowledgeOrder(orderId);
     if (success) {
       window.dispatchEvent(new CustomEvent("savor-order-acknowledged"));
+    } else {
+      setActionError("Could not acknowledge this order. Reload the page and try again.");
     }
   };
 
+  /**
+   * Only moves the order on screen once the database has accepted it. This
+   * used to update the modal unconditionally and ignore the result, so a
+   * refused change (an expired session, a dropped connection) still showed
+   * the new status, and staff could believe an order was marked Ready when it
+   * was not.
+   */
   const handleStatusChange = async (orderId: string, newStatus: string) => {
-    await updateOrderStatus(orderId, newStatus);
+    setActionError(null);
+    const success = await updateOrderStatus(orderId, newStatus);
+    if (!success) {
+      setActionError(`Could not change the status to "${statusLabel(newStatus)}". Nothing was saved.`);
+      return;
+    }
     setSelectedOrder((prev) => (prev?.id === orderId ? { ...prev, status: newStatus } : prev));
   };
 
-  const openDetail = (order: OrderRow) => {
+  const openDetail = async (order: OrderRow) => {
     setSelectedOrder(order);
     setDetailOpen(true);
+    setActionError(null);
+    setLines([]);
+    setLinesState("loading");
+
+    const { data, error } = await createClient()
+      .from("order_items")
+      .select("id, name, quantity, selections, unit_price_cents, line_total_cents")
+      .eq("order_id", order.id)
+      .order("id");
+
+    if (error) {
+      setLinesState("error");
+      setActionError(describeWriteError(error, "the items on this order"));
+      return;
+    }
+    setLines((data as OrderLine[]) ?? []);
+    setLinesState("idle");
   };
 
   return (
@@ -184,7 +242,7 @@ export default function AdminOrdersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge color={statusColors[order.status] ?? "neutral"}>
-                      {order.status}
+                      {statusLabel(order.status)}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
@@ -225,7 +283,7 @@ export default function AdminOrdersPage() {
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
                 <Badge color={statusColors[selectedOrder.status] ?? "neutral"}>
-                  {selectedOrder.status}
+                  {statusLabel(selectedOrder.status)}
                 </Badge>
                 <Badge color={selectedOrder.payment_status === "paid" ? "mint" : "yellow"}>
                   {selectedOrder.payment_status}
@@ -246,6 +304,49 @@ export default function AdminOrdersPage() {
               )}
             </div>
 
+            {actionError && (
+              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{actionError}</p>
+            )}
+
+            {/* What to bake. This panel did not exist: the modal showed who and
+                when, and staff had to find the notification email to learn
+                what the order actually was. */}
+            <Card>
+              <h3 className="font-semibold text-ink mb-3">Items</h3>
+              {linesState === "loading" ? (
+                <p className="text-sm text-ink-soft">Loading items…</p>
+              ) : linesState === "error" ? (
+                <p className="text-sm text-red-700">The items could not be loaded.</p>
+              ) : lines.length === 0 ? (
+                <p className="text-sm text-ink-soft">This order has no items recorded.</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {lines.map((line) => {
+                    const detail = describeSelections(line.selections);
+                    return (
+                      <div key={line.id} className="flex items-start justify-between gap-3 text-sm">
+                        <div>
+                          <p className="font-medium text-ink">
+                            <span className="tabular-nums">{line.quantity}×</span> {line.name}
+                          </p>
+                          {detail && <p className="mt-0.5 text-xs text-ink-soft">{detail}</p>}
+                        </div>
+                        <span className="shrink-0 tabular-nums text-ink">
+                          {formatPrice(line.line_total_cents)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center justify-between border-t border-ink/10 pt-3 text-sm">
+                    <span className="font-semibold text-ink">Total</span>
+                    <span className="font-bold tabular-nums text-gold-deep">
+                      {formatPrice(selectedOrder.total_cents)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </Card>
+
             {/* Customer info */}
             <Card>
               <h3 className="font-semibold text-ink mb-3">Customer</h3>
@@ -260,12 +361,16 @@ export default function AdminOrdersPage() {
                     {selectedOrder.guest_phone}
                   </a>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="text-ink-faint" size={16} />
-                  <a href={`mailto:${selectedOrder.guest_email}`} className="text-ink hover:text-pink">
-                    {selectedOrder.guest_email}
-                  </a>
-                </div>
+                {/* Email is no longer collected, so this only appears on older
+                    orders. Unconditional, it rendered a blank mailto: link. */}
+                {selectedOrder.guest_email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="text-ink-faint" size={16} />
+                    <a href={`mailto:${selectedOrder.guest_email}`} className="text-ink hover:text-pink">
+                      {selectedOrder.guest_email}
+                    </a>
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -330,7 +435,12 @@ export default function AdminOrdersPage() {
                       // a different state from a free delivery of zero.
                       const cents = raw === "" ? null : Math.round(parseFloat(raw) * 100);
                       if (cents !== null && (Number.isNaN(cents) || cents < 0)) return;
-                      await setDeliveryFee(selectedOrder.id, cents);
+                      setActionError(null);
+                      const saved = await setDeliveryFee(selectedOrder.id, cents);
+                      if (!saved) {
+                        setActionError("Could not save the delivery charge. Nothing was changed.");
+                        return;
+                      }
                       setSelectedOrder((prev) =>
                         prev && prev.id === selectedOrder.id
                           ? { ...prev, delivery_fee_cents: cents }
@@ -364,7 +474,7 @@ export default function AdminOrdersPage() {
                         : "border-ink/15 bg-white text-ink-soft hover:border-pink"
                     }`}
                   >
-                    {s.charAt(0).toUpperCase() + s.slice(1)}
+                    {statusLabel(s)}
                   </button>
                 ))}
                 <button

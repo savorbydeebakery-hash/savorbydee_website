@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { uploadFile } from "@/lib/storage/upload-helper";
 import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
 import { instantToIstInput, istInputToInstant } from "@/lib/time/ist";
+import { describeWriteError } from "@/lib/admin/write-error";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,11 @@ export default function AdminBannersPage() {
   const [editing, setEditing] = useState<Banner | null>(null);
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // Every write on this page used to ignore its result. supabase-js does not
+  // throw on a database error, so a refused save closed the modal, refetched,
+  // and showed the old banner with nothing to explain why.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const fetchBanners = useCallback(async () => {
     const { data } = await supabase.from("promo_banners").select("*").order("sort_order");
@@ -48,10 +54,14 @@ export default function AdminBannersPage() {
   }, [fetchBanners]);
 
   const handleSave = async (banner: Partial<Banner>) => {
-    if (banner.id) {
-      await supabase.from("promo_banners").update(banner).eq("id", banner.id);
-    } else {
-      await supabase.from("promo_banners").insert(banner);
+    setSaveError(null);
+    const { error } = banner.id
+      ? await supabase.from("promo_banners").update(banner).eq("id", banner.id)
+      : await supabase.from("promo_banners").insert(banner);
+    if (error) {
+      // The form stays open so the banner is not lost on the way out.
+      setSaveError(describeWriteError(error, "this banner"));
+      return;
     }
     setEditing(null);
     setCreating(false);
@@ -60,12 +70,25 @@ export default function AdminBannersPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this banner?")) return;
-    await supabase.from("promo_banners").delete().eq("id", id);
+    setListError(null);
+    const { error } = await supabase.from("promo_banners").delete().eq("id", id);
+    if (error) {
+      setListError(describeWriteError(error, "this banner"));
+      return;
+    }
     fetchBanners();
   };
 
   const toggleActive = async (banner: Banner) => {
-    await supabase.from("promo_banners").update({ is_active: !banner.is_active }).eq("id", banner.id);
+    setListError(null);
+    const { error } = await supabase
+      .from("promo_banners")
+      .update({ is_active: !banner.is_active })
+      .eq("id", banner.id);
+    if (error) {
+      setListError(describeWriteError(error, "that change"));
+      return;
+    }
     fetchBanners();
   };
 
@@ -86,6 +109,10 @@ export default function AdminBannersPage() {
           <Plus size={18} /> Add Banner
         </Button>
       </div>
+
+      {listError && (
+        <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{listError}</p>
+      )}
 
       <div className="flex flex-col gap-3">
         {banners.map((banner) => (
@@ -126,7 +153,8 @@ export default function AdminBannersPage() {
         <BannerForm
           banner={editing}
           onSave={handleSave}
-          onClose={() => { setEditing(null); setCreating(false); }}
+          saveError={saveError}
+          onClose={() => { setEditing(null); setCreating(false); setSaveError(null); }}
           uploading={uploading}
           onUpload={handleUpload}
         />
@@ -138,12 +166,14 @@ export default function AdminBannersPage() {
 function BannerForm({
   banner,
   onSave,
+  saveError,
   onClose,
   uploading,
   onUpload,
 }: {
   banner: Banner | null;
   onSave: (banner: Partial<Banner>) => void;
+  saveError: string | null;
   onClose: () => void;
   uploading: boolean;
   onUpload: (file: File) => Promise<string | null>;
@@ -227,6 +257,11 @@ function BannerForm({
         </label>
 
         <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
+          {saveError && (
+            <p className="mr-auto self-center rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700">
+              {saveError}
+            </p>
+          )}
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary">Save</Button>
         </div>

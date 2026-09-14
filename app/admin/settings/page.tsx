@@ -72,10 +72,25 @@ export default function AdminSettingsPage() {
   const [heroUploading, setHeroUploading] = useState(false);
   const [heroStaged, setHeroStaged] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Payment settings are admin-only, enforced by a database trigger (migration
+  // 00040). This only decides whether staff are shown controls that would be
+  // refused — the trigger is the lock, not this.
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const fetchSettings = useCallback(async () => {
-    const { data } = await supabase.from("site_settings").select("*").eq("id", 1).single();
+    const [{ data }, { data: auth }] = await Promise.all([
+      supabase.from("site_settings").select("*").eq("id", 1).single(),
+      supabase.auth.getUser(),
+    ]);
     setSettings(data as SiteSettings);
+    if (auth.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", auth.user.id)
+        .maybeSingle();
+      setIsAdmin(profile?.role === "admin");
+    }
     setLoading(false);
   }, [supabase]);
 
@@ -265,7 +280,8 @@ export default function AdminSettingsPage() {
             <Input label="City" value={settings.address_city ?? ""} onChange={(e) => update("address_city", e.target.value)} />
             <Input label="State" value={settings.address_state ?? ""} onChange={(e) => update("address_state", e.target.value)} />
           </div>
-          <Textarea label="Google Maps Embed URL" value={settings.google_maps_embed_url ?? ""} onChange={(e) => update("google_maps_embed_url", e.target.value)} rows={2} />
+          {/* The embed box is gone: the About page map was removed, so nothing
+              read it and the field saved into nothing. Directions still works. */}
           <Input label="Google Maps Directions URL" value={settings.google_maps_directions_url ?? ""} onChange={(e) => update("google_maps_directions_url", e.target.value)} />
         </Card>
       )}
@@ -400,15 +416,24 @@ export default function AdminSettingsPage() {
       {/* Payment */}
       {activeTab === "payment" && (
         <Card className="flex flex-col gap-4">
+          {!isAdmin && (
+            <div className="rounded-xl bg-pink-soft/60 p-3">
+              <p className="text-sm text-ink">
+                <strong>Only an admin can change payment settings.</strong> The UPI ID
+                is the account customers pay into, so it is locked to admins. You can
+                see the current values here; ask an admin if they need changing.
+              </p>
+            </div>
+          )}
           <label className="flex items-center gap-2 text-sm font-medium text-ink">
-            <input type="checkbox" checked={settings.razorpay_active} onChange={(e) => update("razorpay_active", e.target.checked)} />
+            <input type="checkbox" disabled={!isAdmin} checked={settings.razorpay_active} onChange={(e) => update("razorpay_active", e.target.checked)} />
             Enable Razorpay
           </label>
           <label className="flex items-center gap-2 text-sm font-medium text-ink">
-            <input type="checkbox" checked={settings.kyc_pending_mode} onChange={(e) => update("kyc_pending_mode", e.target.checked)} />
+            <input type="checkbox" disabled={!isAdmin} checked={settings.kyc_pending_mode} onChange={(e) => update("kyc_pending_mode", e.target.checked)} />
             KYC Pending Mode (show UPI fallback)
           </label>
-          <Input label="UPI ID" value={settings.upi_id ?? ""} onChange={(e) => update("upi_id", e.target.value)} placeholder="savorbakery@upi" />
+          <Input label="UPI ID" disabled={!isAdmin} value={settings.upi_id ?? ""} onChange={(e) => update("upi_id", e.target.value)} placeholder="savorbakery@upi" />
           <div className="rounded-xl bg-yellow-soft/50 p-3">
             <p className="text-sm text-ink-soft">Razorpay keys are set via environment variables (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET), not stored in the database.</p>
           </div>
