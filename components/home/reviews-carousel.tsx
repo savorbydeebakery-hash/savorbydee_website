@@ -8,7 +8,10 @@ export interface Review {
   author_name: string;
   body: string;
   item_name?: string | null;
-  rating: number;
+  /** Null when the customer's own stars are not known, e.g. a quote copied
+   *  from a platform screenshot that cut them off. No star row is drawn then,
+   *  rather than five stars nobody gave. */
+  rating: number | null;
 }
 
 const INTERVAL_MS = 5000;
@@ -35,10 +38,13 @@ export function ReviewsCarousel({
   title = "What Customers Say",
   /** Headline rating shown beside the title, e.g. 4.6. */
   rating,
+  /** Where the headline rating comes from, e.g. "Google (37) · Swiggy (847)". */
+  ratingSource,
 }: {
   reviews: Review[];
   title?: string;
   rating?: number;
+  ratingSource?: string;
 }) {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -90,7 +96,7 @@ export function ReviewsCarousel({
   // client asked for the two to be closer. Desktop keeps its full rhythm.
   return (
     <section className="mx-auto mt-4 w-full max-w-[var(--bk-page-width)] px-4 md:mt-14 md:px-6">
-      <div className="mb-3 flex items-baseline gap-2.5 md:mb-5">
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 md:mb-5">
         <h2 className="bk-section-title text-bk-fg">{title}</h2>
         {rating != null && (
           <span className="inline-flex items-baseline gap-1 text-sm font-medium text-bk-fg md:text-base">
@@ -103,6 +109,9 @@ export function ReviewsCarousel({
             />
             <span className="sr-only">out of 5</span>
           </span>
+        )}
+        {ratingSource && (
+          <span className="text-xs text-bk-muted md:text-sm">{ratingSource}</span>
         )}
       </div>
 
@@ -132,19 +141,21 @@ export function ReviewsCarousel({
               aria-hidden={i !== index}
               className="w-full shrink-0 px-6 py-10 text-center md:px-16 md:py-14"
             >
-              <div
-                className="mb-4 flex items-center justify-center gap-1 text-bk-pink"
-                aria-hidden="true"
-              >
-                {Array.from({ length: 5 }, (_, s) => (
-                  <Star
-                    key={s}
-                    size={18}
-                    fill={s < r.rating ? "currentColor" : "none"}
-                    className={s < r.rating ? "" : "opacity-30"}
-                  />
-                ))}
-              </div>
+              {r.rating != null && (
+                <div
+                  className="mb-4 flex items-center justify-center gap-1 text-bk-pink"
+                  aria-hidden="true"
+                >
+                  {Array.from({ length: 5 }, (_, s) => (
+                    <Star
+                      key={s}
+                      size={18}
+                      fill={s < (r.rating ?? 0) ? "currentColor" : "none"}
+                      className={s < (r.rating ?? 0) ? "" : "opacity-30"}
+                    />
+                  ))}
+                </div>
+              )}
 
               <blockquote className="mx-auto max-w-2xl text-lg leading-relaxed text-bk-fg md:text-xl">
                 {r.body}
@@ -152,7 +163,9 @@ export function ReviewsCarousel({
 
               <figcaption className="mt-5 text-sm">
                 <span className="font-semibold text-bk-fg">{r.author_name}</span>
-                <span className="sr-only">, rated {r.rating} out of 5</span>
+                {r.rating != null && (
+                  <span className="sr-only">, rated {r.rating} out of 5</span>
+                )}
                 {r.item_name && (
                   <span className="block text-bk-muted">{r.item_name}</span>
                 )}

@@ -156,6 +156,7 @@ export default async function HomePage() {
         reviews={reviews ?? []}
         title="Indulgence Approved"
         rating={4.6}
+        ratingSource="Google (37) · Swiggy (847)"
       />
 
       {/* 3. The two menus, as two big photographs. This replaced a tab strip

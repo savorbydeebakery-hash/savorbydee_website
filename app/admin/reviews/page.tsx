@@ -15,13 +15,15 @@ interface Review {
   author_name: string;
   body: string;
   item_name: string | null;
-  rating: number;
+  /** Null = no star rating given; no star row is shown for it. */
+  rating: number | null;
   is_active: boolean;
   sort_order: number;
 }
 
 /** A new row starts here; `id` is assigned by the database on insert. */
-const BLANK = { author_name: "", body: "", item_name: "", rating: 5 };
+const BLANK: { author_name: string; body: string; item_name: string; rating: number | null } =
+  { author_name: "", body: "", item_name: "", rating: 5 };
 
 export default function AdminReviewsPage() {
   const supabase = createClient();
@@ -160,16 +162,20 @@ export default function AdminReviewsPage() {
           <Card key={r.id} className={`p-4 ${r.is_active ? "" : "opacity-50"}`}>
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <div className="mb-1 flex items-center gap-1 text-gold-deep">
-                  {Array.from({ length: 5 }, (_, i) => (
-                    <Star
-                      key={i}
-                      size={14}
-                      fill={i < r.rating ? "currentColor" : "none"}
-                      className={i < r.rating ? "" : "opacity-30"}
-                    />
-                  ))}
-                </div>
+                {r.rating != null ? (
+                  <div className="mb-1 flex items-center gap-1 text-gold-deep">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        size={14}
+                        fill={i < (r.rating ?? 0) ? "currentColor" : "none"}
+                        className={i < (r.rating ?? 0) ? "" : "opacity-30"}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mb-1 text-xs text-ink-faint">No star rating</p>
+                )}
                 <p className="text-sm text-ink">{r.body}</p>
                 <p className="mt-1 text-xs text-ink-soft">
                   {r.author_name}
@@ -227,13 +233,18 @@ export default function AdminReviewsPage() {
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-ink">Rating</span>
               <select
-                value={draft.rating}
-                onChange={(e) => setDraft({ ...draft, rating: parseInt(e.target.value) })}
+                value={draft.rating ?? ""}
+                onChange={(e) =>
+                  setDraft({ ...draft, rating: e.target.value ? parseInt(e.target.value) : null })
+                }
                 className="rounded-xl border border-ink/15 bg-porcelain px-3 py-2.5 text-sm text-ink"
               >
                 {[5, 4, 3, 2, 1].map((n) => (
                   <option key={n} value={n}>{n} star{n === 1 ? "" : "s"}</option>
                 ))}
+                {/* For a quote whose stars are not known. Picking 5 instead
+                    would publish a rating the customer never gave. */}
+                <option value="">No star rating</option>
               </select>
             </label>
 
