@@ -86,7 +86,8 @@ export default async function HomePage() {
       .select("id, author_name, body, item_name, rating")
       .eq("is_active", true)
       .order("sort_order")
-      .limit(12),
+      // 20, not 12: the client sent 15 real reviews and every one should show.
+      .limit(20),
     supabase
       .from("menu_items")
       .select(SELECT_FIELDS)
