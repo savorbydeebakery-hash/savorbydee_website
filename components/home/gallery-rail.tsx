@@ -1,7 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap } from "@/lib/motion/gsap";
+import { getScrollVelocity } from "@/lib/motion/scroll-velocity";
 import { SectionHead } from "@/components/home/section-head";
 
 interface GalleryPhoto {
@@ -49,6 +52,56 @@ export function GalleryRail({
   handle?: string;
 }) {
   const [ratios, setRatios] = useState<Record<string, number>>({});
+  const rail = useRef<HTMLDivElement>(null);
+
+  /**
+   * The rail leans into the scroll.
+   *
+   * Scroll speed, not scroll position: the strip already travels on its own,
+   * so tying it to position would only fight the marquee. Leaning it by
+   * velocity means the gallery reacts to how the visitor is moving — a flick
+   * down tilts and stretches it, and it settles back the moment they stop.
+   * That is the whole of "alive while scrolling" in one gesture, and it costs
+   * two compositor properties on one element.
+   *
+   * The skew goes on the WRAPPER, never the track: the track's transform is
+   * the CSS marquee's, and a second writer on that property would stutter it.
+   *
+   * Reduced motion gets nothing, twice over — this block is inside matchMedia,
+   * and the velocity source is zero unless Lenis is running, which it is not
+   * for those visitors.
+   */
+  useGSAP(
+    () => {
+      const el = rail.current;
+      if (!el) return;
+
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const setSkew = gsap.quickSetter(el, "skewY", "deg");
+        const setScale = gsap.quickSetter(el, "scaleX");
+        let eased = 0;
+
+        const tick = () => {
+          // Lerped rather than applied raw: the raw signal is per-frame and
+          // jittery, and the lag is what makes it read as weight.
+          eased += (getScrollVelocity() - eased) * 0.08;
+          const clamped = gsap.utils.clamp(-18, 18, eased);
+          setSkew(clamped * 0.09);
+          setScale(1 + Math.abs(clamped) * 0.0016);
+        };
+
+        gsap.ticker.add(tick);
+        return () => {
+          gsap.ticker.remove(tick);
+          gsap.set(el, { clearProps: "transform" });
+        };
+      });
+
+      return () => mm.revert();
+    },
+    { scope: rail }
+  );
 
   const measure = useCallback((url: string, w: number, h: number) => {
     if (!w || !h) return;
@@ -72,6 +125,7 @@ export function GalleryRail({
           a11y tree wholesale and the real, ordered, keyboard-reachable gallery
           lives at /gallery — which the section header links to. */}
       <div
+        ref={rail}
         className="relative overflow-hidden"
         aria-label="Photographs from the bakery"
       >

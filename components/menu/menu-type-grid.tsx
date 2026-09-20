@@ -86,6 +86,23 @@ export function MenuTypeGrid({
       nav?.addEventListener("pointerdown", noteSwipe);
       nav?.addEventListener("wheel", noteSwipe, { passive: true });
 
+      // Placing the pill is separate from choosing the section, because the
+      // pill can go stale without the section changing: a webfont swapping in
+      // after first paint changes every chip's width. pick() used to return
+      // early on "same section" before it ever got here, so ScrollTrigger's
+      // onRefresh could not put it right.
+      const placePill = (id: string, animate: boolean) => {
+        const chip = el.querySelector<HTMLElement>(`[data-chip="${id}"]`);
+        if (!chip || !pill.current) return;
+        gsap.to(pill.current, {
+          x: chip.offsetLeft,
+          width: chip.offsetWidth,
+          autoAlpha: 1,
+          duration: animate && smooth ? 0.45 : 0,
+          ease: "power3.out",
+        });
+      };
+
       const pick = () => {
         const band = window.innerHeight * 0.45;
         // The last section whose top has passed the band is the one being
@@ -94,27 +111,21 @@ export function MenuTypeGrid({
         for (const section of sections) {
           if (section.getBoundingClientRect().top <= band) found = section;
         }
-        if (found.id === currentId) return;
-        const first = currentId === null;
-        currentId = found.id;
-        setActiveId(found.id);
-
-        const chip = el.querySelector<HTMLElement>(`[data-chip="${found.id}"]`);
-
         // The maroon pill slides from the chip you were on to the one you are
         // on, so the row reads as one indicator moving rather than two chips
         // changing colour. It is a plain absolutely-positioned span: no Flip
         // plugin, and nothing to lay out if GSAP never runs — the chip also
         // carries its own [aria-current] styling underneath.
-        if (chip && pill.current) {
-          gsap.to(pill.current, {
-            x: chip.offsetLeft,
-            width: chip.offsetWidth,
-            autoAlpha: 1,
-            duration: first || !smooth ? 0 : 0.45,
-            ease: "power3.out",
-          });
+        if (found.id === currentId) {
+          placePill(found.id, false); // keeps it true after a reflow
+          return;
         }
+        const first = currentId === null;
+        currentId = found.id;
+        setActiveId(found.id);
+        placePill(found.id, !first);
+
+        const chip = el.querySelector<HTMLElement>(`[data-chip="${found.id}"]`);
         const scroller = chip?.closest<HTMLElement>("nav");
         if (!chip || !scroller) return;
         if (Date.now() - swipedAt < 2000) return;

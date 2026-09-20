@@ -160,16 +160,33 @@ export function RevealGroup({
           opacity: 0,
           duration: 0.9,
           ease: EASE,
-          stagger,
+          // Same reason as Reveal: a bare gsap.from writes its hidden start
+          // state at once, so /menu opened with all 79 cards at opacity 0 and
+          // only a firing trigger brought them back. This is the one that
+          // matters most — it is the catalogue.
+          immediateRender: false,
+          // Capped total, not a fixed per-item delay. At 0.08s each, 79 cards
+          // took 6.3 seconds to finish arriving; the last rows were still
+          // fading in long after the reader had scrolled past them.
+          stagger: { each: stagger, amount: Math.min(items.length * stagger, 0.9) },
           scrollTrigger: { trigger: el, start: REVEAL_START, once: true },
+          // Nothing of the 3D start state is left on the card afterwards: a
+          // lingering transform makes every card a containing block, which is
+          // the trap documented in components/ui/modal.tsx.
+          clearProps: "transform,opacity",
         });
 
         // Then a light scroll-linked drift so the grid keeps moving after it
         // has arrived, instead of freezing the moment it lands.
+        //
+        // On yPercent, not y: the entry tween above also animates y on these
+        // same nodes, and two tweens writing one property fight for the last
+        // word every tick — the drift captured its start value mid-entry and
+        // the entry landed wherever the scrub had got to.
         items.forEach((item, i) => {
           const depth = 0.25 + ((i % 3) * 0.18);
           gsap.to(item, {
-            y: -26 * depth,
+            yPercent: -6 * depth,
             ease: "none",
             scrollTrigger: {
               trigger: el,

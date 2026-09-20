@@ -107,6 +107,27 @@ test.describe("reduced motion", () => {
   });
 });
 
+test.describe("the catalogue is never hidden by its own animation", () => {
+  // /menu shipped with all 79 product cards at opacity 0 once: RevealGroup
+  // kept the immediateRender default, so the hidden start state was painted
+  // at load and only a firing trigger undid it. This is that page.
+  test("every card on the preorder menu is visible at the top of the page", async ({ page }) => {
+    await page.goto("/menu");
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(800);
+
+    const hidden = await page.evaluate(
+      () =>
+        [...document.querySelectorAll(".kinetic-reveal-item")].filter(
+          (el) => getComputedStyle(el).opacity === "0"
+        ).length
+    );
+    const total = await page.locator(".kinetic-reveal-item").count();
+    expect(total).toBeGreaterThan(20);
+    expect(hidden, `${hidden} of ${total} cards invisible at scroll 0`).toBe(0);
+  });
+});
+
 test.describe("motion leaves no trace on the layout", () => {
   test("reveal wrappers clear their transform once they have arrived", async ({ page }) => {
     await page.goto("/");

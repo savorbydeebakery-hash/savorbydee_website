@@ -848,3 +848,49 @@ body {
     animation: cake-loader-message-in 0.6s var(--ease-out) 2.5s forwards;
   }
 }
+
+/* ---------- Splash curtain ----------
+   The opening screen leaves by lifting, not by dissolving. Opacity is the
+   fallback everywhere: if the transform is ignored the overlay still goes. */
+.splash-curtain {
+  transition: transform 700ms cubic-bezier(0.76, 0, 0.24, 1), opacity 700ms ease;
+}
+
+.splash-curtain-lifting {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+.splash-wordmark {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes splash-wordmark-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .splash-wordmark {
+    animation: splash-wordmark-in 0.7s var(--ease-out) 0.25s forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No lift for a visitor who asked for less motion: it fades, fast. The
+     global reduced-motion rule already collapses the transition duration, so
+     this only has to make sure the name is readable while it is up. */
+  .splash-wordmark {
+    opacity: 1;
+  }
+
+  .splash-curtain-lifting {
+    transform: none;
+  }
+}

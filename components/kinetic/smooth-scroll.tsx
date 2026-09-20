@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
+import { setScrollVelocity } from "@/lib/motion/scroll-velocity";
 
 /**
  * Lenis smooth scrolling, driven by GSAP's ticker.
@@ -45,22 +46,40 @@ export function SmoothScroll() {
     const start = async () => {
       if (query.matches || stop) return;
       const { default: Lenis } = await import("lenis");
+      // Lenis ships a stylesheet whose main job is `html.lenis { height: auto }`.
+      // This layout puts h-full on <html>, which pins it to the viewport
+      // height — exactly the case that rule exists for.
+      await import("lenis/dist/lenis.css");
 
       const lenis = new Lenis({
         // Long enough to feel eased, short enough that a flick still lands
         // where the reader expects. Beyond ~1.2 it reads as fighting them.
         duration: 0.9,
         autoRaf: false,
-        prevent: (node) => Boolean(node.closest?.('[role="dialog"]')),
+        // Keeps Lenis's own opt-out attributes working. Passing a function
+        // REPLACES the built-in prevent rather than adding to it, so dropping
+        // data-lenis-prevent here would quietly disarm the escape hatch the
+        // next scrollable overlay reaches for.
+        prevent: (node) =>
+          Boolean(
+            node.closest?.('[role="dialog"]') ||
+              node.closest?.("[data-lenis-prevent]") ||
+              node.closest?.("[data-lenis-prevent-wheel]") ||
+              node.closest?.("[data-lenis-prevent-touch]")
+          ),
       });
 
       const raf = (time: number) => lenis.raf(time * 1000);
       lenis.on("scroll", ScrollTrigger.update);
+      // Published for anything that wants to react to scroll speed rather than
+      // scroll position — see lib/motion/scroll-velocity.ts.
+      lenis.on("scroll", ({ velocity }: { velocity: number }) => setScrollVelocity(velocity));
       gsap.ticker.add(raf);
       gsap.ticker.lagSmoothing(0);
       ScrollTrigger.refresh();
 
       stop = () => {
+        setScrollVelocity(0);
         gsap.ticker.remove(raf);
         gsap.ticker.lagSmoothing(500, 33); // GSAP's own defaults
         lenis.destroy();

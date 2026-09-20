@@ -20,36 +20,47 @@ import { gsap } from "@/lib/motion/gsap";
  * clears itself on completion. Every failure path ends with a plain, visible
  * heading.
  *
- * Reduced motion gets nothing at all: this runs inside matchMedia, so those
- * headings are simply there.
+ * WHY AN OBSERVER AND NOT A SWEEP
+ * Two attempts at "sweep the document once" failed, and the second is the
+ * instructive one:
+ *   - keyed on nothing, the sweep ran once per hard load, so every client
+ *     navigation in this App Router app got no animation at all;
+ *   - keyed on the pathname, it ran at navigation time — while the route's
+ *     loading.tsx was still on screen. That fallback has no headings, so the
+ *     sweep found zero and never looked again once the real page streamed in.
+ * A MutationObserver has no such timing to get right: a heading is animated
+ * when it appears, whenever that is, including inside a Suspense boundary that
+ * resolves seconds later.
  *
  * WHY ONLY HEADINGS BELOW THE FOLD
- * This lives in the root layout, whose effects can run before a streamed page
- * has hydrated. A ScrollTrigger whose start point has already been passed
- * fires the moment it is created, so a heading in view got inline styles
- * written onto it while React was still hydrating that <h1> — a real
- * mismatch, logged on every page load.
+ * A ScrollTrigger whose start point has already been passed fires the moment
+ * it is created, so a heading in view would get inline styles written onto it
+ * while React was still hydrating that <h1> — a real mismatch, logged on every
+ * page load. Animating only what is still below the fold removes that race by
+ * construction, and is the right call visually anyway: a heading already on
+ * screen has not "arrived", and wiping it in after the fact reads as a page
+ * still loading.
  *
- * Animating only what is still below the fold removes the race by
- * construction: those tweens cannot write anything until the visitor scrolls,
- * which is long after hydration. It also happens to be the right call
- * visually. A heading already on screen when the page opens has not "arrived"
- * — wiping it in after the fact is the kind of motion that makes a page feel
- * like it is still loading.
+ * Reduced motion gets nothing at all: this runs inside matchMedia, so those
+ * headings are simply there.
  */
 export function TitleReveal() {
   useGSAP(() => {
     const mm = gsap.matchMedia();
-    let cancelled = false;
 
-    const setup = () => {
-      if (cancelled) return;
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        const titles = gsap.utils
-          .toArray<HTMLElement>(".bk-section-title")
-          .filter((title) => title.getBoundingClientRect().top > window.innerHeight);
+    mm.add("(prefers-reduced-motion: no-preference)", () => {
+      // Headings already handled, so a re-render that touches the DOM does not
+      // animate the same one twice.
+      const seen = new WeakSet<HTMLElement>();
+      let queued = 0;
 
-        titles.forEach((title) => {
+      const attach = () => {
+        queued = 0;
+        gsap.utils.toArray<HTMLElement>(".bk-section-title").forEach((title) => {
+          if (seen.has(title)) return;
+          seen.add(title);
+          if (title.getBoundingClientRect().top <= window.innerHeight) return;
+
           gsap.from(title, {
             // A wipe from underneath, with a touch of rise so it reads as the
             // words arriving rather than a mask sliding.
@@ -62,17 +73,26 @@ export function TitleReveal() {
             scrollTrigger: { trigger: title, start: "top bottom-=60", once: true },
           });
         });
-      });
-    };
+      };
 
-    if (document.readyState === "complete") setup();
-    else window.addEventListener("load", setup, { once: true });
+      // Coalesced to one pass per frame: a streaming page mutates the DOM
+      // hundreds of times, and each pass walks every heading on it.
+      const schedule = () => {
+        if (queued) return;
+        queued = requestAnimationFrame(attach);
+      };
 
-    return () => {
-      cancelled = true;
-      window.removeEventListener("load", setup);
-      mm.revert();
-    };
+      attach();
+      const observer = new MutationObserver(schedule);
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      return () => {
+        observer.disconnect();
+        if (queued) cancelAnimationFrame(queued);
+      };
+    });
+
+    return () => mm.revert();
   }, []);
 
   return null;
