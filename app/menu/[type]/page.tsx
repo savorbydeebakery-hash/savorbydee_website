@@ -5,7 +5,7 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { MenuTypeGrid } from "@/components/menu/menu-type-grid";
+import { MenuTypeGrid, type MenuGroup } from "@/components/menu/menu-type-grid";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { MenuFeatureTiles, type FeatureTile } from "@/components/home/menu-feature-tiles";
 import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
@@ -47,6 +47,28 @@ const MENUS: Record<
   },
 };
 
+/**
+ * Section order on the daily menu, matching the client's Swiggy listing.
+ *
+ * Her customers read that list every day, so the site showing the same
+ * categories in a different order makes the two look like different shops.
+ * Categories are stored with a sort_order that puts the preorder cake
+ * categories first, which is right for the preorder menu and wrong here.
+ *
+ * A category not named here falls to the end, in its stored order, so adding
+ * one in admin never drops its items off the page.
+ */
+const DAILY_CATEGORY_ORDER = [
+  "All Day Breakfast Bakes",
+  "Shortbread Cookies",
+  "Frosted Sponge Cakes",
+  "Tea Cakes",
+  "Snacks",
+  "Desserts",
+  "Cupcakes, Muffins & Brownies",
+  "Mini pizzas",
+];
+
 export async function generateMetadata({
   params,
 }: {
@@ -81,10 +103,46 @@ export default async function MenuTypePage({
     .from("menu_items")
     .select(SELECT_FIELDS)
     .eq("is_active", true);
-  const { data: items } = await (menu.column
-    ? base.eq(menu.column, true)
-    : base
-  ).order("sort_order");
+  const [{ data: items }, { data: categories }] = await Promise.all([
+    (menu.column ? base.eq(menu.column, true) : base).order("sort_order"),
+    supabase
+      .from("categories")
+      .select("id, name, sort_order")
+      .eq("is_active", true)
+      .order("sort_order"),
+  ]);
+
+  const withWeights = applyDerivedWeights(items);
+
+  // Only the daily menu groups: the preorder menu has its own page, with its
+  // own category chips. An item whose category is missing or inactive still
+  // has to appear, so it goes to an "Everything else" section rather than
+  // vanishing between the grouping and the grid.
+  const groups: MenuGroup[] | undefined =
+    type === "daily"
+      ? (() => {
+          const rank = (name: string) => {
+            const i = DAILY_CATEGORY_ORDER.indexOf(name);
+            return i === -1 ? DAILY_CATEGORY_ORDER.length : i;
+          };
+          const sorted = [...(categories ?? [])].sort(
+            (a, b) => rank(a.name) - rank(b.name) || a.sort_order - b.sort_order
+          );
+          const known = new Set(sorted.map((c) => c.id));
+          const sections: MenuGroup[] = sorted.map((c) => ({
+            id: c.id,
+            name: c.name,
+            items: withWeights.filter((i) => i.category_id === c.id),
+          }));
+          const orphans = withWeights.filter(
+            (i) => !i.category_id || !known.has(i.category_id)
+          );
+          if (orphans.length > 0) {
+            sections.push({ id: "uncategorised", name: "Everything else", items: orphans });
+          }
+          return sections;
+        })()
+      : undefined;
 
   return (
     <div className="bg-bk-bg">
@@ -109,7 +167,7 @@ export default async function MenuTypePage({
         </div>
 
         <div className="mt-8 md:mt-10">
-          <MenuTypeGrid items={applyDerivedWeights(items)} empty={menu.empty} />
+          <MenuTypeGrid items={withWeights} groups={groups} empty={menu.empty} />
         </div>
 
         {/* The "see the full menu instead" link is gone: the full menu is the
