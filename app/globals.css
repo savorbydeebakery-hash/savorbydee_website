@@ -761,3 +761,81 @@ body {
     transform: rotateY(0deg);
   }
 }
+
+/* ---------- Cake loader ambience ----------
+   The cake Lottie carries the loading state; these are the room around it.
+   Glow, sprinkles and the late message are decoration, so they are declared
+   inside a no-preference query — a visitor who asked for less motion gets the
+   same composition, held still. */
+.cake-loader-sprinkle {
+  background: var(--bk-maroon);
+  opacity: 0;
+}
+.cake-loader-sprinkle-1 {
+  left: 18%;
+}
+.cake-loader-sprinkle-2 {
+  left: 50%;
+  background: var(--bk-pink);
+}
+.cake-loader-sprinkle-3 {
+  left: 78%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes cake-loader-breathe {
+    0%,
+    100% {
+      transform: scale(0.92);
+      opacity: 0.55;
+    }
+    50% {
+      transform: scale(1.06);
+      opacity: 0.85;
+    }
+  }
+
+  /* Up and slightly sideways, fading at both ends so a sprinkle is never
+     clipped by the box — it appears and leaves inside its own travel. */
+  @keyframes cake-loader-rise {
+    0% {
+      transform: translateY(28px) scale(0.6);
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-46px) translateX(6px) scale(1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes cake-loader-message-in {
+    to {
+      opacity: 1;
+    }
+  }
+
+  .cake-loader-glow {
+    animation: cake-loader-breathe 2.6s ease-in-out infinite;
+  }
+
+  .cake-loader-sprinkle {
+    animation: cake-loader-rise 2.8s ease-in-out infinite;
+  }
+  .cake-loader-sprinkle-2 {
+    animation-delay: 0.9s;
+  }
+  .cake-loader-sprinkle-3 {
+    animation-delay: 1.7s;
+  }
+
+  /* Only after 2.5s: a fast route change should never flash a line of text. */
+  .cake-loader-message {
+    animation: cake-loader-message-in 0.6s var(--ease-out) 2.5s forwards;
+  }
+}

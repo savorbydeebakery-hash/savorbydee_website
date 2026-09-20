@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
+import { useGSAP } from "@gsap/react";
+import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { ProductMiniCard } from "@/components/home/product-mini-card";
 import type { MenuItemForCart } from "@/lib/cart/types";
@@ -39,6 +41,97 @@ export function MenuTypeGrid({
   empty: string;
 }) {
   const [selected, setSelected] = useState<MenuItemForCart | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+
+  /**
+   * Scroll-spy: the chip for the section you are reading lights up, and the
+   * chip row centres it.
+   *
+   * One ScrollTrigger across the whole list picking the nearest section on
+   * each update, rather than one trigger per section with a start/end band.
+   * The band version left gaps: most daily items are text-only, so a section
+   * can be ~100px tall, shorter than the margin between sections — whenever
+   * the band landed in a gap NO chip was current, and the highlight blinked
+   * off between categories.
+   *
+   * The chip is centred by setting the row's own scrollLeft, NOT by calling
+   * scrollIntoView on it. scrollIntoView walks every scrollable ancestor, the
+   * document included: once the chip row had scrolled off the top, each
+   * highlight change dragged the whole page back up to it, so the menu could
+   * not be scrolled past the second category at all.
+   *
+   * Runs for everyone, reduced motion included: this is a position indicator,
+   * not decoration. Only the chip row's own scroll is made instant for them.
+   */
+  useGSAP(
+    () => {
+      const el = root.current;
+      if (!el) return;
+      const sections = Array.from(el.querySelectorAll<HTMLElement>("section[id^='cat-']"));
+      if (sections.length === 0) return;
+
+      const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let currentId: string | null = null;
+
+      const pick = () => {
+        const band = window.innerHeight * 0.45;
+        // The last section whose top has passed the band is the one being
+        // read; before any has, the first section owns it.
+        let found = sections[0];
+        for (const section of sections) {
+          if (section.getBoundingClientRect().top <= band) found = section;
+        }
+        if (found.id === currentId) return;
+        currentId = found.id;
+        setActiveId(found.id);
+
+        const chip = el.querySelector<HTMLElement>(`[data-chip="${found.id}"]`);
+        const scroller = chip?.closest<HTMLElement>("nav");
+        if (!chip || !scroller) return;
+        scroller.scrollTo({
+          left: chip.offsetLeft - (scroller.clientWidth - chip.offsetWidth) / 2,
+          behavior: smooth ? "smooth" : "auto",
+        });
+      };
+
+      // Cards arrive in a short stagger as their section enters the viewport.
+      //
+      // Two deliberate choices, both about never hiding the menu:
+      //   start "top bottom-=40" fires the moment the section edges into view,
+      //   not at a band partway up the page. The last section on a page that
+      //   cannot scroll any further never reaches such a band, and its cards
+      //   would sit at opacity 0 forever — which is how four pizzas went
+      //   missing the first time this was written.
+      //   immediateRender false leaves the cards visible until the tween
+      //   actually runs, so a ScrollTrigger that never fires costs an
+      //   animation rather than the content.
+      const mm = gsap.matchMedia();
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        sections.forEach((section) => {
+          gsap.from(section.querySelectorAll(".menu-item-card"), {
+            y: 24,
+            opacity: 0,
+            duration: 0.6,
+            ease: "power3.out",
+            immediateRender: false,
+            stagger: { each: 0.05, from: "start" },
+            scrollTrigger: { trigger: section, start: "top bottom-=40", once: true },
+          });
+        });
+      });
+
+      ScrollTrigger.create({
+        trigger: el,
+        start: "top bottom",
+        end: "bottom top",
+        onUpdate: pick,
+        onRefresh: pick,
+      });
+      pick();
+    },
+    { scope: root, dependencies: [groups] }
+  );
 
   if (items.length === 0) {
     return (
@@ -57,7 +150,7 @@ export function MenuTypeGrid({
   const sections = (groups ?? []).filter((g) => g.items.length > 0);
 
   return (
-    <>
+    <div ref={root}>
       {sections.length > 0 ? (
         <>
           {/* Sticky under the header so the jump list stays reachable while
@@ -72,10 +165,22 @@ export function MenuTypeGrid({
                 <li key={g.id}>
                   <a
                     href={`#${anchorId(g.name)}`}
-                    className="inline-flex h-9 items-center rounded-[var(--bk-r-pill)] border border-bk-border px-4 text-sm text-bk-fg transition-colors hover:border-bk-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2"
+                    data-chip={anchorId(g.name)}
+                    aria-current={activeId === anchorId(g.name) ? "true" : undefined}
+                    className={`inline-flex h-9 items-center rounded-[var(--bk-r-pill)] border px-4 text-sm transition-all duration-300 ease-[var(--ease-out)] focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 motion-reduce:transition-none ${
+                      activeId === anchorId(g.name)
+                        ? "border-bk-maroon bg-bk-maroon text-white"
+                        : "border-bk-border text-bk-fg hover:border-bk-fg"
+                    }`}
                   >
                     {g.name}
-                    <span className="ml-1.5 text-bk-muted">{g.items.length}</span>
+                    <span
+                      className={`ml-1.5 ${
+                        activeId === anchorId(g.name) ? "text-white/70" : "text-bk-muted"
+                      }`}
+                    >
+                      {g.items.length}
+                    </span>
                   </a>
                 </li>
               ))}
@@ -125,6 +230,6 @@ export function MenuTypeGrid({
           onClose={() => setSelected(null)}
         />
       )}
-    </>
+    </div>
   );
 }

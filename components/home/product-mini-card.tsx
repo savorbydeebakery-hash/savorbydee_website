@@ -78,7 +78,7 @@ export function ProductMiniCard({
         sizes={sizes}
         priority={priority}
         fit="cover"
-        className="rounded-[var(--bk-r-inner)] bg-bk-bg-3 transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+        className="rounded-[var(--bk-r-inner)] bg-bk-bg-3 transition-transform duration-700 ease-[var(--ease-out)] group-hover:scale-[1.06] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
       />
       {unavailable && (
         <span className="absolute inset-x-0 bottom-0 bg-bk-fg py-1.5 text-center text-[11px] font-medium uppercase tracking-wide text-white">
@@ -185,7 +185,12 @@ export function ProductMiniCard({
 
   return (
     <article
-      className={`menu-item-card group ${!canOrder ? "opacity-50 grayscale" : ""}`}
+      // The lift is on the card, the zoom on its photo: two speeds reading as
+      // one object rising. -translate-y-1 only, because a taller lift on a
+      // 2-up phone grid makes the row below look like it flinched.
+      className={`menu-item-card group transition-transform duration-500 ease-[var(--ease-out)] will-change-transform hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
+        !canOrder ? "opacity-50 grayscale" : ""
+      }`}
       data-item-id={item.id}
       data-item-name={item.name.toLowerCase()}
       data-orderable={canOrder ? "true" : "false"}

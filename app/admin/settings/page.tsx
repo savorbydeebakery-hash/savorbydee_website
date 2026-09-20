@@ -18,6 +18,7 @@ interface SiteSettings {
   about_narrative: string;
   contact_email: string | null;
   contact_phone: string | null;
+  emergency_phone: string | null;
   whatsapp_number: string;
   address_line1: string | null;
   address_line2: string | null;
@@ -200,6 +201,7 @@ export default function AdminSettingsPage() {
           <div className="grid grid-cols-2 gap-4">
             <Input label="Contact Email" value={settings.contact_email ?? ""} onChange={(e) => update("contact_email", e.target.value)} />
             <Input label="Contact Phone" value={settings.contact_phone ?? ""} onChange={(e) => update("contact_phone", e.target.value)} />
+            <Input label="Emergency Phone (optional)" value={settings.emergency_phone ?? ""} onChange={(e) => update("emergency_phone", e.target.value)} />
           </div>
           <Input label="WhatsApp Number (with country code, no +)" value={settings.whatsapp_number} onChange={(e) => update("whatsapp_number", e.target.value)} />
           <div className="grid grid-cols-2 gap-4">

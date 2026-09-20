@@ -24,6 +24,7 @@ interface Settings {
   bakery_name?: string | null;
   contact_email?: string | null;
   contact_phone?: string | null;
+  emergency_phone?: string | null;
   whatsapp_number?: string | null;
   address_line1?: string | null;
   address_line2?: string | null;
@@ -314,6 +315,11 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                 <Row label="Phone">
                   <Val v={s.contact_phone} label="Phone number" />
                 </Row>
+                {/* Only when set: a bakery with one line should not show an
+                    empty "Emergency" row on the page Razorpay reviews. */}
+                {s.emergency_phone?.trim() && (
+                  <Row label="Emergency">{s.emergency_phone}</Row>
+                )}
                 <Row label="Email">
                   <Val v={s.contact_email} label="Email address" />
                 </Row>

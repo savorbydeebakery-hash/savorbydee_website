@@ -1,5 +1,5 @@
-import { LottieLoader } from "@/components/lottie-loader";
+import { CakeLoader } from "@/components/kinetic/cake-loader";
 
 export default function Loading() {
-  return <LottieLoader />;
+  return <CakeLoader />;
 }

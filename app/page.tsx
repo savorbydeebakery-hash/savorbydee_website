@@ -8,6 +8,7 @@ import { ReviewsCarousel } from "@/components/home/reviews-carousel";
 import { BestSellers } from "@/components/home/best-sellers";
 import { BehindTheScenes } from "@/components/home/behind-the-scenes";
 import { AboutUs } from "@/components/home/about-us";
+import { Reveal } from "@/components/kinetic/reveal";
 import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
 import {
   pickMenuPhoto,
@@ -153,18 +154,22 @@ export default async function HomePage() {
 
       {/* 2. Testimonials, directly under the hero. Still hides itself entirely
              while the reviews table is empty. */}
-      <ReviewsCarousel
-        reviews={reviews ?? []}
-        title="Indulgence Approved"
-        rating={4.6}
-        ratingSource="Google (37) · Swiggy (847)"
-      />
+      <Reveal y={24}>
+        <ReviewsCarousel
+          reviews={reviews ?? []}
+          title="Indulgence Approved"
+          rating={4.6}
+          ratingSource="Google (37) · Swiggy (847)"
+        />
+      </Reveal>
 
       {/* 3. The two menus, as two big photographs. This replaced a tab strip
              over eight item tiles: that block asked the visitor to pick a menu
              and pick an item in one glance, and on a phone the tiles pushed
              everything below them past the second screen. */}
-      <MenuTypeCards cards={menuCards} />
+      <Reveal y={36} parallax={10}>
+        <MenuTypeCards cards={menuCards} />
+      </Reveal>
 
       {/* 4. Best Sellers — a scrolling rail, hidden when nothing is flagged.
              Sits directly under the menu tabs on purpose: a customer who has
@@ -175,27 +180,37 @@ export default async function HomePage() {
           sponge cake opened from this rail otherwise offered no kilo option,
           because the ladder is computed from the category rather than stored
           on the item. */}
-      <BestSellers items={applyDerivedWeights(bestsellers)} />
+      <Reveal y={36}>
+        <BestSellers items={applyDerivedWeights(bestsellers)} />
+      </Reveal>
 
       {/* 5. Custom Order */}
-      <CustomOrder
-        noticeDays={settings?.custom_cake_notice_days ?? 5}
-        imageUrl={
-          settings?.custom_order_image_url?.trim() ||
-          pickMenuPhoto(photos, CUSTOM_ORDER_PHOTO_KEYWORDS, 2)
-        }
-      />
+      <Reveal y={36} parallax={14}>
+        <CustomOrder
+          noticeDays={settings?.custom_cake_notice_days ?? 5}
+          imageUrl={
+            settings?.custom_order_image_url?.trim() ||
+            pickMenuPhoto(photos, CUSTOM_ORDER_PHOTO_KEYWORDS, 2)
+          }
+        />
+      </Reveal>
 
       {/* 6. Gallery — below the menu so the page leads with what is for
              sale and follows with what it looks like. */}
-      <GalleryRail photos={photos.slice(0, 14)} />
+      <Reveal y={36}>
+        <GalleryRail photos={photos.slice(0, 14)} />
+      </Reveal>
 
       {/* 7. Behind the Scenes */}
-      <BehindTheScenes items={bts ?? []} />
+      <Reveal y={36} parallax={12}>
+        <BehindTheScenes items={bts ?? []} />
+      </Reveal>
 
       {/* 8. About Us — carries the paragraph that used to sit under the hero
              headline, and is editable via site_settings.about_narrative. */}
-      <AboutUs narrative={settings?.about_narrative} />
+      <Reveal y={36}>
+        <AboutUs narrative={settings?.about_narrative} />
+      </Reveal>
     </div>
   );
 }
