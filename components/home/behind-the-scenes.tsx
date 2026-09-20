@@ -6,7 +6,10 @@ export interface BtsItem {
   id: string;
   label: string;
   caption?: string | null;
+  /** The photograph — and the poster frame when there is a clip. */
   image_url?: string | null;
+  /** Short muted clip, looped. Migration 00044. */
+  video_url?: string | null;
 }
 
 /**
@@ -18,9 +21,18 @@ export interface BtsItem {
  * real image as Dee uploads it in Admin -> Behind the Scenes. Nothing about
  * the layout shifts when that happens.
  *
- * Photographs only. Both the caption and the stage label are gone from the
- * page, so this is three pictures under one heading rather than a labelled
- * diagram of the process.
+ * A stage can hold a short clip instead of a photograph, which is what the
+ * client asked for in the first place: the work here is icing a bun and
+ * pulling a tray out of the oven, and neither reads as work in a still.
+ *
+ * The clips are muted, looped and play inline. Muted is not a nicety — a
+ * browser will refuse to autoplay anything with sound, so an unmuted clip
+ * would simply never start. They also carry the photograph as their poster,
+ * so the tile is never empty while the video loads, and a visitor who has
+ * asked for reduced motion gets that still frame and no movement at all.
+ *
+ * Both the caption and the stage label are gone from the page, so this is
+ * three tiles under one heading rather than a labelled diagram of the process.
  *
  * Both fields stay in the database and the admin panel: the label is how Dee
  * tells the three slots apart when uploading, and it is still what the image
@@ -78,6 +90,26 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
           return (
             <li key={item.id}>
               <div className="overflow-hidden rounded-[var(--bk-r-block)] bg-bk-bg-3">
+                {item.video_url ? (
+                  <video
+                    // autoPlay needs muted + playsInline or mobile Safari
+                    // refuses it and shows a play button on a decorative tile.
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    poster={item.image_url ?? undefined}
+                    aria-label={item.label}
+                    className="aspect-[4/5] w-full rounded-[var(--bk-r-block)] bg-bk-bg-3 object-cover motion-reduce:hidden"
+                  >
+                    <source src={item.video_url} type="video/mp4" />
+                  </video>
+                ) : null}
+
+                {/* Shown when there is no clip, and — via motion-reduce — in
+                    place of one for a visitor who asked for less motion. The
+                    poster is the same frame the video would have opened on. */}
                 {item.image_url ? (
                   <SmartImage
                     src={item.image_url}
@@ -85,7 +117,9 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
                     aspect="aspect-[4/5]"
                     sizes="(max-width: 640px) 92vw, 33vw"
                     fit="cover"
-                    className="rounded-[var(--bk-r-block)] bg-bk-bg-3"
+                    className={`rounded-[var(--bk-r-block)] bg-bk-bg-3 ${
+                      item.video_url ? "hidden motion-reduce:block" : ""
+                    }`}
                   />
                 ) : (
                   <div

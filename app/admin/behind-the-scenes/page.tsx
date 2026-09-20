@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { uploadFiles } from "@/lib/storage/upload-helper";
-import { Upload, ArrowUp, ArrowDown, ImageOff } from "lucide-react";
+import { Upload, ArrowUp, ArrowDown, ImageOff, Film, Trash2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +15,7 @@ interface Bts {
   label: string;
   caption: string | null;
   image_url: string | null;
+  video_url: string | null;
   sort_order: number;
   is_active: boolean;
 }
@@ -26,6 +27,12 @@ interface Bts {
  * slots rather than creating them — there is no "Add" button by design. Each
  * card shows its photo or an explicit empty state, and the homepage section
  * stays hidden until at least one has an image.
+ *
+ * A slot can also take a short clip (migration 00044). The photo doubles as
+ * the clip's poster, which is why the upload control for it stays put when a
+ * video is added rather than being replaced by one: a clip without a poster
+ * shows an empty tile while it loads, and shows nothing at all to a visitor
+ * who has asked for reduced motion.
  */
 export default function AdminBtsPage() {
   const supabase = createClient();
@@ -58,10 +65,26 @@ export default function AdminBtsPage() {
     return () => clearTimeout(id);
   }, [fetchRows]);
 
-  const upload = async (row: Bts, e: React.ChangeEvent<HTMLInputElement>) => {
+  /** `field` decides whether the file lands as the photo or as the clip. */
+  const upload = async (
+    row: Bts,
+    e: React.ChangeEvent<HTMLInputElement>,
+    field: "image_url" | "video_url"
+  ) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+
+    // A phone camera clip is tens of megabytes and would be downloaded in
+    // full by every visitor to the homepage. Refused here with the number,
+    // rather than silently making the site slow.
+    const MAX_VIDEO_MB = 8;
+    if (field === "video_url" && file.size > MAX_VIDEO_MB * 1024 * 1024) {
+      setError(
+        `That clip is ${(file.size / 1024 / 1024).toFixed(1)} MB. Please keep clips under ${MAX_VIDEO_MB} MB — a few seconds is plenty, and every visitor downloads it.`
+      );
+      return;
+    }
 
     setBusyId(row.id);
     setError(null);
@@ -71,16 +94,23 @@ export default function AdminBtsPage() {
       setBusyId(null);
       return;
     }
-    await supabase
+    const { error: saveError } = await supabase
       .from("behind_the_scenes")
-      .update({ image_url: result.url })
+      .update({ [field]: result.url })
       .eq("id", row.id);
+    if (saveError) setError(`Could not save: ${saveError.message}`);
     setBusyId(null);
     void fetchRows();
   };
 
   const save = async (row: Bts, patch: Partial<Bts>) => {
-    await supabase.from("behind_the_scenes").update(patch).eq("id", row.id);
+    const { error: saveError } = await supabase
+      .from("behind_the_scenes")
+      .update(patch)
+      .eq("id", row.id);
+    // supabase-js resolves on a database error rather than throwing, so
+    // without this check a refused save looked exactly like a successful one.
+    if (saveError) setError(`Could not save: ${saveError.message}`);
     void fetchRows();
   };
 
@@ -101,9 +131,10 @@ export default function AdminBtsPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-ink">Behind the Scenes</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Three photos of the work itself. The section stays hidden on the
-          homepage until at least one has a photo, so nothing looks broken while
-          you gather them.
+          Three slots showing the work itself. Each takes a photo, a short
+          clip, or both — with both, the photo is what shows before the clip
+          starts and for visitors who have turned animations off. The section
+          stays hidden on the homepage until at least one slot is filled.
         </p>
       </div>
 
@@ -117,7 +148,17 @@ export default function AdminBtsPage() {
             <div className="flex flex-col gap-4 sm:flex-row">
               <div className="w-full shrink-0 sm:w-44">
                 <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-pink-soft">
-                  {row.image_url ? (
+                  {row.video_url ? (
+                    <video
+                      src={row.video_url}
+                      poster={row.image_url ?? undefined}
+                      muted
+                      loop
+                      autoPlay
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                  ) : row.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={row.image_url} alt={row.label} className="h-full w-full object-cover" />
                   ) : (
@@ -137,9 +178,32 @@ export default function AdminBtsPage() {
                     accept="image/*"
                     className="hidden"
                     disabled={busyId === row.id}
-                    onChange={(e) => upload(row, e)}
+                    onChange={(e) => upload(row, e, "image_url")}
                   />
                 </label>
+
+                <label className="mt-1.5 block">
+                  <Button size="sm" variant="ghost" disabled={busyId === row.id} className="w-full">
+                    <Film size={15} />
+                    {row.video_url ? "Replace clip" : "Upload clip"}
+                  </Button>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/quicktime"
+                    className="hidden"
+                    disabled={busyId === row.id}
+                    onChange={(e) => upload(row, e, "video_url")}
+                  />
+                </label>
+
+                {row.video_url && (
+                  <button
+                    onClick={() => save(row, { video_url: null })}
+                    className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg py-1 text-xs text-ink-soft hover:text-red-600"
+                  >
+                    <Trash2 size={13} /> Remove clip
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-1 flex-col gap-3">

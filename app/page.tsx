@@ -101,7 +101,7 @@ export default async function HomePage() {
     // section returns null rather than throwing.
     supabase
       .from("behind_the_scenes")
-      .select("id, label, caption, image_url")
+      .select("id, label, caption, image_url, video_url")
       .eq("is_active", true)
       .order("sort_order"),
     // Counts only — the menu cards say how many items each menu holds, and

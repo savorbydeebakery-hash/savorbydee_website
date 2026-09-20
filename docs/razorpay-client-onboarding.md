@@ -1,6 +1,6 @@
 # Razorpay onboarding — message to send to Dee
 
-Copy everything below the line. Fill in the two `<<>>` placeholders first.
+Copy everything below the line. The website address is filled in already.
 
 Razorpay's dashboard wording shifts occasionally, so a label may read slightly
 differently — the order of steps is stable.
@@ -41,7 +41,7 @@ what to do. Budget about 30 minutes, plus 2–4 working days for their review.
    **Individual** only if you have no business registration at all.
 3. Business category: choose **Food and Beverage**, sub-category **Bakery** or
    the closest option.
-4. Website: `<<PASTE THE FINAL WEBSITE ADDRESS HERE>>`
+4. Website: `https://savorbydee.in`
 
 ## Step 3 — Upload documents (KYC)
 
@@ -59,10 +59,8 @@ as part of this. I've already added the pages they check for — Terms, Privacy,
 Refunds & Cancellations, Shipping & Delivery, and Contact — so that side is
 covered.
 
-One thing I need from you for those pages to be correct: **your bakery's
-contact phone number, contact email, and full address**, if they aren't already
-in the admin panel. Right now a couple of those are blank and the Contact page
-shows a gap where they should be. Razorpay's reviewer will see that.
+Those pages now carry your address, both phone numbers and the email, so there
+is nothing blank for their reviewer to find.
 
 If they come back asking for anything, forward me the email and I'll tell you
 what it means.
@@ -89,7 +87,7 @@ customers can pay and the order won't update.
 1. Go to **Settings → Webhooks → Add New Webhook**.
 2. **Webhook URL** — paste exactly:
    ```
-   <<PASTE THE FINAL WEBSITE ADDRESS HERE>>/api/webhooks/razorpay
+   https://savorbydee.in/api/webhooks/razorpay
    ```
 3. **Secret** — make up a long random password and type it in. It doesn't have
    to be memorable, and it isn't shown to customers. Save a copy.
@@ -122,8 +120,9 @@ on your dashboard after approval. Worth knowing before you price anything.
 
 ## One thing to decide
 
-The website currently tells customers we need **12 hours notice** on standard
-orders, 24 hours for large orders, and 5 days for custom cakes. I've been asked
+The website currently tells customers we need **2 hours notice** on daily-menu
+orders, 24 hours on preorders and on any order of more than 12 of one item, and
+up to 5 days for custom cakes. I've been asked
 to add a "Same Day Delivery" badge to the daily menu. Those two can't both be
 true — if a customer reads "same day" and then can't pick a same-day slot at
 checkout, that's the kind of thing that turns into a chargeback.
