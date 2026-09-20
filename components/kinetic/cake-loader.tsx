@@ -17,14 +17,16 @@ import { DotLottieReact } from "@lottiefiles/dotlottie-react";
  *
  * Reduced motion: the CSS keyframes below are wrapped in a
  * `prefers-reduced-motion: no-preference` query in globals.css, so those
- * visitors get the glow and the sprinkles as static decoration. The Lottie
- * itself is the exception — it is the loading indicator, and a frozen cake
- * would read as a broken page rather than a calm one.
+ * visitors get the glow, the sprinkles and the message as static decoration —
+ * present, just still. The Lottie itself is the exception: it is the loading
+ * indicator, and a frozen cake would read as a broken page rather than a calm
+ * one.
  */
 export function CakeLoader({
   /** Height of the animation box. The route loaders use the default. */
   size = "h-32 w-32",
-  /** Shown under the cake after ~2.5s, so a fast load never flashes text. */
+  /** Shown under the cake after ~2.5s (immediately under reduced motion), so
+   *  a fast load never flashes text. */
   message = "Getting things out of the oven…",
   className = "",
 }: {
@@ -62,8 +64,10 @@ export function CakeLoader({
         />
       </div>
 
-      <p className="cake-loader-message mt-4 text-sm text-bk-muted opacity-0">{message}</p>
-      <span className="sr-only">Loading</span>
+      {/* No opacity-0 here: the delayed fade-in is applied by the stylesheet
+          under prefers-reduced-motion: no-preference. Hiding it in the markup
+          meant a reduced-motion visitor never saw it at all. */}
+      <p className="cake-loader-message mt-4 text-sm text-bk-muted">{message}</p>
     </div>
   );
 }

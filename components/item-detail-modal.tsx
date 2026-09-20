@@ -100,6 +100,36 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
     }
   };
 
+  /**
+   * A small burst from the middle of the screen when an item is added.
+   *
+   * Fired here rather than from the button, because the modal closes on the
+   * same tick — a canvas mounted inside it would be unmounted before it drew.
+   * canvas-confetti draws to its own full-screen canvas and cleans up after
+   * itself, so there is nothing to lay out and nothing left behind.
+   *
+   * Silent for anyone who asked for reduced motion, and if the dynamic import
+   * fails the item is still in the basket: the burst is decoration on a state
+   * change that has already happened.
+   */
+  const celebrate = () => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    void import("canvas-confetti").then(({ default: confetti }) => {
+      confetti({
+        particleCount: 46,
+        spread: 62,
+        startVelocity: 28,
+        gravity: 0.9,
+        scalar: 0.85,
+        ticks: 120,
+        origin: { y: 0.72 },
+        // The site's own maroon, pink and cream rather than party colours.
+        colors: ["#653230", "#e1b5c2", "#f7d8cc", "#ffffff"],
+        disableForReducedMotion: true,
+      });
+    }).catch(() => {});
+  };
+
   const handleAddToCart = () => {
     // Belt and braces with the disabled button below. The order API refuses
     // out-of-hours orders too, so this is about telling the customer early
@@ -116,6 +146,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
       setAddError(result?.error ?? "That item could not be added.");
       return;
     }
+    celebrate();
     onClose();
   };
 

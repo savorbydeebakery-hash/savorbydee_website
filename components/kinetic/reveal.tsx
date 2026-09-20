@@ -14,11 +14,24 @@ import { gsap, EASE } from "@/lib/motion/gsap";
  * FAILURE MODE, deliberately chosen: content is visible by default and GSAP
  * animates *from* a hidden state. The previous CSS version was the other way
  * round — `.kinetic-reveal:not(.kinetic-revealed)` set opacity:0, so if JS
- * failed to run the content stayed invisible forever. Now a JS failure just
- * means no animation.
+ * failed to run the content stayed invisible forever.
  *
- * No flash: useGSAP runs in useLayoutEffect, so the from-state is applied
- * before the browser paints.
+ * That guarantee needs `immediateRender: false`, which was missing. A bare
+ * gsap.from() renders its start state at once, so every wrapper below the fold
+ * was painted at opacity 0 and only a firing ScrollTrigger brought it back — a
+ * trigger whose start point is never reached (a short last section, a page
+ * that cannot scroll further) meant a section gone for good. With it false the
+ * content simply sits there until the tween actually runs.
+ *
+ * TRANSFORMS ARE CLEARED ON COMPLETION, and that is not tidiness. A non-none
+ * transform makes the element the containing block for any `position: fixed`
+ * descendant. ItemDetailModal is rendered from inside one of these wrappers on
+ * the homepage: with a transform left behind, its fixed backdrop resolved
+ * against the section box instead of the viewport and the dialog opened
+ * off-screen while the body scroll lock held. The modal is portalled now, but
+ * the next fixed thing someone nests in here should not have to know that.
+ * Parallax wrappers keep a transform by definition — that is the effect — so
+ * the drift moved to an inner element, leaving the outer one clean.
  *
  * Reduced motion is gated once here via gsap.matchMedia rather than per
  * component — those users get the final state immediately.
@@ -46,6 +59,7 @@ export function Reveal({
   parallax?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const parallaxRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
@@ -61,11 +75,18 @@ export function Reveal({
           duration: 0.9,
           delay,
           ease: EASE,
+          immediateRender: false,
+          // Leaves no transform on the element once it has arrived.
+          clearProps: "transform,opacity",
           scrollTrigger: { trigger: el, start: REVEAL_START, once },
         });
 
-        if (parallax) {
-          gsap.to(el, {
+        // The drift goes on the inner element, never on `el`: the two tweens
+        // both wrote `y` on the same node, so the scrub captured its start
+        // value mid-reveal and each fought the other for the last word.
+        const drift = parallaxRef.current;
+        if (parallax && drift) {
+          gsap.to(drift, {
             y: -parallax,
             ease: "none",
             scrollTrigger: {
@@ -84,8 +105,17 @@ export function Reveal({
   );
 
   return (
-    <div ref={ref} className={className}>
-      {children}
+    // The class is a marker, not styling: e2e/motion.spec.ts asserts that no
+    // wrapper is left carrying a transform, and needs to tell a wrapper apart
+    // from the drift element inside it (which keeps one by design).
+    <div ref={ref} className={`kinetic-reveal ${className}`}>
+      {parallax ? (
+        <div ref={parallaxRef} className="kinetic-reveal-drift">
+          {children}
+        </div>
+      ) : (
+        children
+      )}
     </div>
   );
 }

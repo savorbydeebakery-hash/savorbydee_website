@@ -188,7 +188,10 @@ export function ProductMiniCard({
       // The lift is on the card, the zoom on its photo: two speeds reading as
       // one object rising. -translate-y-1 only, because a taller lift on a
       // 2-up phone grid makes the row below look like it flinched.
-      className={`menu-item-card group transition-transform duration-500 ease-[var(--ease-out)] will-change-transform hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
+      // will-change only while hovered: held permanently it gives all 45 cards
+      // their own compositor layer AND makes each one a containing block for
+      // fixed descendants, which is the trap the Modal comment describes.
+      className={`menu-item-card group transition-transform duration-500 ease-[var(--ease-out)] hover:-translate-y-1 hover:will-change-transform motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
         !canOrder ? "opacity-50 grayscale" : ""
       }`}
       data-item-id={item.id}

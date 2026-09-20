@@ -43,19 +43,19 @@ test.describe("daily menu category sections", () => {
     await expect(chips).toHaveCount(8);
 
     await scrollSectionIntoBand(page, "cat-snacks");
-    await expect(page.locator('[data-chip="cat-snacks"][aria-current="true"]')).toBeVisible({
+    await expect(page.locator('[data-chip="cat-snacks"][aria-current="location"]')).toBeVisible({
       timeout: 5000,
     });
 
     // And it moves on, rather than latching on the first section it saw.
     await scrollSectionIntoBand(page, "cat-mini-pizzas");
     await expect(
-      page.locator('[data-chip="cat-mini-pizzas"][aria-current="true"]')
+      page.locator('[data-chip="cat-mini-pizzas"][aria-current="location"]')
     ).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('[data-chip="cat-snacks"][aria-current="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-chip="cat-snacks"][aria-current="location"]')).toHaveCount(0);
 
     // Exactly one chip is ever current.
-    await expect(page.locator('[data-chip][aria-current="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-chip][aria-current="location"]')).toHaveCount(1);
   });
 
   test("every card is visible once its section has been reached", async ({ page }) => {
@@ -101,8 +101,38 @@ test.describe("reduced motion", () => {
 
     // The scroll-spy is a position indicator, not decoration: it runs for
     // everyone. Only the chip row's own scrolling is made instant.
-    await expect(page.locator('[data-chip="cat-tea-cakes"][aria-current="true"]')).toBeVisible({
+    await expect(page.locator('[data-chip="cat-tea-cakes"][aria-current="location"]')).toBeVisible({
       timeout: 5000,
     });
+  });
+});
+
+test.describe("motion leaves no trace on the layout", () => {
+  test("reveal wrappers clear their transform once they have arrived", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    // Walk the page so every wrapper has run.
+    await page.evaluate(async () => {
+      for (let y = 0; y < document.body.scrollHeight; y += 400) {
+        window.scrollTo(0, y);
+        await new Promise((r) => setTimeout(r, 40));
+      }
+    });
+    await page.waitForTimeout(1200);
+
+    // A transform on a wrapper makes it the containing block for any fixed
+    // descendant — that is how the item modal ended up positioned inside a
+    // section instead of the viewport. Parallax wrappers keep their transform
+    // on an inner element, so every wrapper itself must be clean.
+    const dirty = await page.evaluate(() =>
+      [...document.querySelectorAll(".kinetic-reveal")]
+        .filter((el) => {
+          const t = getComputedStyle(el).transform;
+          return Boolean(t) && t !== "none";
+        })
+        .map((el) => `${el.className}:${getComputedStyle(el).transform}`)
+    );
+    expect(dirty, `wrappers left with a transform: ${dirty.join(", ")}`).toEqual([]);
   });
 });

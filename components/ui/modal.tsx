@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   open: boolean;
@@ -20,6 +21,21 @@ const sizes = {
   xl: "max-w-4xl",
 };
 
+/**
+ * PORTALLED TO <body>, and it has to stay that way.
+ *
+ * This is `position: fixed`, which is only relative to the viewport while no
+ * ancestor carries a transform, filter or will-change. Any such ancestor
+ * becomes the containing block and the dialog is positioned inside THAT box
+ * instead — off-screen, while the body scroll lock below is still applied. The
+ * customer is then stuck on a page that will not scroll, with a dialog they
+ * cannot see or reach.
+ *
+ * That is not hypothetical: the homepage reveal wrappers leave a transform on
+ * the sections they animate, and ItemDetailModal is rendered from inside one
+ * of them (components/home/best-sellers.tsx). Rendering into document.body
+ * puts the dialog outside every such ancestor for good.
+ */
 export function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
   useEffect(() => {
     if (open) {
@@ -41,9 +57,11 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  if (!open) return null;
+  // A modal is only ever opened by an interaction, so it is closed in every
+  // server render — no hydration mismatch, and no mount-flag state needed.
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-cocoa/50 backdrop-blur-md"
@@ -71,6 +89,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
         )}
         <div className="p-6">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

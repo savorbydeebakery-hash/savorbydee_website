@@ -7,6 +7,8 @@ import { ScrollToTop } from "@/components/layout/scroll-to-top";
 import { WhatsAppWidget } from "@/components/whatsapp-widget";
 import { MotionProvider } from "@/components/motion-provider";
 import { SplashLoader } from "@/components/splash-loader";
+import { TitleReveal } from "@/components/kinetic/title-reveal";
+import { SmoothScroll } from "@/components/kinetic/smooth-scroll";
 import { MobileStickyBar } from "@/components/layout/mobile-sticky-bar";
 import { ShopStatusProvider, type ShopStatus } from "@/components/shop/shop-status";
 import { ClosedBanner } from "@/components/shop/closed-banner";
@@ -124,6 +126,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </svg>
 
         <SplashLoader />
+        {/* Applies the section-heading wipe by selector, everywhere. */}
+        <TitleReveal />
+        <SmoothScroll />
         <ShopStatusProvider value={shopStatus}>
           <MotionProvider>
             <ScrollToTop />

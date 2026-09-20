@@ -43,6 +43,7 @@ export function MenuTypeGrid({
   const [selected, setSelected] = useState<MenuItemForCart | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  const pill = useRef<HTMLSpanElement>(null);
 
   /**
    * Scroll-spy: the chip for the section you are reading lights up, and the
@@ -74,6 +75,17 @@ export function MenuTypeGrid({
       const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       let currentId: string | null = null;
 
+      // A customer who swipes the chip row to look ahead should be left alone.
+      // Without this the next scroll tick yanked the row back to the chip for
+      // the section they were still standing in.
+      let swipedAt = 0;
+      const nav = el.querySelector<HTMLElement>("nav");
+      const noteSwipe = () => {
+        swipedAt = Date.now();
+      };
+      nav?.addEventListener("pointerdown", noteSwipe);
+      nav?.addEventListener("wheel", noteSwipe, { passive: true });
+
       const pick = () => {
         const band = window.innerHeight * 0.45;
         // The last section whose top has passed the band is the one being
@@ -83,12 +95,35 @@ export function MenuTypeGrid({
           if (section.getBoundingClientRect().top <= band) found = section;
         }
         if (found.id === currentId) return;
+        const first = currentId === null;
         currentId = found.id;
         setActiveId(found.id);
 
         const chip = el.querySelector<HTMLElement>(`[data-chip="${found.id}"]`);
+
+        // The maroon pill slides from the chip you were on to the one you are
+        // on, so the row reads as one indicator moving rather than two chips
+        // changing colour. It is a plain absolutely-positioned span: no Flip
+        // plugin, and nothing to lay out if GSAP never runs — the chip also
+        // carries its own [aria-current] styling underneath.
+        if (chip && pill.current) {
+          gsap.to(pill.current, {
+            x: chip.offsetLeft,
+            width: chip.offsetWidth,
+            autoAlpha: 1,
+            duration: first || !smooth ? 0 : 0.45,
+            ease: "power3.out",
+          });
+        }
         const scroller = chip?.closest<HTMLElement>("nav");
         if (!chip || !scroller) return;
+        if (Date.now() - swipedAt < 2000) return;
+
+        // Only when the chip is actually out of sight. Re-centring one that is
+        // already visible slides the row under the reader for no reason.
+        const left = chip.offsetLeft - scroller.scrollLeft;
+        if (left >= 0 && left + chip.offsetWidth <= scroller.clientWidth) return;
+
         scroller.scrollTo({
           left: chip.offsetLeft - (scroller.clientWidth - chip.offsetWidth) / 2,
           behavior: smooth ? "smooth" : "auto",
@@ -129,6 +164,16 @@ export function MenuTypeGrid({
         onRefresh: pick,
       });
       pick();
+
+      // mm.revert() as well as useGSAP's own cleanup: a matchMedia instance
+      // registers its own contexts and keeps a media listener that the hook's
+      // context does not own, so without this they accumulate across client
+      // navigations and StrictMode's double-invoke.
+      return () => {
+        nav?.removeEventListener("pointerdown", noteSwipe);
+        nav?.removeEventListener("wheel", noteSwipe);
+        mm.revert();
+      };
     },
     { scope: root, dependencies: [groups] }
   );
@@ -153,23 +198,30 @@ export function MenuTypeGrid({
     <div ref={root}>
       {sections.length > 0 ? (
         <>
-          {/* Sticky under the header so the jump list stays reachable while
-              scrolling a long menu. Horizontal scroll is clipped by its own
-              wrapper — see the Best Sellers rail note in HANDOFF. */}
+          {/* Sticky under the 64px header: a jump list that scrolls away is
+              only useful for the first screenful, and the moving indicator it
+              carries says nothing if it cannot be seen. The background is the
+              page's own, so rows pass behind it rather than through it. */}
           <nav
             aria-label="Menu categories"
-            className="-mx-4 mb-6 overflow-x-auto px-4 md:mx-0 md:px-0"
+            className="sticky top-16 z-20 -mx-4 mb-6 overflow-x-auto bg-bk-bg px-4 py-3 md:mx-0 md:px-0"
           >
-            <ul className="flex w-max gap-2">
+            <ul className="relative flex w-max gap-2">
+              {/* Sits under the chips; invisible until the spy places it. */}
+              <span
+                ref={pill}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 left-0 -z-10 invisible rounded-[var(--bk-r-pill)] bg-bk-maroon"
+              />
               {sections.map((g) => (
                 <li key={g.id}>
                   <a
                     href={`#${anchorId(g.name)}`}
                     data-chip={anchorId(g.name)}
-                    aria-current={activeId === anchorId(g.name) ? "true" : undefined}
-                    className={`inline-flex h-9 items-center rounded-[var(--bk-r-pill)] border px-4 text-sm transition-all duration-300 ease-[var(--ease-out)] focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 motion-reduce:transition-none ${
+                    aria-current={activeId === anchorId(g.name) ? "location" : undefined}
+                    className={`relative inline-flex h-9 items-center rounded-[var(--bk-r-pill)] border px-4 text-sm transition-colors duration-300 ease-[var(--ease-out)] focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 motion-reduce:transition-none ${
                       activeId === anchorId(g.name)
-                        ? "border-bk-maroon bg-bk-maroon text-white"
+                        ? "border-bk-maroon text-white"
                         : "border-bk-border text-bk-fg hover:border-bk-fg"
                     }`}
                   >

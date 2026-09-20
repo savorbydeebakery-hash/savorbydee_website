@@ -767,9 +767,14 @@ body {
    Glow, sprinkles and the late message are decoration, so they are declared
    inside a no-preference query — a visitor who asked for less motion gets the
    same composition, held still. */
+/* Visible by default. These used to start at opacity 0 and be rescued by the
+   keyframes, which are declared under no-preference — so a visitor who asked
+   for reduced motion got no sprinkles at all and, worse, never saw the "still
+   loading" message. Motion hiding content is the exact failure this file warns
+   about elsewhere; the keyframes now fade IN from 0 instead. */
 .cake-loader-sprinkle {
   background: var(--bk-maroon);
-  opacity: 0;
+  opacity: 0.85;
 }
 .cake-loader-sprinkle-1 {
   left: 18%;
@@ -825,6 +830,7 @@ body {
   }
 
   .cake-loader-sprinkle {
+    opacity: 0;
     animation: cake-loader-rise 2.8s ease-in-out infinite;
   }
   .cake-loader-sprinkle-2 {
@@ -834,8 +840,11 @@ body {
     animation-delay: 1.7s;
   }
 
-  /* Only after 2.5s: a fast route change should never flash a line of text. */
+  /* Only after 2.5s: a fast route change should never flash a line of text.
+     Reduced motion gets the message immediately instead — see the rule below,
+     which is outside this query. */
   .cake-loader-message {
+    opacity: 0;
     animation: cake-loader-message-in 0.6s var(--ease-out) 2.5s forwards;
   }
 }
