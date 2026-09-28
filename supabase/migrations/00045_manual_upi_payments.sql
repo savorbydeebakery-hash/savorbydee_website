@@ -233,3 +233,17 @@ $$;
 
 comment on function public.guard_payment_settings is
   'Refuses changes to where and how customers pay by any signed-in user who is not an admin.';
+
+-- ---------------------------------------------------------------------------
+-- 7. The client's payment details
+-- ---------------------------------------------------------------------------
+-- Decoded from the Google Pay QR the client sent on 2026-09-29 (pa= and pn=),
+-- not retyped from the printed caption, so this is exactly the account her QR
+-- pays. Editable afterwards in Admin -> Settings -> Payment (admins only).
+-- The payee name is her bank-registered name: UPI apps show that name to the
+-- customer whatever "pn" says, so the order page names the same person.
+update public.site_settings
+set upi_id = 'doretta.blah-googlemail.com@oksbi',
+    upi_payee_name = 'Doretta Blah',
+    payment_whatsapp_number = '918974077447'
+where id = 1;

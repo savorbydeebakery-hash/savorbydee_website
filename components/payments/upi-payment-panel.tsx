@@ -330,6 +330,16 @@ function PayStep({ order, payment, amount }: { order: PanelOrder; payment: Order
         <li>
           • Pay <strong className="text-ink">exactly {amount}</strong>, in one payment.
         </li>
+        {/* The account is in the owner's own name, and a UPI app shows the
+            bank-registered name whatever the link says. Without this, a
+            customer who ordered from "Savor by Dee" sees a person's name and
+            reasonably wonders if they are paying the right place. */}
+        {!/savor/i.test(upi.payeeName) && (
+          <li>
+            • Your UPI app will show the name <strong className="text-ink">{upi.payeeName}</strong>{" "}
+            &mdash; that&rsquo;s us. It&rsquo;s the owner&rsquo;s account.
+          </li>
+        )}
         <li>
           • Only pay to the UPI ID shown here. We will never ask you to pay a different
           UPI ID by phone, SMS or WhatsApp.
@@ -350,6 +360,21 @@ function PayStep({ order, payment, amount }: { order: PanelOrder; payment: Order
       </ul>
     </section>
   );
+}
+
+/**
+ * "doretta.blah-googlemail.com@oksbi" -> breakable after "-" and ".", and
+ * before "@", so a narrow screen wraps it as "doretta.blah-" / "googlemail.com"
+ * / "@oksbi" instead of mid-word. <wbr> adds no characters, so select-all and
+ * copying still give the exact ID.
+ */
+function withBreakPoints(value: string) {
+  return value.split(/(?<=[-.])|(?=@)/).map((part, i) => (
+    <span key={i}>
+      {i > 0 && <wbr />}
+      {part}
+    </span>
+  ));
 }
 
 function DetailRow({
@@ -377,10 +402,16 @@ function DetailRow({
   };
 
   return (
-    <div className="flex items-center justify-between gap-3">
+    // Label above the value on a small phone, beside it from sm up.
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
       <dt className="shrink-0 text-ink-soft">{label}</dt>
-      <dd className="flex min-w-0 items-center gap-2">
-        <span className="select-all truncate font-semibold text-ink">{value}</span>
+      <dd className="flex min-w-0 items-center justify-between gap-2 sm:justify-end">
+        {/* Wraps, never truncates: the live UPI ID is 33 characters, and
+            "doretta.blah-goo…" on a small phone is an ID nobody can type.
+            Break points only where a reader expects one. */}
+        <span className="select-all font-semibold text-ink [overflow-wrap:anywhere] sm:text-right">
+          {withBreakPoints(value)}
+        </span>
         {copy && (
           <button
             type="button"

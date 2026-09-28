@@ -175,3 +175,20 @@ test("delivery under the free threshold: the QR covers the bakes only", async ({
   await open(page);
   await expect(page.getByText(/This covers the bakes only\. The delivery charge/)).toBeVisible();
 });
+
+test("an owner-named UPI account is explained, so customers don't think it's the wrong payee", async ({ page }) => {
+  await mockOrder(page, {
+    order: order(),
+    payment: payment({
+      upi: {
+        vpa: "doretta.blah-googlemail.com@oksbi",
+        payeeName: "Doretta Blah",
+        note: `Savor ${HUMAN_ID}`,
+        uri: "upi://pay?pa=doretta.blah-googlemail.com%40oksbi&pn=Doretta%20Blah&am=1250.00&cu=INR&tn=Savor%20SAV-260928-0042",
+      },
+    }),
+  });
+  await open(page);
+  await expect(page.getByText(/Your UPI app will show the name Doretta Blah — that’s us/)).toBeVisible();
+  await expect(page.getByText("doretta.blah-googlemail.com@oksbi")).toBeVisible();
+});
