@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { timingSafeEqualHex } from "@/lib/crypto/timing-safe";
+import { RAZORPAY_DISABLED, razorpayDisabled } from "@/lib/payments/razorpay-off";
 
 /**
  * T6.2 (part 2): Razorpay payment verification endpoint.
@@ -10,6 +11,9 @@ import { timingSafeEqualHex } from "@/lib/crypto/timing-safe";
  * Body: { razorpay_order_id, razorpay_payment_id, razorpay_signature, savor_order_id }
  */
 export async function POST(request: NextRequest) {
+  // Razorpay is off — see lib/payments/razorpay-off.ts.
+  if (RAZORPAY_DISABLED) return razorpayDisabled();
+
   try {
     const {
       razorpay_order_id,

@@ -45,6 +45,18 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // One key per checkout, sent with every attempt. The order API already
+  // de-duplicates on it, but nothing sent one — so a request that timed out
+  // after the order was saved, then retried, created a second order and a
+  // second payment to chase.
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
+  // How long the customer has to pay once the order is placed. Shown on the
+  // confirm step so the deadline is not a surprise on the next page.
+  const [paymentWindowMinutes, setPaymentWindowMinutes] = useState(60);
 
   // Prefill guest details + delivery address from a logged-in profile.
   useEffect(() => {
@@ -121,7 +133,7 @@ export default function CheckoutPage() {
         const { data } = await supabase
           .from("site_settings")
           .select(
-            "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled, whatsapp_number, delivery_from, delivery_to, free_delivery_threshold_cents"
+            "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled, whatsapp_number, delivery_from, delivery_to, free_delivery_threshold_cents, payment_window_minutes"
           )
           .eq("id", 1)
           .single();
@@ -148,6 +160,9 @@ export default function CheckoutPage() {
           to: data.delivery_to ?? "20:00",
         });
         setFreeDeliveryOver(data.free_delivery_threshold_cents ?? null);
+        if (typeof data.payment_window_minutes === "number") {
+          setPaymentWindowMinutes(data.payment_window_minutes);
+        }
       } catch {
         // Fail open. The order API applies both rules authoritatively, so a
         // settings read that fails should not strand the customer at checkout.
@@ -265,7 +280,7 @@ export default function CheckoutPage() {
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "idempotency-key": idempotencyKey },
         body: JSON.stringify({
           items: items.map((item) => ({
             menuItemId: item.menuItemId,
@@ -712,19 +727,48 @@ export default function CheckoutPage() {
             </div>
           </Card>
 
+          {/* Said BEFORE the order is placed, so nobody is surprised by the
+              QR, the deadline or the WhatsApp step on the next page. */}
           <div className="rounded-xl bg-mint-soft border border-mint/20 p-4">
-            <p className="text-sm text-ink-soft">
-              💡 Payment: You can pay via Razorpay (online) or UPI (manual). After placing your order,
-              we&rsquo;ll confirm availability and send payment instructions.
+            <h3 className="mb-2 text-sm font-semibold text-ink">How payment works</h3>
+            <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-sm leading-relaxed text-ink-soft">
+              <li>
+                Place your order. The next page shows a UPI QR code for exactly{" "}
+                <strong className="text-ink">{formatPrice(totalCents)}</strong>.
+              </li>
+              <li>
+                Pay by UPI within <strong className="text-ink">{paymentWindowMinutes} minutes</strong>{" "}
+                &mdash; Google Pay, PhonePe, Paytm, BHIM or your bank&rsquo;s app.
+              </li>
+              <li>Send us the payment screenshot on WhatsApp.</li>
+              <li>
+                We confirm your order once the money reaches us. Nothing is baked before
+                that.
+              </li>
+            </ol>
+            <p className="mt-2 text-xs text-ink-soft">
+              We take UPI only &mdash; no cards or cash on delivery for the bakes.
             </p>
           </div>
+
+          <p className="text-xs text-ink-soft">
+            By placing this order you agree to our{" "}
+            <a href="/policies/terms" target="_blank" className="font-semibold text-ink underline underline-offset-2">
+              Terms
+            </a>{" "}
+            and{" "}
+            <a href="/policies/refunds" target="_blank" className="font-semibold text-ink underline underline-offset-2">
+              Refunds &amp; Cancellations policy
+            </a>
+            .
+          </p>
 
           <div className="flex justify-between">
             <Button onClick={() => setStep("details")} variant="ghost" disabled={submitting}>
               ← Back
             </Button>
             <Button onClick={handleSubmitOrder} variant="primary" size="lg" disabled={submitting}>
-              {submitting ? "Placing Order..." : "Place Order 🎂"}
+              {submitting ? "Placing order..." : "Place order & pay"}
             </Button>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { RAZORPAY_DISABLED, razorpayDisabled } from "@/lib/payments/razorpay-off";
 
 /**
  * T6.4: Refund/cancellation flow.
@@ -11,6 +12,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Only staff/admin can initiate refunds (checked via auth).
  */
 export async function POST(request: NextRequest) {
+  // Razorpay is off — see lib/payments/razorpay-off.ts. Refunds are sent by
+  // UPI by hand and recorded with "Mark refunded" in Admin -> Orders.
+  if (RAZORPAY_DISABLED) return razorpayDisabled();
+
   try {
     const { orderId, reason } = (await request.json()) as {
       orderId: string;

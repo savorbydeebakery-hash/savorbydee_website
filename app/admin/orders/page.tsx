@@ -24,15 +24,23 @@ import {
   Search,
 } from "lucide-react";
 import type { OrderRow } from "@/lib/realtime/use-orders-realtime";
+import { adminPaymentBadge } from "@/lib/payments/state";
+import { OrderPaymentCard } from "@/components/admin/order-payment-card";
 
+// "paid" is no longer offered as an order status. Payment is tracked in its
+// own column and set from the Payment card, so a "Paid" status button meant
+// staff could mark an order paid without any of the checks there — and the
+// two could disagree. Old orders already on "paid" still render correctly.
 const STATUS_FLOW = [
   "pending",
   "confirmed",
-  "paid",
   "in_progress",
   "ready",
   "fulfilled",
 ];
+
+/** Moving an order into these means the kitchen is spending on it. */
+const KITCHEN_STATUSES = new Set(["in_progress", "ready", "fulfilled"]);
 
 const statusColors: Record<string, "pink" | "mint" | "lavender" | "peach" | "sky" | "yellow" | "neutral"> = {
   pending: "yellow",
@@ -60,7 +68,8 @@ function statusLabel(status: string): string {
 }
 
 export default function AdminOrdersPage() {
-  const { orders, connected, acknowledgeOrder, updateOrderStatus, setDeliveryFee } = useOrdersRealtime();
+  const { orders, connected, acknowledgeOrder, updateOrderStatus, updatePayment, setDeliveryFee } =
+    useOrdersRealtime();
   useAlarmClient();
 
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -77,6 +86,14 @@ export default function AdminOrdersPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const unacknowledgedCount = orders.filter((o) => !o.acknowledged_at).length;
+
+  // The open order, as the realtime list currently has it. selectedOrder is
+  // a copy taken when the modal opened; reading through the list means a
+  // payment marked by this tab, another staff member, or the customer's
+  // "I've paid" shows up without closing and reopening the order.
+  const detailOrder = selectedOrder
+    ? orders.find((o) => o.id === selectedOrder.id) ?? selectedOrder
+    : null;
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -112,6 +129,26 @@ export default function AdminOrdersPage() {
    */
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setActionError(null);
+
+    // Nothing is baked before the money arrives — the checkout and the terms
+    // both promise that. Not a hard block: staff may know something the
+    // screen doesn't (paid in person, a regular on account).
+    const target = orders.find((o) => o.id === orderId) ?? selectedOrder;
+    if (target && target.payment_status !== "paid" && KITCHEN_STATUSES.has(newStatus)) {
+      const ok = window.confirm(
+        `Order ${target.human_id} has NOT been paid. Move it to "${statusLabel(newStatus)}" anyway?`
+      );
+      if (!ok) return;
+    }
+    if (target && newStatus === "cancelled") {
+      const ok = window.confirm(
+        target.payment_status === "paid"
+          ? `Cancel ${target.human_id}? It has been PAID, so the customer is owed a refund of ${formatPrice(target.payment_received_cents ?? target.total_cents)}. Today's stock for it goes back on the menu.`
+          : `Cancel ${target.human_id}? Tell the customer on WhatsApp. Today's stock for it goes back on the menu.`
+      );
+      if (!ok) return;
+    }
+
     const success = await updateOrderStatus(orderId, newStatus);
     if (!success) {
       setActionError(`Could not change the status to "${statusLabel(newStatus)}". Nothing was saved.`);
@@ -204,6 +241,7 @@ export default function AdminOrdersPage() {
               <th className="px-4 py-3 font-semibold text-ink">Order ID</th>
               <th className="px-4 py-3 font-semibold text-ink">Customer</th>
               <th className="px-4 py-3 font-semibold text-ink">Total</th>
+              <th className="px-4 py-3 font-semibold text-ink">Payment</th>
               <th className="px-4 py-3 font-semibold text-ink">Slot</th>
               <th className="px-4 py-3 font-semibold text-ink">Status</th>
               <th className="px-4 py-3 font-semibold text-ink">Ack</th>
@@ -213,7 +251,7 @@ export default function AdminOrdersPage() {
           <tbody className="divide-y divide-ink/5">
             {filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-ink-faint">
+                <td colSpan={8} className="px-4 py-12 text-center text-ink-faint">
                   No orders found
                 </td>
               </tr>
@@ -233,6 +271,12 @@ export default function AdminOrdersPage() {
                   </td>
                   <td className="px-4 py-3 font-semibold text-pink">
                     {formatPrice(order.total_cents)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const pay = adminPaymentBadge(order);
+                      return <Badge color={pay.color}>{pay.label}</Badge>;
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-soft">
                     {formatIst(order.requested_slot, {
@@ -274,26 +318,27 @@ export default function AdminOrdersPage() {
       <Modal
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        title={selectedOrder ? `Order ${selectedOrder.human_id}` : ""}
+        title={detailOrder ? `Order ${detailOrder.human_id}` : ""}
         size="lg"
       >
-        {selectedOrder && (
+        {detailOrder && (
           <div className="flex flex-col gap-4">
             {/* Status + Ack */}
             <div className="flex items-center justify-between">
               <div className="flex gap-2">
-                <Badge color={statusColors[selectedOrder.status] ?? "neutral"}>
-                  {statusLabel(selectedOrder.status)}
+                <Badge color={statusColors[detailOrder.status] ?? "neutral"}>
+                  {statusLabel(detailOrder.status)}
                 </Badge>
-                <Badge color={selectedOrder.payment_status === "paid" ? "mint" : "yellow"}>
-                  {selectedOrder.payment_status}
-                </Badge>
+                {(() => {
+                  const pay = adminPaymentBadge(detailOrder);
+                  return <Badge color={pay.color}>{pay.label}</Badge>;
+                })()}
               </div>
-              {!selectedOrder.acknowledged_at ? (
+              {!detailOrder.acknowledged_at ? (
                 <Button
                   size="sm"
                   variant="primary"
-                  onClick={() => handleAcknowledge(selectedOrder.id)}
+                  onClick={() => handleAcknowledge(detailOrder.id)}
                 >
                   <Bell size={14} /> Acknowledge
                 </Button>
@@ -340,12 +385,25 @@ export default function AdminOrdersPage() {
                   <div className="flex items-center justify-between border-t border-ink/10 pt-3 text-sm">
                     <span className="font-semibold text-ink">Total</span>
                     <span className="font-bold tabular-nums text-gold-deep">
-                      {formatPrice(selectedOrder.total_cents)}
+                      {formatPrice(detailOrder.total_cents)}
                     </span>
                   </div>
                 </div>
               )}
             </Card>
+
+            {/* Payment — keyed on the order and its payment state, so the
+                form's typed values reset when either changes underneath it
+                (another staff member marking it paid, say). */}
+            <OrderPaymentCard
+              key={`${detailOrder.id}-${detailOrder.payment_status}`}
+              order={detailOrder}
+              onUpdate={async (patch) => {
+                setActionError(null);
+                const result = await updatePayment(detailOrder.id, patch);
+                return result;
+              }}
+            />
 
             {/* Customer info */}
             <Card>
@@ -353,21 +411,21 @@ export default function AdminOrdersPage() {
               <div className="flex flex-col gap-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Package className="text-ink-faint" size={16} />
-                  <span className="text-ink">{selectedOrder.guest_name}</span>
+                  <span className="text-ink">{detailOrder.guest_name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="text-ink-faint" size={16} />
-                  <a href={`tel:${selectedOrder.guest_phone}`} className="text-ink hover:text-pink">
-                    {selectedOrder.guest_phone}
+                  <a href={`tel:${detailOrder.guest_phone}`} className="text-ink hover:text-pink">
+                    {detailOrder.guest_phone}
                   </a>
                 </div>
                 {/* Email is no longer collected, so this only appears on older
                     orders. Unconditional, it rendered a blank mailto: link. */}
-                {selectedOrder.guest_email && (
+                {detailOrder.guest_email && (
                   <div className="flex items-center gap-2">
                     <Mail className="text-ink-faint" size={16} />
-                    <a href={`mailto:${selectedOrder.guest_email}`} className="text-ink hover:text-pink">
-                      {selectedOrder.guest_email}
+                    <a href={`mailto:${detailOrder.guest_email}`} className="text-ink hover:text-pink">
+                      {detailOrder.guest_email}
                     </a>
                   </div>
                 )}
@@ -381,23 +439,23 @@ export default function AdminOrdersPage() {
                 <div className="flex items-center gap-2">
                   <Clock className="text-ink-faint" size={16} />
                   <span className="text-ink">
-                    {formatIstSlot(selectedOrder.requested_slot)} IST
+                    {formatIstSlot(detailOrder.requested_slot)} IST
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="text-ink-faint" size={16} />
-                  <span className="text-ink capitalize">{selectedOrder.fulfillment}</span>
+                  <span className="text-ink capitalize">{detailOrder.fulfillment}</span>
                 </div>
-                {selectedOrder.delivery_address && (
+                {detailOrder.delivery_address && (
                   <div className="flex items-start gap-2">
                     <MapPin className="mt-0.5 text-ink-faint" size={16} />
-                    <span className="text-ink">{selectedOrder.delivery_address}</span>
+                    <span className="text-ink">{detailOrder.delivery_address}</span>
                   </div>
                 )}
-                {selectedOrder.notes && (
+                {detailOrder.notes && (
                   <div className="mt-2 rounded-lg bg-pink-soft/50 p-2">
                     <span className="text-xs text-ink-faint">Notes: </span>
-                    <span className="text-ink">{selectedOrder.notes}</span>
+                    <span className="text-ink">{detailOrder.notes}</span>
                   </div>
                 )}
               </div>
@@ -406,7 +464,7 @@ export default function AdminOrdersPage() {
             {/* Delivery charge — only meaningful on delivery orders. Collected
                 in cash on arrival, so this is a record of what was quoted
                 rather than anything the customer pays online. */}
-            {selectedOrder.fulfillment === "delivery" && (
+            {detailOrder.fulfillment === "delivery" && (
               <Card>
                 <h3 className="font-semibold text-ink mb-1">Delivery Charge</h3>
                 <p className="mb-3 text-xs text-ink-soft">
@@ -424,9 +482,9 @@ export default function AdminOrdersPage() {
                       // == null, not === null: before migration 00020 is
                       // applied the column is absent and this is undefined,
                       // which would render defaultValue as NaN.
-                      selectedOrder.delivery_fee_cents == null
+                      detailOrder.delivery_fee_cents == null
                         ? ""
-                        : selectedOrder.delivery_fee_cents / 100
+                        : detailOrder.delivery_fee_cents / 100
                     }
                     placeholder="Not quoted yet"
                     onBlur={async (e) => {
@@ -436,13 +494,13 @@ export default function AdminOrdersPage() {
                       const cents = raw === "" ? null : Math.round(parseFloat(raw) * 100);
                       if (cents !== null && (Number.isNaN(cents) || cents < 0)) return;
                       setActionError(null);
-                      const saved = await setDeliveryFee(selectedOrder.id, cents);
+                      const saved = await setDeliveryFee(detailOrder.id, cents);
                       if (!saved) {
                         setActionError("Could not save the delivery charge. Nothing was changed.");
                         return;
                       }
                       setSelectedOrder((prev) =>
-                        prev && prev.id === selectedOrder.id
+                        prev && prev.id === detailOrder.id
                           ? { ...prev, delivery_fee_cents: cents }
                           : prev
                       );
@@ -450,9 +508,9 @@ export default function AdminOrdersPage() {
                     className="w-40 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink"
                   />
                   <span className="text-xs text-ink-faint">
-                    {selectedOrder.delivery_fee_cents == null
+                    {detailOrder.delivery_fee_cents == null
                       ? "not quoted"
-                      : selectedOrder.delivery_fee_cents === 0
+                      : detailOrder.delivery_fee_cents === 0
                         ? "free delivery"
                         : "to collect in cash"}
                   </span>
@@ -467,9 +525,9 @@ export default function AdminOrdersPage() {
                 {STATUS_FLOW.map((s) => (
                   <button
                     key={s}
-                    onClick={() => handleStatusChange(selectedOrder.id, s)}
+                    onClick={() => handleStatusChange(detailOrder.id, s)}
                     className={`rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors ${
-                      selectedOrder.status === s
+                      detailOrder.status === s
                         ? "border-pink bg-pink-soft text-pink"
                         : "border-ink/15 bg-white text-ink-soft hover:border-pink"
                     }`}
@@ -478,7 +536,7 @@ export default function AdminOrdersPage() {
                   </button>
                 ))}
                 <button
-                  onClick={() => handleStatusChange(selectedOrder.id, "cancelled")}
+                  onClick={() => handleStatusChange(detailOrder.id, "cancelled")}
                   className="rounded-xl border border-red-300 px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
                 >
                   Cancel

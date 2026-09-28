@@ -57,6 +57,15 @@ export default function StaffNotificationEmail({
             <Text style={totalRow}>
               <strong>Total: {total}</strong>
             </Text>
+            {/* Every new order is unpaid: the customer pays by UPI after
+                placing it and sends a screenshot on WhatsApp. Said here so
+                nobody starts a bake on the strength of this email alone. */}
+            <Text style={paragraph}>
+              💳 <strong>Not paid yet.</strong> The customer pays {total} by UPI and
+              sends the screenshot on WhatsApp. Don&rsquo;t start this order until it
+              shows <strong>Paid</strong> in Admin → Orders — check the money has
+              arrived in the bank or UPI app before marking it.
+            </Text>
           </Section>
 
           <Section style={box}>

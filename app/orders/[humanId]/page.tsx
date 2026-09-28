@@ -7,11 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/cart/math";
 import { Confetti } from "@/components/magicui/confetti";
-import { CheckCircle2, Package, MapPin, Clock, Search } from "lucide-react";
+import { CheckCircle2, Clock, Hourglass, MapPin, Package, Search, XCircle } from "lucide-react";
 import Link from "next/link";
 import { formatIstSlot } from "@/lib/time/ist";
-import { RetryPaymentButton } from "@/components/retry-payment-button";
-import { createClient } from "@/lib/supabase/client";
+import { UpiPaymentPanel } from "@/components/payments/upi-payment-panel";
+import {
+  paymentStage,
+  isWaitingOnBakery,
+  CUSTOMER_ORDER_STATUS,
+  CUSTOMER_PAYMENT_LABEL,
+  type PaymentStage,
+} from "@/lib/payments/state";
+import type { OrderPayment } from "@/lib/payments/order-payment";
 
 interface OrderData {
   id: string;
@@ -19,11 +26,12 @@ interface OrderData {
   status: string;
   fulfillment: string;
   guest_name: string;
-  guest_email: string;
   guest_phone: string;
   delivery_address: string | null;
   requested_slot: string;
   payment_status: string;
+  payment_due_at: string | null;
+  payment_reference: string | null;
   total_cents: number;
   notes: string | null;
   order_items: {
@@ -35,6 +43,9 @@ interface OrderData {
   }[];
 }
 
+/** While the bakery has something to do, look for their change this often. */
+const POLL_MS = 20_000;
+
 export default function OrderConfirmationPage({
   params,
 }: {
@@ -42,34 +53,46 @@ export default function OrderConfirmationPage({
 }) {
   const { humanId } = use(params);
   const [order, setOrder] = useState<OrderData | null>(null);
+  const [payment, setPayment] = useState<OrderPayment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
   const [needsVerification, setNeedsVerification] = useState(false);
 
-  const fetchOrder = useCallback(async (phoneVal: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const params = new URLSearchParams({ phone: phoneVal });
-
-      const res = await fetch(`/api/orders/${humanId}?${params}`);
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? "Failed to load order");
+  const fetchOrder = useCallback(
+    async (phoneVal: string, { quiet = false }: { quiet?: boolean } = {}) => {
+      if (!quiet) {
+        setLoading(true);
+        setError(null);
       }
 
-      const data = (await res.json()) as { order: OrderData };
-      setOrder(data.order);
-      setNeedsVerification(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setNeedsVerification(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [humanId]);
+      try {
+        const query = new URLSearchParams({ phone: phoneVal });
+        const res = await fetch(`/api/orders/${encodeURIComponent(humanId)}?${query}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          const data = (await res.json()) as { error?: string };
+          throw new Error(data.error ?? "Failed to load order");
+        }
+
+        const data = (await res.json()) as { order: OrderData; payment?: OrderPayment };
+        setOrder(data.order);
+        if (data.payment) setPayment(data.payment);
+        setNeedsVerification(false);
+      } catch (err) {
+        // A background refresh that fails keeps what is on screen; only a
+        // first load falls back to the phone-number form.
+        if (!quiet) {
+          setError(err instanceof Error ? err.message : "Something went wrong");
+          setNeedsVerification(true);
+        }
+      } finally {
+        if (!quiet) setLoading(false);
+      }
+    },
+    [humanId]
+  );
 
   useEffect(() => {
     // Checkout appends the phone number it just used, so a customer arriving
@@ -88,38 +111,22 @@ export default function OrderConfirmationPage({
     return () => clearTimeout(id);
   }, [fetchOrder]);
 
-  /**
-   * Payment settings. RetryPaymentButton existed but was imported by nothing,
-   * so an unpaid order had no way to pay at all — and kyc_pending_mode, the
-   * setting whose entire purpose is to show UPI instructions while Razorpay
-   * activation is pending, was switched on with nowhere to appear.
-   */
-  const [payment, setPayment] = useState<{
-    razorpayActive: boolean;
-    kycPendingMode: boolean;
-    upiId: string | null;
-  } | null>(null);
+  const stage = order ? paymentStage(order) : null;
 
+  // Staff confirm payments by hand, so the page watches for it rather than
+  // asking the customer to keep reloading. Only while there is something to
+  // wait for, and only while the tab is visible.
   useEffect(() => {
-    const supabase = createClient();
-    void supabase
-      .from("site_settings")
-      .select("razorpay_active, kyc_pending_mode, upi_id")
-      .eq("id", 1)
-      .single()
-      .then(({ data }) => {
-        if (!data) return;
-        setPayment({
-          razorpayActive: data.razorpay_active ?? false,
-          kycPendingMode: data.kyc_pending_mode ?? false,
-          upiId: data.upi_id ?? null,
-        });
-      });
-  }, []);
+    if (!order || !stage || !isWaitingOnBakery(stage) || !phone) return;
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") void fetchOrder(phone, { quiet: true });
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [order, stage, phone, fetchOrder]);
 
   const handleVerify = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchOrder(phone);
+    void fetchOrder(phone);
   };
 
   if (loading) {
@@ -141,7 +148,7 @@ export default function OrderConfirmationPage({
           <Search className="mx-auto mb-4 text-berry" size={40} />
           <h1 className="text-2xl font-bold text-ink mb-2">Find Your Order</h1>
           <p className="text-sm text-ink-soft">
-Enter the phone number you ordered with to view order {humanId}
+            Enter the phone number you ordered with to view order {humanId}
           </p>
         </div>
         <form onSubmit={handleVerify} className="flex flex-col gap-4">
@@ -170,64 +177,72 @@ Enter the phone number you ordered with to view order {humanId}
     );
   }
 
-  if (!order) return null;
+  if (!order || !stage) return null;
 
-  const statusColors: Record<string, "pink" | "mint" | "lavender" | "peach" | "sky" | "yellow" | "neutral"> = {
-    pending: "yellow",
-    confirmed: "sky",
-    paid: "mint",
-    in_progress: "lavender",
-    ready: "peach",
-    fulfilled: "mint",
-    cancelled: "neutral",
-  };
+  const header = headerFor(stage);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-      {/* Success header */}
-      {/* One burst on arrival. This is the single genuinely celebratory moment
-          in the whole flow, and it fires once rather than looping. */}
-      <Confetti
-        className="pointer-events-none fixed inset-0 z-50"
-        options={{
-          particleCount: 90,
-          spread: 70,
-          origin: { y: 0.35 },
-          colors: ["#A8455A", "#F6C7CF", "#E8AF7C", "#F2E8DC"],
-          disableForReducedMotion: true,
-        }}
-      />
+      {/* One burst, and only once the order is actually confirmed. It used to
+          fire the moment the order was placed, which celebrated an order
+          nobody had paid for yet. */}
+      {stage === "paid" && (
+        <Confetti
+          className="pointer-events-none fixed inset-0 z-50"
+          options={{
+            particleCount: 90,
+            spread: 70,
+            origin: { y: 0.35 },
+            colors: ["#A8455A", "#F6C7CF", "#E8AF7C", "#F2E8DC"],
+            disableForReducedMotion: true,
+          }}
+        />
+      )}
 
       <div className="text-center mb-8">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-mint-soft">
-          <CheckCircle2 className="text-cocoa" size={36} />
+        <div
+          className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${header.circle}`}
+        >
+          <header.Icon className={header.iconClass} size={36} aria-hidden="true" />
         </div>
-        <h1 className="text-h1 text-ink mb-2">Order confirmed</h1>
-        <p className="text-ink-soft">Your order has been received.</p>
+        <h1 className="text-h1 text-ink mb-2">{header.title}</h1>
+        <p className="text-ink-soft">{header.sub}</p>
         <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-pink-soft px-4 py-2">
-          <span className="text-sm text-ink-faint">Order ID:</span>
+          <span className="text-sm text-ink-faint">Order number:</span>
           <span className="font-bold text-berry">{order.human_id}</span>
         </div>
       </div>
+
+      {/* Payment first: until it is done, it is the only thing the customer
+          needs to act on. */}
+      {payment && (
+        <div className="mb-4">
+          <UpiPaymentPanel
+            order={order}
+            payment={payment}
+            onOrderChanged={(patch) => setOrder((prev) => (prev ? { ...prev, ...patch } : prev))}
+          />
+        </div>
+      )}
 
       {/* Status */}
       <Card className="mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Package className="text-berry" size={20} />
+            <Package className="text-berry" size={20} aria-hidden="true" />
             <div>
-              <p className="text-xs text-ink-faint">Status</p>
-              <Badge color={statusColors[order.status] ?? "neutral"}>
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+              <p className="text-xs text-ink-faint">Order</p>
+              <Badge color={CUSTOMER_ORDER_STATUS[order.status]?.color ?? "neutral"}>
+                {CUSTOMER_ORDER_STATUS[order.status]?.text ?? order.status}
               </Badge>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-ink-faint">Payment</p>
-            <Badge color={order.payment_status === "paid" ? "mint" : "yellow"}>
-              {order.payment_status}
-            </Badge>
-          </div>
+          {stage !== "cancelled" && (
+            <div className="text-right">
+              <p className="text-xs text-ink-faint">Payment</p>
+              <Badge color={CUSTOMER_PAYMENT_LABEL[stage].color}>{CUSTOMER_PAYMENT_LABEL[stage].text}</Badge>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -251,24 +266,24 @@ Enter the phone number you ordered with to view order {humanId}
       </Card>
 
       {/* Details */}
-      <Card className="mb-4">
+      <Card className="mb-6">
         <h2 className="font-semibold text-ink mb-3">Details</h2>
         <div className="flex flex-col gap-2 text-sm">
           <div className="flex items-center gap-2">
-            <Clock className="text-ink-faint" size={16} />
+            <Clock className="text-ink-faint" size={16} aria-hidden="true" />
             <span className="text-ink-faint">Slot:</span>
             <span className="text-ink">
               {formatIstSlot(order.requested_slot)} IST
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <MapPin className="text-ink-faint" size={16} />
+            <MapPin className="text-ink-faint" size={16} aria-hidden="true" />
             <span className="text-ink-faint">Fulfillment:</span>
             <span className="text-ink capitalize">{order.fulfillment}</span>
           </div>
           {order.delivery_address && (
             <div className="flex items-start gap-2">
-              <MapPin className="mt-0.5 text-ink-faint" size={16} />
+              <MapPin className="mt-0.5 text-ink-faint" size={16} aria-hidden="true" />
               <span className="text-ink">{order.delivery_address}</span>
             </div>
           )}
@@ -281,27 +296,6 @@ Enter the phone number you ordered with to view order {humanId}
         </div>
       </Card>
 
-      {/* Payment */}
-      {order.payment_status !== "paid" && payment && (payment.razorpayActive || payment.kycPendingMode) ? (
-        <div className="mb-6">
-          <RetryPaymentButton
-            orderId={order.id}
-            humanId={order.human_id}
-            totalCents={order.total_cents}
-            kycPendingMode={payment.kycPendingMode}
-            upiId={payment.upiId ?? undefined}
-            onPaymentSuccess={() => fetchOrder(phone)}
-          />
-        </div>
-      ) : (
-        <div className="rounded-xl bg-mint-soft border border-mint/20 p-4 mb-6">
-          <p className="text-sm text-ink-soft">
-            💡 We&rsquo;ll confirm your order and send payment instructions to{" "}
-            <strong>{order.guest_phone}</strong>.
-          </p>
-        </div>
-      )}
-
       {/* Actions */}
       <div className="flex justify-center gap-3">
         <Link href="/menu">
@@ -313,4 +307,50 @@ Enter the phone number you ordered with to view order {humanId}
       </div>
     </div>
   );
+}
+
+function headerFor(stage: PaymentStage) {
+  switch (stage) {
+    case "paid":
+      return {
+        title: "Order confirmed",
+        sub: "We've received your payment. Thank you!",
+        Icon: CheckCircle2,
+        circle: "bg-mint-soft",
+        iconClass: "text-cocoa",
+      };
+    case "checking":
+      return {
+        title: "Checking your payment",
+        sub: "Your order is placed. We'll confirm it once your payment reaches us.",
+        Icon: Hourglass,
+        circle: "bg-sky-soft",
+        iconClass: "text-cocoa",
+      };
+    case "cancelled":
+      return {
+        title: "Order cancelled",
+        sub: "This order will not be made.",
+        Icon: XCircle,
+        circle: "bg-shell",
+        iconClass: "text-ink-soft",
+      };
+    case "refunded":
+      return {
+        title: "Payment refunded",
+        sub: "Your money has been sent back.",
+        Icon: CheckCircle2,
+        circle: "bg-shell",
+        iconClass: "text-cocoa",
+      };
+    default:
+      // awaiting, overdue, not_found
+      return {
+        title: "Order placed — now pay to confirm",
+        sub: "Your order isn't confirmed until your payment reaches us.",
+        Icon: Hourglass,
+        circle: "bg-yellow-soft",
+        iconClass: "text-cocoa",
+      };
+  }
 }

@@ -47,7 +47,7 @@ export async function sendStaffNotification(
   const { data, error } = await resend.emails.send({
     from: EMAIL_FROM,
     to: staffEmail,
-    subject: `🔔 New order ${props.humanId} — action required`,
+    subject: `🔔 New order ${props.humanId} (${props.total}) — awaiting UPI payment`,
     html,
   });
   if (error) throw new Error(`Email send failed: ${error.message}`);

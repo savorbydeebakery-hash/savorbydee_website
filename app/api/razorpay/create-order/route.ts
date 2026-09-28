@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { RAZORPAY_DISABLED, razorpayDisabled } from "@/lib/payments/razorpay-off";
 
 /**
  * T6.1: Razorpay create-order API (Edge function, test mode).
@@ -13,6 +14,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * Test mode keys start with rzp_test_.
  */
 export async function POST(request: NextRequest) {
+  // Razorpay is off — see lib/payments/razorpay-off.ts.
+  if (RAZORPAY_DISABLED) return razorpayDisabled();
+
   try {
     const { orderId } = (await request.json()) as { orderId: string };
 

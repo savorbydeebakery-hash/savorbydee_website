@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatIst } from "@/lib/time/ist";
+import { paymentStage, CUSTOMER_ORDER_STATUS, CUSTOMER_PAYMENT_LABEL } from "@/lib/payments/state";
 
 export const dynamic = "force-dynamic";
 
@@ -29,19 +30,10 @@ interface OrderData {
   fulfillment: string;
   requested_slot: string;
   payment_status: string;
+  payment_due_at: string | null;
   total_cents: number;
   created_at: string;
 }
-
-const statusColors: Record<string, "pink" | "mint" | "lavender" | "peach" | "sky" | "yellow" | "neutral"> = {
-  pending: "yellow",
-  confirmed: "sky",
-  paid: "mint",
-  in_progress: "lavender",
-  ready: "peach",
-  fulfilled: "mint",
-  cancelled: "neutral",
-};
 
 export default function AccountPage() {
   const supabase = createClient();
@@ -80,7 +72,7 @@ export default function AccountPage() {
 
       const { data: orderData } = await supabase
         .from("orders")
-        .select("id, human_id, status, fulfillment, requested_slot, payment_status, total_cents, created_at")
+        .select("id, human_id, status, fulfillment, requested_slot, payment_status, payment_due_at, total_cents, created_at")
         .eq("customer_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -226,7 +218,7 @@ export default function AccountPage() {
               >
                 <div>
                   <Link
-                    href={`/orders/${order.human_id}?email=${encodeURIComponent(profile?.email ?? "")}&phone=${encodeURIComponent(profile?.phone ?? "")}`}
+                    href={`/orders/${order.human_id}?phone=${encodeURIComponent(profile?.phone ?? "")}`}
                   >
                     <p className="font-semibold text-ink hover:text-berry">{order.human_id}</p>
                   </Link>
@@ -239,10 +231,14 @@ export default function AccountPage() {
                 <div className="text-right">
                   <p className="font-semibold text-gold-deep">{formatPrice(order.total_cents)}</p>
                   <div className="mt-1 flex gap-1.5">
-                    <Badge color={statusColors[order.status] ?? "neutral"}>{order.status}</Badge>
-                    <Badge color={order.payment_status === "paid" ? "mint" : "yellow"}>
-                      {order.payment_status}
+                    {/* The same words the order page uses, from one table. */}
+                    <Badge color={CUSTOMER_ORDER_STATUS[order.status]?.color ?? "neutral"}>
+                      {CUSTOMER_ORDER_STATUS[order.status]?.text ?? order.status}
                     </Badge>
+                    {order.status !== "cancelled" && (() => {
+                      const pay = CUSTOMER_PAYMENT_LABEL[paymentStage(order)];
+                      return <Badge color={pay.color}>{pay.text}</Badge>;
+                    })()}
                   </div>
                 </div>
               </div>

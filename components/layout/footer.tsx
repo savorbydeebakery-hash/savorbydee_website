@@ -37,7 +37,7 @@ const INFO = [
   { href: "/policies/contact", label: "Contact Us" },
   { href: "/policies/terms", label: "Terms" },
   { href: "/policies/privacy", label: "Privacy Policy" },
-  { href: "/policies/refunds", label: "Refunds & Returns" },
+  { href: "/policies/refunds", label: "Refunds & Cancellations" },
   { href: "/policies/shipping", label: "Shipping" },
 ];
 
@@ -59,17 +59,21 @@ export async function Footer() {
   let whatsappNumber: string | null = null;
   let instagramUrl: string | null = null;
   let facebookUrl: string | null = null;
+  let fssai: string | null = null;
   try {
     const supabase = await createClient();
+    // "*" rather than a column list: naming a column that a pending migration
+    // has not added yet fails the whole read, and this is on every page.
     const { data } = await supabase
       .from("site_settings")
-      .select("footer_text, whatsapp_number, instagram_url, facebook_url")
+      .select("*")
       .eq("id", 1)
       .single();
     footerText = data?.footer_text?.trim() || null;
     whatsappNumber = data?.whatsapp_number?.trim() || null;
     instagramUrl = data?.instagram_url?.trim() || null;
     facebookUrl = data?.facebook_url?.trim() || null;
+    fssai = (data?.fssai_license_number as string | null | undefined)?.trim() || null;
   } catch {
     // defaults below
   }
@@ -131,9 +135,11 @@ export async function Footer() {
 
           {/* footer_text has been an editable field with no reader since the
               panel was built. The shipped line stays as the fallback. */}
-          <p className="text-xs text-bk-muted">
-            {footerText ?? `© ${year} Savor by Dee. Made in Shillong.`}
-          </p>
+          <div className="flex flex-col gap-1 text-xs text-bk-muted md:items-end">
+            <p>{footerText ?? `© ${year} Savor by Dee. Made in Shillong.`}</p>
+            {/* FSSAI asks food businesses selling online to display this. */}
+            {fssai && <p>FSSAI Lic. No. {fssai}</p>}
+          </div>
         </div>
       </div>
     </footer>

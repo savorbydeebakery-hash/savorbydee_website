@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { samePhone } from "@/lib/customers/phone";
+import {
+  buildOrderPayment,
+  publicOrder,
+  PAYMENT_SETTINGS_COLUMNS,
+  type PaymentSettingsRow,
+} from "@/lib/payments/order-payment";
 
 /**
  * GET /api/orders/[humanId]?phone=...
@@ -48,7 +54,19 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ order });
+    // How to pay, built here from the stored total so the QR can only ever
+    // ask for what the order says. A settings read that fails still returns
+    // the order; the page then offers WhatsApp instead of a QR.
+    const { data: settings } = await supabase
+      .from("site_settings")
+      .select(PAYMENT_SETTINGS_COLUMNS)
+      .eq("id", 1)
+      .maybeSingle();
+
+    return NextResponse.json({
+      order: publicOrder(order),
+      payment: buildOrderPayment(order, settings as PaymentSettingsRow | null),
+    });
   } catch (error) {
     console.error("[api/orders/[id]] GET error:", error);
     return NextResponse.json(

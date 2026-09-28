@@ -245,13 +245,37 @@ Recorded because each cost real time to find.
 
 ---
 
-## 5. Payments (Razorpay)
+## 5. Payments — manual UPI (Razorpay is off)
 
-Not live. The client must apply; `docs/razorpay-client-onboarding.md` is a
-copy-paste message for her with the full step-by-step (two `<<>>` placeholders
-to fill first).
+**As of 2026-09-28 the client dropped Razorpay.** Customers pay the bakery's
+own UPI ID from a QR on their order page (amount and order number filled in,
+built server-side from `total_cents`), send the screenshot on WhatsApp, and
+staff mark the order paid in Admin → Orders after seeing the money arrive.
+Read `docs/manual-payments.md` first — it lists 21 failure cases and what
+covers each.
 
-Two things were fixed on this side and should not regress:
+- **Migration 00045 must be applied before the code is deployed.** The order
+  API writes `payment_due_at` / `payment_method`, so without the columns every
+  order fails. It also drops three RLS policies that let anyone with the anon
+  key insert an order (verified with a probe that got past RLS).
+- Pieces: `lib/payments/*` (pure, unit-tested), `components/payments/upi-payment-panel.tsx`,
+  `components/admin/order-payment-card.tsx`, `POST /api/orders/[humanId]/payment`
+  (customer "I've paid" — can only reach `pending`, never `paid`).
+- `payment_status`: unpaid → pending (customer says paid) → paid (staff saw the
+  money) / failed (not found) / refunded. `lib/payments/state.ts` turns that plus
+  the deadline into one stage for every screen.
+- A verified UTR is unique across orders (DB index), so one screenshot cannot
+  pay for two orders. Signed-in users cannot edit `total_cents`.
+- Cancelling an order puts same-IST-day stock back (trigger).
+- The Razorpay routes return 410 (`lib/payments/razorpay-off.ts`); code kept.
+- Still needed from the client: UPI ID + payee name (from her QR), payment
+  WhatsApp number if different, and a **grievance officer name** (the policy
+  pages show a yellow gap until it is set).
+
+### Razorpay (historical)
+
+`docs/razorpay-client-onboarding.md` was the onboarding message. Two things
+were fixed on this side and should not regress if Razorpay ever returns:
 
 - **The webhook used to fail open.** With `RAZORPAY_WEBHOOK_SECRET` unset it
   accepted unsigned requests and marked orders paid. It now rejects with 500

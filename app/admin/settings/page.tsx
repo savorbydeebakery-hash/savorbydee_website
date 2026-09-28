@@ -9,6 +9,24 @@ import { Badge } from "@/components/ui/badge";
 import { Save, Check, Upload, X } from "lucide-react";
 import { uploadFile } from "@/lib/storage/upload-helper";
 import { GalleryPhotoPicker } from "@/components/admin/gallery-photo-picker";
+import QRCode from "qrcode";
+import { buildUpiUri, isValidVpa } from "@/lib/payments/upi";
+
+/** The ₹1 test QR on the Payment tab. */
+function TestQr({ uri }: { uri: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    QRCode.toDataURL(uri, { margin: 2, width: 320 })
+      .then((url) => !cancelled && setSrc(url))
+      .catch(() => !cancelled && setSrc(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [uri]);
+  // eslint-disable-next-line @next/next/no-img-element
+  return src ? <img src={src} alt="₹1 test UPI QR code" width={160} height={160} className="h-40 w-40" /> : null;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +63,12 @@ interface SiteSettings {
   razorpay_active: boolean;
   kyc_pending_mode: boolean;
   upi_id: string | null;
+  // Manual UPI payments and legal details — migration 00045.
+  upi_payee_name: string | null;
+  payment_whatsapp_number: string | null;
+  payment_window_minutes: number;
+  fssai_license_number: string | null;
+  grievance_officer_name: string | null;
   hero_image_url: string | null;
   /** The two homepage menu cards. NULL lets the homepage pick a gallery photo. */
   daily_menu_image_url: string | null;
@@ -212,6 +236,32 @@ export default function AdminSettingsPage() {
             Leaving one empty hides that icon from the footer.
           </p>
           <Input label="Footer Text" value={settings.footer_text ?? ""} onChange={(e) => update("footer_text", e.target.value)} />
+
+          {/* Legal details the policy pages and footer print. */}
+          <div className="grid grid-cols-1 gap-4 border-t border-ink/8 pt-4 sm:grid-cols-2">
+            <div>
+              <Input
+                label="FSSAI licence number"
+                value={settings.fssai_license_number ?? ""}
+                onChange={(e) => update("fssai_license_number", e.target.value.trim() || null)}
+              />
+              <p className="mt-1 text-xs text-ink-faint">
+                Shown in the footer and on the Contact page. FSSAI requires food businesses
+                selling online to display it.
+              </p>
+            </div>
+            <div>
+              <Input
+                label="Grievance officer (full name)"
+                value={settings.grievance_officer_name ?? ""}
+                onChange={(e) => update("grievance_officer_name", e.target.value || null)}
+              />
+              <p className="mt-1 text-xs text-ink-faint">
+                The person customers can complain to. Indian e-commerce rules require one to
+                be named on the site. Uses the contact phone and email above.
+              </p>
+            </div>
+          </div>
 
           {/* Hero Image */}
           <div className="border-t border-ink/8 pt-4">
@@ -427,18 +477,79 @@ export default function AdminSettingsPage() {
               </p>
             </div>
           )}
-          <label className="flex items-center gap-2 text-sm font-medium text-ink">
-            <input type="checkbox" disabled={!isAdmin} checked={settings.razorpay_active} onChange={(e) => update("razorpay_active", e.target.checked)} />
-            Enable Razorpay
-          </label>
-          <label className="flex items-center gap-2 text-sm font-medium text-ink">
-            <input type="checkbox" disabled={!isAdmin} checked={settings.kyc_pending_mode} onChange={(e) => update("kyc_pending_mode", e.target.checked)} />
-            KYC Pending Mode (show UPI fallback)
-          </label>
-          <Input label="UPI ID" disabled={!isAdmin} value={settings.upi_id ?? ""} onChange={(e) => update("upi_id", e.target.value)} placeholder="savorbakery@upi" />
-          <div className="rounded-xl bg-yellow-soft/50 p-3">
-            <p className="text-sm text-ink-soft">Razorpay keys are set via environment variables (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET), not stored in the database.</p>
-          </div>
+          {/* Manual UPI replaced Razorpay — see docs/manual-payments.md. The
+              Razorpay and KYC switches are gone from here; their columns stay
+              so nothing reading them breaks. */}
+          <p className="text-sm leading-relaxed text-ink-soft">
+            Customers pay by UPI from a QR on their order page, with the exact amount
+            and order number filled in, then send the screenshot on WhatsApp. You mark
+            each order paid in <strong>Orders</strong> once the money is in your account.
+          </p>
+          <Input
+            label="UPI ID customers pay to"
+            disabled={!isAdmin}
+            value={settings.upi_id ?? ""}
+            onChange={(e) => update("upi_id", e.target.value.trim() || null)}
+            placeholder="yourname@okaxis"
+          />
+          {settings.upi_id && !isValidVpa(settings.upi_id) && (
+            <p className="-mt-2 text-xs text-red-700">
+              That doesn&rsquo;t look like a UPI ID (it should be like <code>name@bank</code>).
+              Customers won&rsquo;t see a QR until it&rsquo;s fixed.
+            </p>
+          )}
+          <Input
+            label="Name shown in the customer's UPI app"
+            disabled={!isAdmin}
+            value={settings.upi_payee_name ?? ""}
+            onChange={(e) => update("upi_payee_name", e.target.value || null)}
+            placeholder={settings.bakery_name || "Savor by Dee"}
+          />
+          <p className="-mt-2 text-xs text-ink-faint">
+            Use the name your bank shows for this UPI ID, so customers recognise it. Blank
+            uses the bakery name.
+          </p>
+          <Input
+            label="WhatsApp number for payment screenshots"
+            disabled={!isAdmin}
+            value={settings.payment_whatsapp_number ?? ""}
+            onChange={(e) => update("payment_whatsapp_number", e.target.value || null)}
+            placeholder={settings.whatsapp_number || "91XXXXXXXXXX"}
+          />
+          <p className="-mt-2 text-xs text-ink-faint">
+            With country code, e.g. 919876543210. Blank uses the main WhatsApp number.
+          </p>
+          <Input
+            label="Minutes a customer has to pay"
+            type="number"
+            min={15}
+            max={1440}
+            disabled={!isAdmin}
+            value={settings.payment_window_minutes ?? 60}
+            onChange={(e) => update("payment_window_minutes", parseInt(e.target.value || "60", 10))}
+          />
+          <p className="-mt-2 text-xs text-ink-faint">
+            After this, an unpaid order shows as <strong>overdue</strong> and the customer is
+            asked to message you before paying. Between 15 and 1440 (24 hours).
+          </p>
+
+          {isValidVpa(settings.upi_id) && (
+            <div className="rounded-xl border border-ink/10 p-4">
+              <p className="mb-2 text-sm font-semibold text-ink">Test it before customers do</p>
+              <p className="mb-3 text-sm text-ink-soft">
+                Save first, then scan this with your own phone. It asks for ₹1 &mdash; check the
+                name and UPI ID your app shows are right. You can pay it to be sure the money
+                lands where you expect.
+              </p>
+              <TestQr
+                uri={buildUpiUri({
+                  vpa: settings.upi_id,
+                  payeeName: settings.upi_payee_name || settings.bakery_name || "Savor by Dee",
+                  amountCents: 100,
+                  note: "Savor test payment",
+                })}
+              /></div>
+          )}
         </Card>
       )}
 

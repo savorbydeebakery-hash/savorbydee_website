@@ -17,6 +17,7 @@ import { repriceCart, postedTotalIsShort, type RepriceResult } from "@/lib/cart/
 import { istInputToInstant, formatIstSlot, istDateParts } from "@/lib/time/ist";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 import { samePhone } from "@/lib/customers/phone";
+import { publicOrder, DEFAULT_PAYMENT_WINDOW_MINUTES } from "@/lib/payments/order-payment";
 
 /**
  * Resolve the logged-in customer id from the request's auth cookies.
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
     )
       .from("site_settings")
       .select(
-        "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, delivery_enabled, delivery_from, delivery_to, free_delivery_threshold_cents, bakery_name, address_line1, address_line2, address_city, address_state"
+        "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, delivery_enabled, delivery_from, delivery_to, free_delivery_threshold_cents, bakery_name, address_line1, address_line2, address_city, address_state, payment_window_minutes"
       )
       .eq("id", 1)
       .single();
@@ -440,7 +441,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (existing) {
-        return NextResponse.json({ order: existing, deduplicated: true }, { status: 200 });
+        return NextResponse.json({ order: publicOrder(existing), deduplicated: true }, { status: 200 });
       }
     }
 
@@ -488,6 +489,15 @@ export async function POST(request: NextRequest) {
             ? 0
             : null,
         payment_status: "unpaid",
+        // Manual UPI: paid to the bakery's UPI ID from the order page, then
+        // verified by staff. The deadline is what "overdue" is measured
+        // against, fixed now so a later change to the window does not
+        // retroactively make an order late.
+        payment_method: "upi_manual",
+        payment_due_at: new Date(
+          Date.now() +
+            (noticeSettings?.payment_window_minutes ?? DEFAULT_PAYMENT_WINDOW_MINUTES) * 60_000
+        ).toISOString(),
         total_cents: chargedTotalCents,
         notes: notes || null,
         razorpay_order_id: idempotencyKey ? `idem-${idempotencyKey}` : null,
@@ -590,7 +600,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         order: {
-          ...order,
+          ...publicOrder(order),
           items: orderItems,
         },
       },
@@ -650,7 +660,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ order });
+    // Staff-only columns stripped; same shape as /api/orders/[humanId].
+    return NextResponse.json({ order: publicOrder(order) });
   } catch (error) {
     console.error("[api/orders] GET error:", error);
     return NextResponse.json(

@@ -18,6 +18,14 @@ export interface OrderRow {
   total_cents: number;
   /** Cash-on-delivery charge quoted by staff. null = not quoted yet. */
   delivery_fee_cents: number | null;
+  /** Manual UPI payment tracking — migration 00045. */
+  payment_method?: string | null;
+  payment_due_at?: string | null;
+  payment_claimed_at?: string | null;
+  payment_reference?: string | null;
+  payment_received_cents?: number | null;
+  payment_verified_at?: string | null;
+  payment_note?: string | null;
   acknowledged_at: string | null;
   staff_email_sent_at: string | null;
   created_at: string;
@@ -93,6 +101,42 @@ export function useOrdersRealtime() {
         );
       }
       return !error;
+    },
+    []
+  );
+
+  /**
+   * Payment changes: mark paid, not found, refunded, or undo. Returns the
+   * database's reason on refusal, because the refusals here are meaningful —
+   * a UTR already used on another order, a missing amount — and "could not
+   * save" would hide exactly the thing staff need to know.
+   *
+   * The verified-at / verified-by stamps are written by the database trigger
+   * (migration 00045), so they are read back rather than set here.
+   */
+  const updatePayment = useCallback(
+    async (orderId: string, patch: Partial<OrderRow>): Promise<{ ok: true } | { ok: false; error: string }> => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("orders")
+        .update(patch)
+        .eq("id", orderId)
+        .select("*")
+        .single();
+
+      if (error) {
+        if (error.code === "23505") {
+          return {
+            ok: false,
+            error:
+              "That UPI transaction ID is already recorded on another order. One payment can only pay for one order — check the ID, or search the orders list for it.",
+          };
+        }
+        return { ok: false, error: error.message || "Could not save. Nothing was changed." };
+      }
+
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? (data as OrderRow) : o)));
+      return { ok: true };
     },
     []
   );
@@ -179,6 +223,7 @@ export function useOrdersRealtime() {
     connected,
     acknowledgeOrder,
     updateOrderStatus,
+    updatePayment,
     setDeliveryFee,
     refresh: fetchOrders,
   };
