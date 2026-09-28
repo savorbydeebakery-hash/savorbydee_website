@@ -27,9 +27,8 @@ export interface BtsItem {
  * pulling a tray out of the oven, and neither reads as work in a still.
  *
  * The clips are muted, looped and play inline, and carry the photograph as
- * their poster so a tile is never empty while one loads. Under reduced motion
- * the clip is still there but waits for a tap — see components/home/bts-clip.tsx
- * for why hiding it outright was wrong.
+ * their poster so a tile is never empty while one loads. They autoplay under
+ * reduced motion too — see components/home/bts-clip.tsx for why.
  *
  * Both the caption and the stage label are gone from the page, so this is
  * three tiles under one heading rather than a labelled diagram of the process.
@@ -85,10 +84,14 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
       <SectionHead title="Behind the Scenes" />
 
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
-        {stages.map((item) => {
+        {stages.map((item, i) => {
           const Icon = stageIcon(item.label);
           return (
-            <li key={item.id}>
+            // On a phone the second stage leads: the client wants the oven
+            // clip first when the tiles stack. Positional, not by label, so
+            // it follows whatever Dee sets as sort_order; from sm up the
+            // three sit side by side in database order.
+            <li key={item.id} className={i === 1 ? "max-sm:order-first" : undefined}>
               <div className="overflow-hidden rounded-[var(--bk-r-block)] bg-bk-bg-3">
                 {item.video_url ? (
                   <BtsClip

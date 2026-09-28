@@ -1,27 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 /**
- * One Behind the Scenes clip.
+ * One Behind the Scenes clip: muted, looped, autoplaying, no controls.
  *
- * WHY THIS IS NOT PURELY CSS
- * The first version hid the video under `prefers-reduced-motion: reduce` and
- * showed the poster instead. That is right for decoration and wrong here: this
- * section IS short clips of the work, so hiding them leaves those visitors
- * with three still photographs and no way to reach what everyone else sees.
- * And the preference is far more common than it looks — Windows' "Animation
- * effects" switch, which plenty of people turn off for performance, is
- * reported to the browser as reduced motion. The client's own machine has it
- * off, which is how this was found: the clips looked broken.
+ * WHY REDUCED MOTION DOES NOT CHANGE THIS
+ * Two earlier versions keyed off `prefers-reduced-motion: reduce` — first
+ * hiding the clip behind its poster, then showing it with the browser's
+ * controls so it played on a tap. The client asked for the clips to simply
+ * play, everywhere. The preference is also far more common than it looks:
+ * Windows' "Animation effects" switch and Android's "Remove animations" are
+ * both reported as reduced motion, so on the client's own devices the section
+ * looked like three paused videos with scrub bars. These are short silent
+ * clips of the work, not decoration layered over content, so they play.
  *
- * So the preference changes HOW the clip is offered, not whether it exists:
- *   no-preference — muted, looped, autoplaying, no controls. Ambient.
- *   reduce        — the poster frame, still, with the browser's own controls
- *                   so it plays on a deliberate tap and stops at the end.
- *
- * Muted either way: a browser blocks autoplay with sound, so an unmuted clip
- * would simply never start.
+ * Muted because a browser blocks autoplay with sound, so an unmuted clip would
+ * never start. The explicit play() covers browsers that decline the autoPlay
+ * attribute on first paint (iOS in Low Power Mode, some Android WebViews); if
+ * that is refused too, the poster stays up, which is the same as before.
  */
 export function BtsClip({
   videoUrl,
@@ -32,30 +29,20 @@ export function BtsClip({
   posterUrl?: string | null;
   label: string;
 }) {
-  // Starts false so the server and the first client render agree; a visitor
-  // who wants reduced motion gets the controls a frame later, having seen a
-  // poster either way.
-  const [reduced, setReduced] = useState(false);
+  const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReduced(query.matches);
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
+    ref.current?.play().catch(() => {});
   }, []);
 
   return (
     <video
-      // key forces a fresh element when the preference flips, because autoPlay
-      // is only honoured on a newly created element.
-      key={reduced ? "static" : "ambient"}
-      autoPlay={!reduced}
-      loop={!reduced}
-      controls={reduced}
+      ref={ref}
+      autoPlay
+      loop
       muted
       playsInline
-      preload="metadata"
+      preload="auto"
       poster={posterUrl ?? undefined}
       aria-label={label}
       className="aspect-[4/5] w-full rounded-[var(--bk-r-block)] bg-bk-bg-3 object-cover"
