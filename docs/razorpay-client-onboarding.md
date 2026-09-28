@@ -37,8 +37,10 @@ what to do. Budget about 30 minutes, plus 2–4 working days for their review.
 
 1. Business name: **Savor by Dee** (or the exact name on your FSSAI licence —
    these should match).
-2. Business type: choose **Proprietorship** if it's just you. Pick
-   **Individual** only if you have no business registration at all.
+2. Business type: choose **Individual** unless you have a **GST or Udyam
+   (MSME) certificate**. Proprietorship asks for a "Date of Incorporation"
+   taken from one of those; Razorpay's help text names no other document. The choice locks once
+   your PAN is linked, so check this before continuing.
 3. Business category: choose **Food and Beverage**, sub-category **Bakery** or
    the closest option.
 4. Website: `https://savorbydee.in`
