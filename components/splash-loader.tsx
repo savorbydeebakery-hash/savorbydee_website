@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { CakeLottie } from "@/components/kinetic/cake-lottie";
 
 /**
  * The first thing anyone sees: the cake, and then the page behind it.
@@ -85,7 +85,7 @@ export function SplashLoader() {
           aria-hidden="true"
           className="cake-loader-glow absolute size-48 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bk-pink)_75%,transparent),transparent_70%)] opacity-70 blur-xl"
         />
-        <DotLottieReact src="/Cake.lottie" loop autoplay className="relative h-40 w-40" />
+        <CakeLottie className="relative h-40 w-40" />
       </div>
 
       <p className="splash-wordmark mt-2 text-sm font-medium uppercase tracking-[0.3em] text-bk-fg">

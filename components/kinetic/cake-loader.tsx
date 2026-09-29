@@ -1,6 +1,6 @@
 "use client";
 
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { CakeLottie } from "@/components/kinetic/cake-lottie";
 
 /**
  * The cake loader, with the room around it moving too.
@@ -56,12 +56,7 @@ export function CakeLoader({
           />
         ))}
 
-        <DotLottieReact
-          src="/Cake.lottie"
-          loop
-          autoplay
-          className={`relative ${size}`}
-        />
+        <CakeLottie className={`relative ${size}`} />
       </div>
 
       {/* No opacity-0 here: the delayed fade-in is applied by the stylesheet
