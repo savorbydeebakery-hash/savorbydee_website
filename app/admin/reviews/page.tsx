@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reorderNeighbour, swappedSortOrders } from "@/lib/admin/reorder";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -115,24 +116,37 @@ export default function AdminReviewsPage() {
     void fetchReviews();
   };
 
+  // Each list action reports a refused write. They used to ignore the result,
+  // so a failed delete or hide looked done until the page was reloaded.
   const remove = async (r: Review) => {
     if (!confirm(`Delete the review from ${r.author_name}?`)) return;
-    await supabase.from("reviews").delete().eq("id", r.id);
+    setError(null);
+    const { error: writeError } = await supabase.from("reviews").delete().eq("id", r.id);
+    if (writeError) setError(`Could not delete: ${writeError.message}`);
     void fetchReviews();
   };
 
   const toggleActive = async (r: Review) => {
-    await supabase.from("reviews").update({ is_active: !r.is_active }).eq("id", r.id);
+    setError(null);
+    const { error: writeError } = await supabase
+      .from("reviews")
+      .update({ is_active: !r.is_active })
+      .eq("id", r.id);
+    if (writeError) setError(`Could not ${r.is_active ? "hide" : "show"} it: ${writeError.message}`);
     void fetchReviews();
   };
 
   const move = async (r: Review, dir: "up" | "down") => {
-    const swap = reviews.find(
-      (o) => o.sort_order === r.sort_order + (dir === "up" ? -1 : 1)
-    );
+    // Neighbour in sort order, not sort_order ± 1 — see lib/admin/reorder.ts.
+    const swap = reorderNeighbour(reviews, r, dir);
     if (!swap) return;
-    await supabase.from("reviews").update({ sort_order: r.sort_order }).eq("id", swap.id);
-    await supabase.from("reviews").update({ sort_order: swap.sort_order }).eq("id", r.id);
+    const next = swappedSortOrders(r, swap, dir);
+    setError(null);
+    const first = await supabase.from("reviews").update({ sort_order: next.neighbour }).eq("id", swap.id);
+    const second = first.error
+      ? first
+      : await supabase.from("reviews").update({ sort_order: next.item }).eq("id", r.id);
+    if (second.error) setError(`Could not reorder: ${second.error.message}`);
     void fetchReviews();
   };
 

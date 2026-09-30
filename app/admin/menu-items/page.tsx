@@ -316,7 +316,7 @@ export default function AdminMenuItemsPage() {
               <Button size="sm" variant="ghost" onClick={() => toggleSoldOut(item)}>
                 {item.is_sold_out ? "Mark Available" : "Mark Sold Out"}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(item.id, item.image_url)}>
+              <Button size="sm" variant="ghost" onClick={() => handleDelete(item.id, item.image_url)} aria-label={`Delete ${item.name}`}>
                 <Trash2 size={14} className="text-red-500" />
               </Button>
             </div>

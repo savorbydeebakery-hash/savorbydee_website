@@ -4,6 +4,7 @@ import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { PropField } from "@/components/props/prop-field";
 import { Macaron, Cherry, Sprinkles } from "@/components/props/pastry-props";
 import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
+import { PromoBanner } from "@/components/promo-banner";
 
 export const metadata = {
   title: "Preorder Menu – Savor by Dee",
@@ -81,6 +82,9 @@ export default async function MenuPage({
       <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
         <MenuPageNav />
       </div>
+
+      {/* Admin -> Promo Banners -> "Menu Top". Rendered nowhere until now. */}
+      <PromoBanner position="menu_top" />
 
       <PropField className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <Macaron size={68} x="-2%" y="6%" depth={0.5} className="hidden xl:block" />

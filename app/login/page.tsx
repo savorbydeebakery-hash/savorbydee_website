@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Cake, LogIn, UserPlus } from "lucide-react";
 
@@ -21,7 +21,6 @@ export default function LoginPage() {
 
 function LoginForm() {
   const supabase = createClient();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next");
   const errorParam = searchParams.get("error");
@@ -60,8 +59,12 @@ function LoginForm() {
       : { data: null };
 
     const destination = getDestination(profile?.role as string | undefined);
-    router.push(destination);
-    router.refresh();
+    // A full navigation, not router.push + router.refresh. The two together
+    // raced: the refresh re-rendered /login and cancelled the push, so a
+    // successful sign-in sat on "Signing in..." indefinitely (found testing
+    // the admin panel, 2026-09-30). A real page load also guarantees the
+    // middleware sees the new session cookie on the first request to /admin.
+    window.location.assign(destination);
   };
 
   const handleSignUp = async () => {
@@ -84,12 +87,11 @@ function LoginForm() {
     }
 
     if (data.user) {
-      // Auto-confirm is enabled, so the user is already signed in.
-      const { data: userData } = await supabase.auth.getUser();
-      const destination = userData.user ? "/account" : "/account";
+      // Auto-confirm is enabled, so the user is already signed in. Same full
+      // navigation as sign-in, for the same reason.
       setMessage("Account created! Welcome to SAVOR.");
-      router.push(destination);
-      router.refresh();
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a full load on purpose; router.push + refresh raced (see handleSignIn)
+      window.location.assign("/account");
     } else {
       setMessage("Check your email to confirm your account before signing in.");
       setMode("signin");

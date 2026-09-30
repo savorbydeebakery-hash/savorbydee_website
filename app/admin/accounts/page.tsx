@@ -27,6 +27,7 @@ export default function AdminAccountsPage() {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [editing, setEditing] = useState<Profile | null>(null);
   const [editRole, setEditRole] = useState("");
+  const [roleError, setRoleError] = useState<string | null>(null);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -53,8 +54,26 @@ export default function AdminAccountsPage() {
 
   const handleRoleChange = async () => {
     if (!editing) return;
-    await supabase.from("profiles").update({ role: editRole }).eq("id", editing.id);
+    setRoleError(null);
+
+    // Never leave the bakery without an admin. Only an admin can change roles
+    // or payment settings, so demoting the last one cannot be undone from the
+    // panel at all.
+    const adminCount = profiles.filter((p) => p.role === "admin").length;
+    if (editing.role === "admin" && editRole !== "admin" && adminCount <= 1) {
+      setRoleError("This is the only admin account. Make someone else an admin first.");
+      return;
+    }
+
+    // The result used to be ignored, so a refused change closed the dialog
+    // and looked done.
+    const { error } = await supabase.from("profiles").update({ role: editRole }).eq("id", editing.id);
+    if (error) {
+      setRoleError(`Could not change the role: ${error.message}`);
+      return;
+    }
     setEditing(null);
+    setMessage(`${editing.email} is now ${editRole}.`);
     fetchProfiles();
   };
 
@@ -153,9 +172,20 @@ export default function AdminAccountsPage() {
                   <Badge color={profile.role === "admin" ? "pink" : profile.role === "staff" ? "mint" : "neutral"}>
                     {profile.role}
                   </Badge>
-                  <Button size="sm" variant="ghost" onClick={() => { setEditing(profile); setEditRole(profile.role); }}>
-                    Edit Role
-                  </Button>
+                  {/* Not on your own account: demoting yourself locks you out
+                      of this page on the spot, with nobody to undo it if you
+                      were the only admin. */}
+                  {profile.id === currentUser?.id ? (
+                    <span className="px-3 text-xs text-ink-faint">You</span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setEditing(profile); setEditRole(profile.role); setRoleError(null); }}
+                    >
+                      Edit Role
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -172,6 +202,16 @@ export default function AdminAccountsPage() {
               <option value="staff">Staff</option>
               <option value="admin">Admin</option>
             </Select>
+            <p className="text-xs leading-relaxed text-ink-faint">
+              <strong>Staff</strong> can manage orders, stock and the menu.{" "}
+              <strong>Admin</strong> can also change payment settings and roles.{" "}
+              <strong>Customer</strong> removes access to the admin panel.
+            </p>
+            {roleError && (
+              <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                {roleError}
+              </p>
+            )}
             <div className="flex justify-end gap-3">
               <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
               <Button variant="primary" onClick={handleRoleChange}>Save</Button>

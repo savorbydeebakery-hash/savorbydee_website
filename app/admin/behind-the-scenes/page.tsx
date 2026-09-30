@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reorderNeighbour, swappedSortOrders } from "@/lib/admin/reorder";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, FileButton } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { uploadFiles } from "@/lib/storage/upload-helper";
 import { Upload, ArrowUp, ArrowDown, ImageOff, Film, Trash2 } from "lucide-react";
@@ -115,12 +116,16 @@ export default function AdminBtsPage() {
   };
 
   const move = async (row: Bts, dir: "up" | "down") => {
-    const swap = rows.find(
-      (o) => o.sort_order === row.sort_order + (dir === "up" ? -1 : 1)
-    );
+    // Neighbour in sort order, not sort_order ± 1 — see lib/admin/reorder.ts.
+    const swap = reorderNeighbour(rows, row, dir);
     if (!swap) return;
-    await supabase.from("behind_the_scenes").update({ sort_order: row.sort_order }).eq("id", swap.id);
-    await supabase.from("behind_the_scenes").update({ sort_order: swap.sort_order }).eq("id", row.id);
+    const next = swappedSortOrders(row, swap, dir);
+    setError(null);
+    const first = await supabase.from("behind_the_scenes").update({ sort_order: next.neighbour }).eq("id", swap.id);
+    const second = first.error
+      ? first
+      : await supabase.from("behind_the_scenes").update({ sort_order: next.item }).eq("id", row.id);
+    if (second.error) setError(`Could not reorder: ${second.error.message}`);
     void fetchRows();
   };
 
@@ -168,33 +173,43 @@ export default function AdminBtsPage() {
                     </div>
                   )}
                 </div>
-                <label className="mt-2 block">
-                  <Button size="sm" variant="ghost" disabled={busyId === row.id} className="w-full">
-                    <Upload size={15} />
-                    {busyId === row.id ? "Uploading..." : row.image_url ? "Replace" : "Upload photo"}
-                  </Button>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={busyId === row.id}
-                    onChange={(e) => upload(row, e, "image_url")}
-                  />
-                </label>
+                {/* FileButton, not a Button inside a label — that opened no
+                    picker, so none of these four uploads worked. */}
+                <FileButton
+                  size="sm"
+                  variant="ghost"
+                  className="mt-2 w-full"
+                  accept="image/*"
+                  disabled={busyId === row.id}
+                  onFiles={(e) => upload(row, e, "image_url")}
+                >
+                  <Upload size={15} />
+                  {busyId === row.id ? "Uploading..." : row.image_url ? "Replace photo" : "Upload photo"}
+                </FileButton>
 
-                <label className="mt-1.5 block">
-                  <Button size="sm" variant="ghost" disabled={busyId === row.id} className="w-full">
-                    <Film size={15} />
-                    {row.video_url ? "Replace clip" : "Upload clip"}
-                  </Button>
-                  <input
-                    type="file"
-                    accept="video/mp4,video/quicktime"
-                    className="hidden"
-                    disabled={busyId === row.id}
-                    onChange={(e) => upload(row, e, "video_url")}
-                  />
-                </label>
+                <FileButton
+                  size="sm"
+                  variant="ghost"
+                  className="mt-1.5 w-full"
+                  accept="video/mp4,video/quicktime"
+                  disabled={busyId === row.id}
+                  onFiles={(e) => upload(row, e, "video_url")}
+                >
+                  <Film size={15} />
+                  {row.video_url ? "Replace clip" : "Upload clip"}
+                </FileButton>
+
+                {/* There was a Remove clip and no Remove photo: once a photo
+                    was uploaded, the slot could never go back to the
+                    placeholder from the admin. */}
+                {row.image_url && (
+                  <button
+                    onClick={() => save(row, { image_url: null })}
+                    className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-lg py-1 text-xs text-ink-soft hover:text-red-600"
+                  >
+                    <Trash2 size={13} /> Remove photo
+                  </button>
+                )}
 
                 {row.video_url && (
                   <button

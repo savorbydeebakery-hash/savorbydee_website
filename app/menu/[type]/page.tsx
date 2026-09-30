@@ -10,6 +10,7 @@ import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { MenuFeatureTiles, type FeatureTile } from "@/components/home/menu-feature-tiles";
 import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
 import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
+import { PromoBanner } from "@/components/promo-banner";
 
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
 
@@ -149,6 +150,11 @@ export default async function MenuTypePage({
       <div className="mx-auto w-full max-w-[var(--bk-page-width)] px-4 pb-16 pt-8 md:px-6 md:pt-12">
         <div className="mb-6">
           <MenuPageNav current={type} />
+        </div>
+
+        {/* Admin -> Promo Banners -> "Menu Top". */}
+        <div className="-mx-4 mb-6 md:-mx-6">
+          <PromoBanner position="menu_top" />
         </div>
 
         <h1 className="bk-section-title text-bk-fg">{menu.label}</h1>

@@ -13,6 +13,7 @@ import {
   type OptionRowDraft,
 } from "@/lib/admin/option-rows";
 import { describeWriteError } from "@/lib/admin/write-error";
+import { reorderNeighbour, swappedSortOrders } from "@/lib/admin/reorder";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -127,12 +128,14 @@ export default function AdminCategoriesPage() {
   };
 
   const moveOrder = async (cat: Category, direction: "up" | "down") => {
-    const swapWith = categories.find((c) => c.sort_order === cat.sort_order + (direction === "up" ? -1 : 1));
+    // Neighbour in sort order, not sort_order ± 1 — see lib/admin/reorder.ts.
+    const swapWith = reorderNeighbour(categories, cat, direction);
     if (!swapWith) return;
+    const next = swappedSortOrders(cat, swapWith, direction);
     setListError(null);
     const first = await supabase
       .from("categories")
-      .update({ sort_order: cat.sort_order })
+      .update({ sort_order: next.neighbour })
       .eq("id", swapWith.id);
     if (first.error) {
       setListError(describeWriteError(first.error, "the reorder"));
@@ -142,7 +145,7 @@ export default function AdminCategoriesPage() {
     // rather than leaving the list quietly wrong.
     const second = await supabase
       .from("categories")
-      .update({ sort_order: swapWith.sort_order })
+      .update({ sort_order: next.item })
       .eq("id", cat.id);
     if (second.error) {
       setListError(describeWriteError(second.error, "the reorder"));
@@ -183,8 +186,8 @@ export default function AdminCategoriesPage() {
           <Card key={cat.id} className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex flex-col">
-                <button onClick={() => moveOrder(cat, "up")} className="text-ink-faint hover:text-ink"><ArrowUp size={14} /></button>
-                <button onClick={() => moveOrder(cat, "down")} className="text-ink-faint hover:text-ink"><ArrowDown size={14} /></button>
+                <button onClick={() => moveOrder(cat, "up")} aria-label={`Move ${cat.name} up`} className="text-ink-faint hover:text-ink"><ArrowUp size={14} /></button>
+                <button onClick={() => moveOrder(cat, "down")} aria-label={`Move ${cat.name} down`} className="text-ink-faint hover:text-ink"><ArrowDown size={14} /></button>
               </div>
               <div className="flex flex-col">
                 <span className={`font-medium ${cat.is_active ? "text-ink" : "text-ink-faint line-through"}`}>{cat.name}</span>
@@ -218,10 +221,10 @@ export default function AdminCategoriesPage() {
                     amount: m.multiplier,
                   }))
                 );
-              }}>
+              }} aria-label={`Edit category: ${cat.name}`}>
                 <Pencil size={14} />
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(cat.id)}>
+              <Button size="sm" variant="ghost" onClick={() => handleDelete(cat.id)} aria-label={`Delete category: ${cat.name}`}>
                 <Trash2 size={14} className="text-red-500" />
               </Button>
             </div>

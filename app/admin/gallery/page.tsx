@@ -3,12 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, FileButton } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { uploadFiles, deleteFile } from "@/lib/storage/upload-helper";
 import { Trash2, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { describeWriteError } from "@/lib/admin/write-error";
+import { reorderNeighbour, swappedSortOrders } from "@/lib/admin/reorder";
 
 export const dynamic = "force-dynamic";
 
@@ -128,12 +129,14 @@ export default function AdminGalleryPage() {
   };
 
   const moveOrder = async (photo: GalleryPhoto, direction: "up" | "down") => {
-    const swapWith = photos.find((p) => p.sort_order === photo.sort_order + (direction === "up" ? -1 : 1));
+    // Neighbour in sort order, not sort_order ± 1 — see lib/admin/reorder.ts.
+    const swapWith = reorderNeighbour(photos, photo, direction);
     if (!swapWith) return;
+    const next = swappedSortOrders(photo, swapWith, direction);
     setListError(null);
     const first = await supabase
       .from("gallery_photos")
-      .update({ sort_order: photo.sort_order })
+      .update({ sort_order: next.neighbour })
       .eq("id", swapWith.id);
     if (first.error) {
       setListError(describeWriteError(first.error, "the reorder"));
@@ -141,7 +144,7 @@ export default function AdminGalleryPage() {
     }
     const second = await supabase
       .from("gallery_photos")
-      .update({ sort_order: swapWith.sort_order })
+      .update({ sort_order: next.item })
       .eq("id", photo.id);
     if (second.error) setListError(describeWriteError(second.error, "the reorder"));
     fetchPhotos();
@@ -182,12 +185,10 @@ export default function AdminGalleryPage() {
     <div className="mx-auto max-w-6xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-ink">Gallery</h1>
-        <label>
-          <Button variant="primary" disabled={uploading}>
-            <Upload size={18} /> {uploading ? "Uploading..." : "Upload Photos"}
-          </Button>
-          <input type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
-        </label>
+        {/* FileButton, not a Button inside a label — that opened no picker. */}
+        <FileButton variant="primary" accept="image/*" multiple disabled={uploading} onFiles={handleUpload}>
+          <Upload size={18} /> {uploading ? "Uploading..." : "Upload Photos"}
+        </FileButton>
       </div>
 
       {listError && (
@@ -201,8 +202,8 @@ export default function AdminGalleryPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photo.image_url} alt={photo.caption ?? ""} className={`h-full w-full object-cover ${!photo.is_active ? "opacity-40" : ""}`} />
               <div className="absolute right-1 top-1 flex flex-col gap-1">
-                <button onClick={() => moveOrder(photo, "up")} className="rounded-lg bg-white/80 p-1 text-ink hover:bg-white"><ArrowUp size={14} /></button>
-                <button onClick={() => moveOrder(photo, "down")} className="rounded-lg bg-white/80 p-1 text-ink hover:bg-white"><ArrowDown size={14} /></button>
+                <button onClick={() => moveOrder(photo, "up")} aria-label="Move photo earlier" className="rounded-lg bg-white/80 p-1 text-ink hover:bg-white"><ArrowUp size={14} /></button>
+                <button onClick={() => moveOrder(photo, "down")} aria-label="Move photo later" className="rounded-lg bg-white/80 p-1 text-ink hover:bg-white"><ArrowDown size={14} /></button>
               </div>
             </div>
             {photo.caption && <p className="text-xs text-ink-soft truncate">{photo.caption}</p>}
@@ -216,7 +217,7 @@ export default function AdminGalleryPage() {
               <Button size="sm" variant="ghost" onClick={() => toggleActive(photo)}>
                 {photo.is_active ? "Hide" : "Show"}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(photo)}>
+              <Button size="sm" variant="ghost" onClick={() => handleDelete(photo)} aria-label="Delete photo">
                 <Trash2 size={14} className="text-red-500" />
               </Button>
             </div>

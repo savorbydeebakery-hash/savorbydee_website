@@ -12,6 +12,13 @@ import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
 import { instantToIstInput, istInputToInstant } from "@/lib/time/ist";
 import { describeWriteError } from "@/lib/admin/write-error";
 
+
+/** The same words as the Position dropdown; the raw value read "site_wide_strip". */
+const POSITION_LABEL: Record<string, string> = {
+  homepage_hero: "Homepage Hero",
+  menu_top: "Menu Top",
+  site_wide_strip: "Site-wide Strip",
+};
 export const dynamic = "force-dynamic";
 
 interface Banner {
@@ -127,7 +134,7 @@ export default function AdminBannersPage() {
               <h3 className="font-semibold text-ink">{banner.title}</h3>
               {banner.body_text && <p className="text-xs text-ink-soft line-clamp-1">{banner.body_text}</p>}
               <div className="mt-1 flex gap-1">
-                <Badge color="pink">{banner.position}</Badge>
+                <Badge color="pink">{POSITION_LABEL[banner.position] ?? banner.position}</Badge>
                 {!banner.is_active && <Badge color="neutral">Inactive</Badge>}
               </div>
             </div>
@@ -135,10 +142,10 @@ export default function AdminBannersPage() {
               <Button size="sm" variant="ghost" onClick={() => toggleActive(banner)}>
                 {banner.is_active ? "Hide" : "Show"}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setEditing(banner)}>
+              <Button size="sm" variant="outline" onClick={() => setEditing(banner)} aria-label={`Edit banner: ${banner.title}`}>
                 <Pencil size={14} />
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(banner.id)}>
+              <Button size="sm" variant="ghost" onClick={() => handleDelete(banner.id)} aria-label={`Delete banner: ${banner.title}`}>
                 <Trash2 size={14} className="text-red-500" />
               </Button>
             </div>

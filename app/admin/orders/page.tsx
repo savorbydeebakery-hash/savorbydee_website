@@ -225,7 +225,7 @@ export default function AdminOrdersPage() {
             <option value="all">All Status</option>
             {STATUS_FLOW.map((s) => (
               <option key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {statusLabel(s)}
               </option>
             ))}
             <option value="cancelled">Cancelled</option>

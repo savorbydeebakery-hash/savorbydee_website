@@ -20,6 +20,9 @@ interface LeaderboardRow {
   total_cents: number;
   first_order_at: string;
   last_order_at: string;
+  /** Migration 00046. Absent before it is applied — the page falls back. */
+  paid_order_count?: number;
+  paid_cents?: number;
 }
 
 /**
@@ -69,6 +72,10 @@ export default function AdminCustomersPage() {
   });
 
   const totalOrders = rows.reduce((sum, r) => sum + Number(r.order_count), 0);
+  // "Paid" once migration 00046 provides it: staff mark an order paid only
+  // after seeing the money arrive, so it is now the figure that means
+  // something. Before that, the older all-orders total.
+  const hasPaid = rows.some((r) => r.paid_cents !== undefined);
   const repeat = rows.filter((r) => Number(r.order_count) > 1).length;
 
   if (loading) {
@@ -125,7 +132,7 @@ export default function AdminCustomersPage() {
                 <th className="px-4 py-3 font-semibold">Customer</th>
                 <th className="px-4 py-3 font-semibold">Phone</th>
                 <th className="px-4 py-3 text-right font-semibold">Orders</th>
-                <th className="px-4 py-3 text-right font-semibold">Total</th>
+                <th className="px-4 py-3 text-right font-semibold">{hasPaid ? "Paid" : "Total"}</th>
                 <th className="px-4 py-3 font-semibold">Last order</th>
               </tr>
             </thead>
@@ -165,7 +172,7 @@ export default function AdminCustomersPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums font-semibold text-gold-deep">
-                      {formatPrice(Number(r.total_cents))}
+                      {formatPrice(Number(hasPaid ? r.paid_cents ?? 0 : r.total_cents))}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-ink-soft">
                       {formatIst(r.last_order_at, {
@@ -183,9 +190,17 @@ export default function AdminCustomersPage() {
       )}
 
       <p className="mt-4 text-xs text-ink-faint">
-        Totals count every order placed, including cancelled and unpaid ones &mdash;
-        delivery is settled in cash, so payment status is not a reliable signal yet.
-        The order count is the dependable column.
+        {hasPaid ? (
+          <>
+            Orders leaves out cancelled orders. Paid is the money you confirmed as
+            received in Orders (delivery charges paid in cash are not included).
+          </>
+        ) : (
+          <>
+            Totals count every order placed, including cancelled and unpaid ones. The
+            order count is the dependable column.
+          </>
+        )}
       </p>
     </div>
   );

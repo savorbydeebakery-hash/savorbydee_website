@@ -126,8 +126,20 @@ export default function AdminSettingsPage() {
 
   const handleSave = async () => {
     if (!settings) return;
-    setSaving(true);
     setSaveError(null);
+
+    // Checked here so the refusal reads as an instruction. The database
+    // refuses it too (migration 00045), but its message was "violates check
+    // constraint site_settings_payment_window_range".
+    const window = Number(settings.payment_window_minutes);
+    if (!Number.isInteger(window) || window < 15 || window > 1440) {
+      setSaveError(
+        "Payment tab: \"Minutes a customer has to pay\" must be a whole number between 15 and 1440 (24 hours). Nothing was saved."
+      );
+      return;
+    }
+
+    setSaving(true);
 
     // Send only the editable columns (id stays the target for .eq).
     const {
@@ -144,7 +156,15 @@ export default function AdminSettingsPage() {
     setSaving(false);
 
     if (error) {
-      setSaveError(`Could not save: ${error.message}`);
+      // A range check reads as table and constraint names, so say what to
+      // look at. Other refusals come from triggers whose messages are
+      // already written for people ("Only an admin can change payment
+      // settings…"), so those pass through as they are.
+      setSaveError(
+        error.code === "23514"
+          ? "Could not save: a number is out of range. Check the notice hours, bulk threshold, delivery amounts and payment window — none can be negative, and the payment window must be 15 to 1440 minutes. Nothing was saved."
+          : `Could not save: ${error.message}`
+      );
       setSaved(false);
       return;
     }
