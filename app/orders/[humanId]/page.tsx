@@ -28,6 +28,7 @@ interface OrderData {
   guest_name: string;
   guest_phone: string;
   delivery_address: string | null;
+  delivery_landmark?: string | null;
   requested_slot: string;
   payment_status: string;
   payment_due_at: string | null;
@@ -220,7 +221,11 @@ export default function OrderConfirmationPage({
           <UpiPaymentPanel
             order={order}
             payment={payment}
-            onOrderChanged={(patch) => setOrder((prev) => (prev ? { ...prev, ...patch } : prev))}
+            // The patch is this same order's row as the claim endpoint
+            // returned it (no order_items, so the loaded ones are kept).
+            onOrderChanged={(patch) =>
+              setOrder((prev) => (prev ? { ...prev, ...(patch as Partial<OrderData>) } : prev))
+            }
           />
         </div>
       )}

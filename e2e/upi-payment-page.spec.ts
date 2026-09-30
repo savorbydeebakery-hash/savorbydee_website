@@ -75,9 +75,15 @@ test("unpaid: exact amount, QR, UPI details, and the WhatsApp proof link", async
   const href = await wa.getAttribute("href");
   expect(href).toContain("https://wa.me/919000000001?text=");
   const text = decodeURIComponent(href!.split("text=")[1]);
-  expect(text).toContain(HUMAN_ID);
-  expect(text).toContain("₹1250");
-  expect(text).toContain("Asha Test");
+  // The whole order, not just its number — the client reads this on her
+  // phone and should not need the admin panel to know what was ordered.
+  expect(text).toContain(`*Order:* ${HUMAN_ID}`);
+  expect(text).toContain("*Total:* ₹1250");
+  expect(text).toContain("• 1× Chocolate Truffle Cake — ₹1250");
+  expect(text).toContain("*Name:* Asha Test");
+  expect(text).toContain(`*Phone:* ${PHONE}`);
+  expect(text).toMatch(/\*Pickup:\* .+ IST/);
+  expect(text).toContain("My payment screenshot is attached.");
 
   // No confetti, no "confirmed" before the money arrives.
   await expect(page.getByRole("heading", { name: "Order confirmed", exact: true })).toHaveCount(0);

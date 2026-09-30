@@ -122,18 +122,62 @@ describe("WhatsApp", () => {
     expect(waNumber(null)).toBe(null);
   });
 
-  it("puts the order number, amount and name in the proof message", () => {
+  const fullOrder = {
+    human_id: "SAV-260928-0012",
+    guest_name: "Asha",
+    guest_phone: "9876543210",
+    fulfillment: "delivery",
+    requested_slot: "2026-09-29T07:00:00Z",
+    delivery_address: "12 Laitumkhrah Main Road",
+    delivery_landmark: "Don Bosco Square",
+    notes: "Write Happy Birthday Mei",
+    order_items: [
+      { name: "Chocolate Truffle Cake", quantity: 1, line_total_cents: 95000, selections: { weight: "1 kg", decoration: "Basic" } },
+      { name: "Brownie", quantity: 2, line_total_cents: 30000, selections: {} },
+    ],
+  };
+
+  it("puts the whole order in the proof message", () => {
     const text = paymentProofMessage({
-      humanId: "SAV-260928-0012",
+      order: fullOrder,
       amountCents: 125000,
-      name: "Asha",
       reference: "123456789012",
+      freeDeliveryOverCents: 1000000,
     });
-    expect(text).toContain("SAV-260928-0012");
-    expect(text).toContain("₹1250");
-    expect(text).toContain("Asha");
-    expect(text).toContain("123456789012");
-    expect(text).toMatch(/screenshot is attached/);
+    expect(text).toBe(
+      [
+        "Hi Savor by Dee! I've paid for my order.",
+        "",
+        "*Order:* SAV-260928-0012",
+        "*Total:* ₹1250",
+        "",
+        "*Items*",
+        "• 1× Chocolate Truffle Cake (1 kg · Basic decoration) — ₹950",
+        "• 2× Brownie — ₹300",
+        "",
+        "*Name:* Asha",
+        "*Phone:* 9876543210",
+        "*Delivery:* Tue, 29 Sept, 12:30 pm IST",
+        "*Address:* 12 Laitumkhrah Main Road (near Don Bosco Square)",
+        "*Delivery charge:* to be confirmed — paid in cash on arrival",
+        "*Notes:* Write Happy Birthday Mei",
+        "*UPI transaction ID:* 123456789012",
+        "",
+        "My payment screenshot is attached.",
+      ].join("\n")
+    );
+  });
+
+  it("says delivery is free over the threshold, and leaves out what a pickup does not have", () => {
+    const free = paymentProofMessage({ order: fullOrder, amountCents: 1200000, freeDeliveryOverCents: 1000000 });
+    expect(free).toContain("*Delivery charge:* Free");
+
+    const pickup = paymentProofMessage({
+      order: { human_id: "SAV-1", guest_name: "Asha", guest_phone: "98", fulfillment: "pickup", requested_slot: "2026-09-29T07:00:00Z" },
+      amountCents: 50000,
+    });
+    expect(pickup).toContain("*Pickup:* Tue, 29 Sept, 12:30 pm IST");
+    expect(pickup).not.toMatch(/Address|Delivery charge|Notes|Items|UPI transaction ID/);
   });
 
   it("encodes the message into the link", () => {

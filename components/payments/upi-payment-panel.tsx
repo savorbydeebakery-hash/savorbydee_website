@@ -14,6 +14,7 @@ import {
   waLink,
   paymentProofMessage,
   orderQuestionMessage,
+  type MessageOrder,
 } from "@/lib/payments/whatsapp";
 import {
   AlertTriangle,
@@ -36,7 +37,8 @@ import {
  * the stored order total. Nothing here computes an amount.
  */
 
-export interface PanelOrder {
+/** Everything the WhatsApp message needs (MessageOrder), plus payment state. */
+export interface PanelOrder extends MessageOrder {
   human_id: string;
   status: string;
   payment_status: string;
@@ -447,11 +449,13 @@ function ProofStep({
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claiming, setClaiming] = useState(false);
 
+  // The whole order — items, contact, slot, address, notes — so the message
+  // alone is enough for staff to match the payment and plan the bake.
   const message = paymentProofMessage({
-    humanId: order.human_id,
+    order,
     amountCents: payment.amountCents,
-    name: order.guest_name,
     reference,
+    freeDeliveryOverCents: payment.freeDeliveryOverCents,
   });
 
   /**
@@ -536,7 +540,12 @@ function ProofStep({
               is that question, without claiming a payment that wasn't made. */}
           {stage === "overdue" && (
             <a
-              href={waLink(payment.whatsapp, orderQuestionMessage(order.human_id))}
+              href={waLink(
+                payment.whatsapp,
+                orderQuestionMessage(order, payment.amountCents, {
+                  freeDeliveryOverCents: payment.freeDeliveryOverCents,
+                })
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="self-start text-sm font-semibold text-berry underline underline-offset-4"
