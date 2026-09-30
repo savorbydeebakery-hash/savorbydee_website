@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 import type { WeeklyHours } from "@/lib/cart/validation";
 import { PromoBanner } from "@/components/promo-banner";
+import { PublicChrome } from "@/components/layout/public-chrome";
 
 /**
  * DM Sans, one family for the whole site.
@@ -133,15 +134,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ShopStatusProvider value={shopStatus}>
           <MotionProvider>
             <ScrollToTop />
-            {/* Admin -> Promo Banners -> "Site-wide Strip". Offered in the admin
-                since it was built and rendered nowhere until now. */}
-            <PromoBanner position="site_wide_strip" />
-            <Header />
-            <ClosedBanner />
+            {/* The shop frame is hidden on /admin — see PublicChrome. */}
+            <PublicChrome>
+              {/* Admin -> Promo Banners -> "Site-wide Strip". Offered in the
+                  admin since it was built and rendered nowhere until now. */}
+              <PromoBanner position="site_wide_strip" />
+              <Header />
+              <ClosedBanner />
+            </PublicChrome>
             <main className="flex-1">{children}</main>
-            <Footer />
-            <WhatsAppWidget />
-            <MobileStickyBar />
+            <PublicChrome>
+              <Footer />
+              <WhatsAppWidget />
+              <MobileStickyBar />
+            </PublicChrome>
           </MotionProvider>
         </ShopStatusProvider>
       </body>
