@@ -1,31 +1,23 @@
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
+import { getActiveBanners } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 
 /**
  * Promotional banner display system.
- * Fetches active banners from Supabase and renders them based on position.
+ * Renders the first live banner for a position.
  * Positions: homepage_hero, menu_top, site_wide_strip
+ *
+ * The banners come from getActiveBanners(), which runs one query per page
+ * request for all positions. Each <PromoBanner> used to query on its own, so
+ * the homepage and the menu pages paid for two banner lookups each — on a
+ * site that usually has no banners at all.
  */
 export async function PromoBanner({
   position,
 }: {
   position: "homepage_hero" | "menu_top" | "site_wide_strip";
 }) {
-  const supabase = await createClient();
-
-  const now = new Date().toISOString();
-  const { data: banners } = await supabase
-    .from("promo_banners")
-    .select("*")
-    .eq("is_active", true)
-    .eq("position", position)
-    .or(`end_date.is.null,end_date.gt.${now}`)
-    .lte("start_date", now)
-    .order("sort_order")
-    .limit(1);
-
-  const banner = banners?.[0];
+  const banner = (await getActiveBanners()).find((b) => b.position === position);
   if (!banner) return null;
 
   // Site-wide strip: minimal banner

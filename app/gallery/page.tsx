@@ -1,5 +1,5 @@
 import { GalleryGrid } from "@/components/gallery-grid";
-import { createClient } from "@/lib/supabase/server";
+import { publicSupabase } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on mem
 const MAX_GALLERY_IMAGES = 100;
 
 export default async function GalleryPage() {
-  const supabase = await createClient();
+  const supabase = publicSupabase();
 
   const [{ data: galleryPhotos }, { data: menuItems }] = await Promise.all([
     supabase

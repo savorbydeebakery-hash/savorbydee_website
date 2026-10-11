@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getSiteSettings } from "@/lib/site/public-data";
 import { formatIst } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
@@ -89,8 +89,7 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
   if (!SLUGS.includes(slug as Slug)) notFound();
   const key = slug as Slug;
 
-  const supabase = await createClient();
-  const { data } = await supabase.from("site_settings").select("*").eq("id", 1).single();
+  const data = await getSiteSettings();
   const s: Settings = data ?? {};
 
   const name = s.bakery_name?.trim() || "Savor by Dee";

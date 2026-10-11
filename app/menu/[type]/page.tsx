@@ -4,7 +4,7 @@ import {
   ShieldCheck,
   PackageCheck,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { publicSupabase } from "@/lib/site/public-data";
 import { MenuTypeGrid, type MenuGroup } from "@/components/menu/menu-type-grid";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { MenuFeatureTiles, type FeatureTile } from "@/components/home/menu-feature-tiles";
@@ -97,7 +97,7 @@ export default async function MenuTypePage({
   const menu = MENUS[type];
   if (!menu) notFound();
 
-  const supabase = await createClient();
+  const supabase = publicSupabase();
   // A menu with no `column` is the full catalogue, so the flag filter is
   // skipped rather than passed an undefined column name.
   const base = supabase

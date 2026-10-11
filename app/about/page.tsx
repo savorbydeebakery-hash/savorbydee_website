@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/server";
+import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, MessageCircle } from "lucide-react";
@@ -13,7 +13,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AboutPage() {
-  const supabase = await createClient();
+  const supabase = publicSupabase();
 
   // Fetch gallery photos + site settings
   const [{ data: gallery }, { data: settings }] = await Promise.all([
@@ -23,11 +23,7 @@ export default async function AboutPage() {
       .eq("is_active", true)
       .order("sort_order")
       .limit(12),
-    supabase
-      .from("site_settings")
-      .select("*")
-      .eq("id", 1)
-      .single(),
+    getSiteSettings().then((data) => ({ data })),
   ]);
 
   const bakeryName = settings?.bakery_name ?? "Savor by Dee";

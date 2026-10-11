@@ -7,6 +7,31 @@ import { NextResponse, type NextRequest } from "next/server";
  * /admin/* (staff+) and /account/* (authenticated) routes.
  */
 export async function updateSession(request: NextRequest) {
+  // Anonymous visitors — nearly every customer — carry no Supabase cookie, so
+  // there is no session to refresh and nobody to look up. This used to build
+  // a client and call auth.getUser() regardless, on every page, API call and
+  // link prefetch; on Cloudflare Workers that is CPU spent against a per-
+  // request limit the site was already exceeding (Error 1102, 2026-10-11).
+  //
+  // The cookie is "sb-<project>-auth-token", split into ".0", ".1" chunks
+  // when large, so match on the stem. With no such cookie the outcome of the
+  // full path is already known: protected pages go to the login, everything
+  // else passes through untouched.
+  const hasSessionCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
+
+  if (!hasSessionCookie) {
+    const path = request.nextUrl.pathname;
+    if (path.startsWith("/account") || path.startsWith("/admin")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", path);
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { MenuClient } from "@/components/menu-client";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { PropField } from "@/components/props/prop-field";
@@ -19,7 +19,7 @@ export default async function MenuPage({
 }: {
   searchParams: Promise<{ tag?: string; category?: string }>;
 }) {
-  const supabase = await createClient();
+  const supabase = publicSupabase();
   const { tag, category } = await searchParams;
 
   const [{ data: categories }, { data: menuItems }, { data: settings }] = await Promise.all([
@@ -43,7 +43,7 @@ export default async function MenuPage({
       .eq("daily_menu", false)
       .order("sort_order"),
     // So the stated wait tracks the admin setting instead of going stale.
-    supabase.from("site_settings").select("global_notice_hours").eq("id", 1).single(),
+    getSiteSettings().then((data) => ({ data })),
   ]);
 
   // Only offer a category chip for a category that still has something in it.

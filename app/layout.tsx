@@ -12,7 +12,7 @@ import { SmoothScroll } from "@/components/kinetic/smooth-scroll";
 import { MobileStickyBar } from "@/components/layout/mobile-sticky-bar";
 import { ShopStatusProvider, type ShopStatus } from "@/components/shop/shop-status";
 import { ClosedBanner } from "@/components/shop/closed-banner";
-import { createClient } from "@/lib/supabase/server";
+import { getSiteSettings } from "@/lib/site/public-data";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 import type { WeeklyHours } from "@/lib/cart/validation";
 import { PromoBanner } from "@/components/promo-banner";
@@ -70,14 +70,25 @@ export const metadata: Metadata = {
  * authoritatively, so failing open here costs a clear refusal at checkout
  * rather than a silently accepted order.
  */
+/**
+ * Every route under this layout renders per request, never at build time.
+ *
+ * This used to be true by accident: the layout read settings through the
+ * cookie-aware Supabase client, and touching cookies() makes a route dynamic.
+ * When the settings read moved to the cookie-less shared client
+ * (lib/site/public-data.ts), /cart, /cart/checkout, /login, /account,
+ * /orders/lookup, /custom-cake and every /admin page silently became static —
+ * which would have frozen the open/closed banner and the footer at whatever
+ * they were when the site was last deployed. Caught by the build's route
+ * table before it shipped. Stated here so it no longer depends on a side
+ * effect. (ISR is not an option either: see the note in app/page.tsx.)
+ */
+export const dynamic = "force-dynamic";
+
 async function readShopStatus(): Promise<ShopStatus> {
   try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("site_settings")
-      .select("weekly_hours, holidays, daily_menu_cutoff")
-      .eq("id", 1)
-      .single();
+    // Shared with the footer and the page: one settings read per request.
+    const data = await getSiteSettings();
 
     const state = getOpenState(
       (data?.weekly_hours as WeeklyHours | null) ?? null,

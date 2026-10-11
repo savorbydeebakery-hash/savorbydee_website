@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { PromoBanner } from "@/components/promo-banner";
 import { HeroCard } from "@/components/ui/hero-card";
 import { GalleryRail } from "@/components/home/gallery-rail";
@@ -54,7 +54,7 @@ export const dynamic = "force-dynamic";
  * all still in the tree and still used elsewhere or available to re-add.
  */
 export default async function HomePage() {
-  const supabase = await createClient();
+  const supabase = publicSupabase();
 
   const SELECT_FIELDS =
     "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold, weight_multipliers), requires_custom_notice, daily_menu, is_special, is_bestseller";
@@ -77,7 +77,8 @@ export default async function HomePage() {
       // something to match on. At 14 the window stopped just before the
       // cupcake shots, so the preorder card fell through to a cookie box.
       .limit(24),
-    supabase.from("site_settings").select("*").eq("id", 1).single(),
+    // Shared with the layout and footer — see lib/site/public-data.ts.
+    getSiteSettings().then((data) => ({ data })),
     // Reviews arrive with migration 00017. Until that is applied to a given
     // environment this errors and `data` comes back null, which collapses to
     // [] below and hides the section — so shipping the page ahead of the

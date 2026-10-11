@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Instagram, Facebook, MessageCircle, ArrowRight } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getSiteSettings } from "@/lib/site/public-data";
 
 /**
  * Footer in Brooki's structure and palette: white ground, true black type,
@@ -61,14 +61,8 @@ export async function Footer() {
   let facebookUrl: string | null = null;
   let fssai: string | null = null;
   try {
-    const supabase = await createClient();
-    // "*" rather than a column list: naming a column that a pending migration
-    // has not added yet fails the whole read, and this is on every page.
-    const { data } = await supabase
-      .from("site_settings")
-      .select("*")
-      .eq("id", 1)
-      .single();
+    // The same read the root layout and the page use — one per request.
+    const data = await getSiteSettings();
     footerText = data?.footer_text?.trim() || null;
     whatsappNumber = data?.whatsapp_number?.trim() || null;
     instagramUrl = data?.instagram_url?.trim() || null;
