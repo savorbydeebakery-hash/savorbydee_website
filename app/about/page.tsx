@@ -3,6 +3,7 @@ import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, MessageCircle } from "lucide-react";
+import { ABOUT_INTRO, ABOUT_SECTIONS, OFFERINGS, PHILOSOPHY, CLOSING } from "@/lib/site/about-copy";
 
 export const metadata = {
   title: "About Savor by Dee",
@@ -27,9 +28,9 @@ export default async function AboutPage() {
   ]);
 
   const bakeryName = settings?.bakery_name ?? "Savor by Dee";
-  const narrative =
-    settings?.about_narrative ??
-    "Savor by Dee began with a simple love for baking: the warmth of a kitchen, the joy of sharing something made by hand. Every cake, every cookie, every savoury bite is made fresh to order. From celebration cakes to everyday treats, we are here to make your moments a little sweeter.";
+  // `||`, not `??`: the column defaults to an empty string, and `??` let that
+  // through, so the intro rendered as a blank paragraph.
+  const narrative = (settings?.about_narrative as string | null | undefined)?.trim() || ABOUT_INTRO;
   const phone = settings?.contact_phone ?? "+91 98365 37447";
   const whatsapp = settings?.whatsapp_number ?? "919836537447";
   const addressLine1 = settings?.address_line1 ?? "Near Laban Police Station, Myliem";
@@ -47,6 +48,36 @@ export default async function AboutPage() {
         <p className="mx-auto max-w-2xl text-lg leading-relaxed text-ink-soft">
           {narrative}
         </p>
+      </section>
+
+      {/* The story, in short sections a visitor can scan. */}
+      <section className="mx-auto mb-16 grid max-w-4xl gap-10 md:grid-cols-3 md:gap-8">
+        {ABOUT_SECTIONS.map((s) => (
+          <div key={s.title}>
+            <h2 className="mb-3 text-xl font-semibold text-ink">{s.title}</h2>
+            <p className="leading-relaxed text-ink-soft">{s.body}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mx-auto mb-16 max-w-4xl">
+        <h2 className="text-h2 text-ink mb-6">Our Offerings</h2>
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {OFFERINGS.map((item) => (
+            <li
+              key={item}
+              className="rounded-2xl bg-pink-soft px-5 py-4 text-ink"
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mx-auto mb-16 max-w-3xl rounded-3xl bg-lavender-soft px-6 py-10 text-center sm:px-12">
+        <h2 className="text-h2 text-ink mb-4">Our Philosophy</h2>
+        <p className="leading-relaxed text-ink-soft">{PHILOSOPHY}</p>
+        <p className="mt-6 text-lg font-medium leading-relaxed text-ink">{CLOSING}</p>
       </section>
 
       {/* Gallery grid */}

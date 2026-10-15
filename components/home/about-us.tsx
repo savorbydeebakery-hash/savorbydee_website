@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { SectionHead } from "@/components/home/section-head";
+import { ABOUT_INTRO } from "@/lib/site/about-copy";
 
 /**
  * About Us — the last section on the homepage.
@@ -12,13 +13,12 @@ import { SectionHead } from "@/components/home/section-head";
  *
  * Driven by site_settings.about_narrative so Dee can rewrite it in Admin ->
  * Settings without a deploy. That column is currently an empty string, which
- * is why the fallback exists rather than the section rendering blank.
+ * is why the fallback exists rather than the section rendering blank. The
+ * fallback is the opening of Dee's About Us text, shared with /about so the
+ * two pages never tell different stories.
  */
-const FALLBACK =
-  "At our artisanal bakery, we don’t just bake — we craft edible art. From fluffy brioche buns that pull apart like clouds to decadent cakes layered with luxury, each creation is handmade with passion, precision, and a sprinkle of magic.";
-
 export function AboutUs({ narrative }: { narrative?: string | null }) {
-  const copy = narrative?.trim() || FALLBACK;
+  const copy = narrative?.trim() || ABOUT_INTRO;
 
   return (
     <section className="mx-auto mt-10 w-full max-w-[var(--bk-page-width)] px-4 md:mt-16 md:px-6">
