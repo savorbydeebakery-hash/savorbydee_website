@@ -44,6 +44,12 @@ export default function CheckoutPage() {
   const [deliveryAddress, setDeliveryAddress] = useState({ address: "", landmark: "" });
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<string[]>([]);
+  // Set when the error on screen is about the chosen date and time, so the
+  // error box can offer a way straight back to the picker instead of leaving
+  // the customer to find it. `noticeHours` is the notice the failed check
+  // asked for, when it was a notice failure; null for the other slot errors
+  // (closed day, outside opening hours, outside the delivery window).
+  const [slotProblem, setSlotProblem] = useState<{ noticeHours: number | null } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // One key per checkout, sent with every attempt. The order API already
   // de-duplicates on it, but nothing sent one — so a request that timed out
@@ -206,6 +212,7 @@ export default function CheckoutPage() {
   }, [noticeHours, schedule]);
 
   const handleProceedToFulfillment = () => {
+    setSlotProblem(null);
     if (!cartValidation.valid) {
       setErrors(cartValidation.errors);
       return;
@@ -214,11 +221,16 @@ export default function CheckoutPage() {
     setStep("fulfillment");
   };
 
+  const slotError = (message: string, notice: number | null = null) => {
+    setErrors([message]);
+    setSlotProblem({ noticeHours: notice });
+  };
+
   const handleProceedToDetails = () => {
     if (!settingsLoaded) return;
 
     if (!requestedSlot) {
-      setErrors(["Please select a pickup/delivery slot"]);
+      slotError("Please select a pickup/delivery slot");
       return;
     }
 
@@ -227,36 +239,83 @@ export default function CheckoutPage() {
     // authority — this is only about where the error surfaces.
     const slot = istInputToInstant(requestedSlot);
     if (!slot) {
-      setErrors(["That slot is not a valid date and time"]);
+      slotError("That slot is not a valid date and time");
       return;
     }
 
     if (slot.getTime() < Date.now() + noticeHours * 3_600_000 - 60_000) {
-      setErrors([
+      slotError(
         `This order needs at least ${noticeHours} hours notice. Please choose a later slot.`,
-      ]);
+        noticeHours
+      );
       return;
     }
 
     const hoursCheck = validateSlotAgainstHours(slot, schedule.weekly, schedule.holidays);
     if (!hoursCheck.valid) {
-      setErrors([hoursCheck.error!]);
+      slotError(hoursCheck.error!);
       return;
     }
 
     if (effectiveFulfillment === "delivery") {
       const windowCheck = validateDeliveryWindow(slot, deliveryWindow.from, deliveryWindow.to);
       if (!windowCheck.valid) {
-        setErrors([windowCheck.error!]);
+        slotError(windowCheck.error!);
         return;
       }
     }
 
     setErrors([]);
+    setSlotProblem(null);
     setStep("details");
   };
 
+  // The earliest slot that would pass the check that just failed, offered as
+  // a one-tap fix. Not offered for a delivery order whose earliest slot falls
+  // outside the delivery window: suggesting a time that fails again is worse
+  // than letting the customer choose.
+  const suggestedSlot = useMemo(() => {
+    if (!slotProblem || !schedule.weekly) return null;
+    const hours = Math.max(noticeHours, slotProblem.noticeHours ?? 0);
+    const earliest = getEarliestValidSlot(hours, schedule.weekly, schedule.holidays);
+    if (!earliest) return null;
+    if (
+      effectiveFulfillment === "delivery" &&
+      !validateDeliveryWindow(earliest, deliveryWindow.from, deliveryWindow.to).valid
+    ) {
+      return null;
+    }
+    return earliest;
+  }, [slotProblem, noticeHours, schedule, effectiveFulfillment, deliveryWindow]);
+
+  // Back to the picker, with it in view and focused (and opened, where the
+  // browser allows it), so "change the time" is one tap.
+  const changeSlot = () => {
+    setStep("fulfillment");
+    setTimeout(() => {
+      const input = document.getElementById("requested-slot") as HTMLInputElement | null;
+      if (!input) return;
+      input.scrollIntoView({ behavior: "smooth", block: "center" });
+      input.focus({ preventScroll: true });
+      try {
+        input.showPicker?.();
+      } catch {
+        // Some browsers refuse showPicker outside a direct tap; focus is enough.
+      }
+    }, 50);
+  };
+
+  // Takes the suggestion and stays put: on the confirm step the summary
+  // updates in place and the customer can place the order again straight away.
+  const takeSuggestedSlot = () => {
+    if (!suggestedSlot) return;
+    setRequestedSlot(instantToIstInput(suggestedSlot));
+    setErrors([]);
+    setSlotProblem(null);
+  };
+
   const handleProceedToConfirm = () => {
+    setSlotProblem(null);
     const guestErrors = validateGuestInfo(guest);
     if (!guestErrors.valid) {
       setErrors(guestErrors.errors);
@@ -276,6 +335,7 @@ export default function CheckoutPage() {
   const handleSubmitOrder = async () => {
     setSubmitting(true);
     setErrors([]);
+    setSlotProblem(null);
 
     try {
       const response = await fetch("/api/orders", {
@@ -300,7 +360,19 @@ export default function CheckoutPage() {
       });
 
       if (!response.ok) {
-        const data = (await response.json()) as { error?: string };
+        const data = (await response.json()) as {
+          error?: string;
+          field?: string;
+          requiredNoticeHours?: number;
+        };
+        // The API tags date-and-time failures (notice, hours, delivery
+        // window) so this can offer the way back to the picker. The time may
+        // have been fine when chosen and gone stale while the details were
+        // filled in.
+        if (data.field === "slot") {
+          slotError(data.error ?? "Please choose another date and time.", data.requiredNoticeHours ?? null);
+          return;
+        }
         throw new Error(data.error ?? "Order submission failed");
       }
 
@@ -361,6 +433,22 @@ export default function CheckoutPage() {
           {errors.map((err, i) => (
             <p key={i} className="text-sm text-red-600">⚠️ {err}</p>
           ))}
+          {slotProblem && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {suggestedSlot && (
+                <Button size="sm" variant="primary" onClick={takeSuggestedSlot}>
+                  Use earliest: {formatIstSlot(suggestedSlot)}
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant={suggestedSlot ? "outline" : "primary"}
+                onClick={changeSlot}
+              >
+                Change date &amp; time
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -532,6 +620,7 @@ export default function CheckoutPage() {
               </p>
             )}
             <Input
+              id="requested-slot"
               type="datetime-local"
               label="Requested date & time (IST)"
               value={requestedSlot}

@@ -33,7 +33,9 @@ const navItems = [
   { href: "/admin/banners", label: "Promo Banners", icon: Megaphone },
   { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
   { href: "/admin/behind-the-scenes", label: "Behind the Scenes", icon: Camera },
-  { href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake },
+  // Admin only (2026-10-18): staff are alerted to new requests on the
+  // Orders page and pass them to the owner. Migration 00047 enforces it.
+  { href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake, adminOnly: true },
   { href: "/admin/reviews", label: "Reviews", icon: Star },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/customers", label: "Customers", icon: Trophy },
@@ -136,7 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
-          {navItems.map((item) => {
+          {navItems.filter((item) => !("adminOnly" in item && item.adminOnly) || role === "admin").map((item) => {
             const Icon = item.icon;
             const isActive =
               pathname === item.href ||

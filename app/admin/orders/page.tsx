@@ -70,7 +70,7 @@ function statusLabel(status: string): string {
 export default function AdminOrdersPage() {
   const { orders, connected, acknowledgeOrder, updateOrderStatus, updatePayment, setDeliveryFee } =
     useOrdersRealtime();
-  useAlarmClient();
+  const { customCakeAlertAt, dismissCustomCakeAlert } = useAlarmClient();
 
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -181,6 +181,26 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+      {/* A new custom cake request. Staff cannot open those (admin-only), so
+          this says what to do and stays up until someone taps Got it. */}
+      {customCakeAlertAt && (
+        <div
+          role="alert"
+          className="mb-6 flex flex-col gap-3 rounded-2xl border border-lavender bg-lavender-soft px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p className="font-semibold text-ink">🎂 New custom cake request</p>
+            <p className="text-sm text-ink-soft">
+              Came in at {formatIst(customCakeAlertAt, { hour: "numeric", minute: "2-digit" })}. Please tell the owner. Admins can
+              see it under Custom Cakes.
+            </p>
+          </div>
+          <Button size="sm" variant="primary" onClick={dismissCustomCakeAlert}>
+            Got it
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>

@@ -15,6 +15,16 @@ export default async function AdminDashboard() {
   // before it.
   const { start: today, end: tomorrow } = istDayBounds();
 
+  // Custom cakes are admin-only, so a staff dashboard leaves them out rather
+  // than showing a count of rows it is not allowed to read.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("role").eq("id", user.id).single()
+    : { data: null };
+  const isAdmin = profile?.role === "admin";
+
   const [
     { count: totalOrders },
     { count: pendingOrders },
@@ -38,7 +48,9 @@ export default async function AdminDashboard() {
     { label: "Pending", value: pendingOrders ?? 0, icon: Clock, color: "bg-yellow-soft text-yellow" },
     { label: "Unacknowledged", value: unacknowledgedOrders ?? 0, icon: TrendingUp, color: "bg-peach-soft text-peach" },
     { label: "Menu Items", value: totalMenuItems ?? 0, icon: Tag, color: "bg-mint-soft text-mint" },
-    { label: "Active Inquiries", value: totalInquiries ?? 0, icon: Cake, color: "bg-lavender-soft text-lavender" },
+    ...(isAdmin
+      ? [{ label: "Active Inquiries", value: totalInquiries ?? 0, icon: Cake, color: "bg-lavender-soft text-lavender" }]
+      : []),
   ];
 
   return (
@@ -128,7 +140,7 @@ export default async function AdminDashboard() {
         {[
           { href: "/admin/menu-items", label: "Manage Menu", icon: Tag },
           { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
-          { href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake },
+          ...(isAdmin ? [{ href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake }] : []),
           { href: "/admin/settings", label: "Settings", icon: Settings },
         ].map((link) => {
           const Icon = link.icon;

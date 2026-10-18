@@ -51,13 +51,28 @@ export default function CustomCakePage() {
     setError(null);
 
     try {
+      // The id is made here so the alert below can name the request: a
+      // signed-out visitor cannot read the row back after inserting it.
+      const id = crypto.randomUUID();
       const { error: insertError } = await supabase.from("custom_cake_inquiries").insert({
+        id,
         ...form,
         requested_date: form.requested_date || null,
         reference_image_url: referenceUrl,
       });
 
       if (insertError) throw insertError;
+
+      // Rings the alarm on the admin Orders page so staff tell the owner.
+      // Fire and forget: the request is already saved, and a failed alert
+      // must not show the customer an error.
+      void fetch("/api/custom-cake/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+        keepalive: true,
+      }).catch(() => {});
+
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     if (!requestedSlot) {
       return NextResponse.json(
-        { error: "Requested slot is required" },
+        { error: "Requested slot is required", field: "slot" },
         { status: 400 }
       );
     }
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
     const slot = istInputToInstant(requestedSlot);
     if (!slot) {
       return NextResponse.json(
-        { error: "Requested slot is not a valid date" },
+        { error: "Requested slot is not a valid date", field: "slot" },
         { status: 400 }
       );
     }
@@ -395,6 +395,8 @@ export async function POST(request: NextRequest) {
         {
           error: `This order needs at least ${requiredHours} hours notice. Please choose a later slot.`,
           requiredNoticeHours: requiredHours,
+          // Tells checkout to offer "Change date & time" on this error.
+          field: "slot",
         },
         { status: 400 }
       );
@@ -411,7 +413,7 @@ export async function POST(request: NextRequest) {
       (noticeSettings?.holidays as string[] | null) ?? []
     );
     if (!hoursCheck.valid) {
-      return NextResponse.json({ error: hoursCheck.error }, { status: 400 });
+      return NextResponse.json({ error: hoursCheck.error, field: "slot" }, { status: 400 });
     }
 
     // Delivery runs 10:00-20:00, narrower than the shop's own 09:00-21:00.
@@ -423,7 +425,7 @@ export async function POST(request: NextRequest) {
         noticeSettings?.delivery_to
       );
       if (!windowCheck.valid) {
-        return NextResponse.json({ error: windowCheck.error }, { status: 400 });
+        return NextResponse.json({ error: windowCheck.error, field: "slot" }, { status: 400 });
       }
     }
 

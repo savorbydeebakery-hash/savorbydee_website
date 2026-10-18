@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import {
+  STAFF_ALERTS_CHANNEL,
+  CUSTOM_CAKE_EVENT,
+  type CustomCakeAlertPayload,
+} from "@/lib/alarm/staff-alerts";
 
 /**
  * T4.2: Admin alarm client.
@@ -9,7 +15,18 @@ import { useEffect, useRef, useCallback } from "react";
  *
  * Triggered by "savor-new-order" custom event (from realtime subscription).
  * Silenced when staff acknowledges the order.
+ *
+ * Also rings for a new custom cake request (a broadcast on the staff-alerts
+ * channel; see lib/alarm/staff-alerts.ts). Staff cannot open those, so the
+ * Orders page shows a "tell the owner" notice until someone taps Got it.
  */
+
+/** What one alarm says: in the flashing tab title and the pop-up. */
+interface AlarmAlert {
+  tab: string;
+  title: string;
+  body: string;
+}
 
 const ALARM_SOUND_DURATION_MS = 30000; // 30s max alarm
 const BEEP_INTERVAL_MS = 1000; // beep every 1s
@@ -61,12 +78,12 @@ export function useAlarmClient() {
   }, []);
 
   // --- Title flash ---
-  const startTitleFlash = useCallback((orderId: string) => {
+  const startTitleFlash = useCallback((text: string) => {
     if (titleFlashRef.current) clearInterval(titleFlashRef.current);
     let toggle = false;
     titleFlashRef.current = setInterval(() => {
       document.title = toggle
-        ? `🔔 NEW ORDER — ${orderId}`
+        ? text
         : originalTitleRef.current;
       toggle = !toggle;
     }, TITLE_FLASH_INTERVAL_MS);
@@ -100,8 +117,8 @@ export function useAlarmClient() {
   }, [stopTitleFlash]);
 
   // --- Start alarm ---
-  const startAlarm = useCallback(
-    (orderId: string, customerName: string) => {
+  const raiseAlarm = useCallback(
+    (alert: AlarmAlert) => {
       if (alarmActiveRef.current) return; // already alarming
       alarmActiveRef.current = true;
 
@@ -110,21 +127,14 @@ export function useAlarmClient() {
       beepIntervalRef.current = setInterval(playBeep, BEEP_INTERVAL_MS);
 
       // Notification
-      showNotification(
-        `🔔 New Order: ${orderId}`,
-        `${customerName} placed a new order. Acknowledge within 30s!`
-      );
+      showNotification(alert.title, alert.body);
 
       // Title flash
-      startTitleFlash(orderId);
+      startTitleFlash(alert.tab);
 
       // Broadcast to other tabs
       if (broadcastRef.current) {
-        broadcastRef.current.postMessage({
-          type: "alarm-start",
-          orderId,
-          customerName,
-        });
+        broadcastRef.current.postMessage({ type: "alarm-start", alert });
       }
 
       // Auto-stop after 30s (watchdog will send email fallback)
@@ -137,6 +147,44 @@ export function useAlarmClient() {
     [playBeep, showNotification, startTitleFlash, stopAlarm]
   );
 
+  const startAlarm = useCallback(
+    (orderId: string, customerName: string) =>
+      raiseAlarm({
+        tab: `🔔 NEW ORDER — ${orderId}`,
+        title: `🔔 New Order: ${orderId}`,
+        body: `${customerName} placed a new order. Acknowledge within 30s!`,
+      }),
+    [raiseAlarm]
+  );
+
+  // --- New custom cake request ---
+  // When it arrived, while the "tell the owner" notice is up; null otherwise.
+  const [customCakeAlertAt, setCustomCakeAlertAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(STAFF_ALERTS_CHANNEL)
+      .on("broadcast", { event: CUSTOM_CAKE_EVENT }, ({ payload }) => {
+        const at = (payload as Partial<CustomCakeAlertPayload> | undefined)?.at;
+        setCustomCakeAlertAt(at ?? new Date().toISOString());
+        raiseAlarm({
+          tab: "🎂 NEW CUSTOM CAKE REQUEST",
+          title: "🎂 New custom cake request",
+          body: "A customer has asked for a custom cake. Please tell the owner.",
+        });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [raiseAlarm]);
+
+  const dismissCustomCakeAlert = useCallback(() => {
+    setCustomCakeAlertAt(null);
+    stopAlarm();
+  }, [stopAlarm]);
+
   // --- Request notification permission on mount ---
   useEffect(() => {
     if (typeof Notification !== "undefined" && Notification.permission === "default") {
@@ -147,8 +195,8 @@ export function useAlarmClient() {
     if (typeof BroadcastChannel !== "undefined") {
       broadcastRef.current = new BroadcastChannel(BROADCAST_CHANNEL);
       broadcastRef.current.onmessage = (event) => {
-        if (event.data?.type === "alarm-start") {
-          startAlarm(event.data.orderId, event.data.customerName);
+        if (event.data?.type === "alarm-start" && event.data.alert) {
+          raiseAlarm(event.data.alert as AlarmAlert);
         } else if (event.data?.type === "alarm-stop") {
           stopAlarm();
         }
@@ -177,7 +225,7 @@ export function useAlarmClient() {
         broadcastRef.current = null;
       }
     };
-  }, [startAlarm, stopAlarm]);
+  }, [startAlarm, raiseAlarm, stopAlarm]);
 
-  return { startAlarm, stopAlarm };
+  return { startAlarm, stopAlarm, customCakeAlertAt, dismissCustomCakeAlert };
 }

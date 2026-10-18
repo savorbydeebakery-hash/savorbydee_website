@@ -17,10 +17,10 @@ import { useCanOrder } from "@/components/shop/shop-status";
  * apart — the whole point of the redesign is that everything reads as one
  * system, so there is now one component.
  *
- * The card turns over to show the full description. Which control turns it
- * depends on what the item has — photo, no photo, or nothing to say — see
- * components/home/product-mini-card.tsx, which follows the same rule so a card
- * behaves the same wherever it appears.
+ * The photo and the name open the item; the card turns over to show the full
+ * description from a link, drawn only when there is one. Same rule as
+ * components/home/product-mini-card.tsx, so a card behaves the same wherever
+ * it appears.
  *
  * E2E CONTRACT — do not remove, e2e/*.spec.ts selects on all of these:
  *   .menu-item-card, data-item-id, data-item-name (lowercased) on the root
@@ -29,28 +29,31 @@ import { useCanOrder } from "@/components/shop/shop-status";
  */
 
 /**
- * Wraps the photo in a button, but only when there is a description behind it.
- * An item with a photo and nothing to say keeps a plain image — a control that
- * does nothing is worse than no control.
+ * Makes the photo (or the name) open the item, the same as "Add to Cart".
+ * Customers tap the picture first; it used to only turn the card over, or do
+ * nothing when there was no description (changed 2026-10-18 at the client's
+ * request). Kept out of the tab order and the accessibility tree because the
+ * Add to Cart button below is the same action, already announced.
  */
-function PhotoControl({
-  canFlip,
-  name,
-  onFlip,
+function OpenItem({
+  blocked,
+  onOpen,
+  className = "",
   children,
 }: {
-  canFlip: boolean;
-  name: string;
-  onFlip: () => void;
+  blocked: boolean;
+  onOpen: () => void;
+  className?: string;
   children: React.ReactNode;
 }) {
-  if (!canFlip) return <>{children}</>;
+  if (blocked) return <>{children}</>;
   return (
     <button
       type="button"
-      onClick={onFlip}
-      aria-label={`What is in ${name}?`}
-      className="block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cocoa"
+      onClick={onOpen}
+      tabIndex={-1}
+      aria-hidden="true"
+      className={`block w-full cursor-pointer text-left focus:outline-none ${className}`}
     >
       {children}
     </button>
@@ -116,10 +119,9 @@ export function MenuItemCard({
               letterboxing a deliberate tint rather than bare white.
               Lens lets the customer look closer at the decoration, which on a
               cake menu is the thing they actually want to inspect. */}
-          {/* With something to read on the back the photo is the control that
-              turns the card, so no separate button is drawn. Lens still works
-              inside it — a press-and-hold zooms, a click turns. */}
-          <PhotoControl canFlip={canFlip} name={item.name} onFlip={() => setFlipped(true)}>
+          {/* The photo opens the item. Lens still works inside it: a
+              press-and-hold zooms, a click opens. */}
+          <OpenItem blocked={blocked} onOpen={() => onSelect(item)}>
             <Lens zoomFactor={1.7} lensSize={130} ariaLabel="Zoom into the photo">
               <SmartImage
                 src={item.image_url}
@@ -130,7 +132,7 @@ export function MenuItemCard({
                 className="rounded-none bg-shell"
               />
             </Lens>
-          </PhotoControl>
+          </OpenItem>
           {/* Price as a glass chip over the image — glass over imagery is the
               placement rule's happy path. */}
           {!unavailable && (
@@ -154,9 +156,11 @@ export function MenuItemCard({
           <p className="text-xs text-ink-soft">{categoryName}</p>
         )}
         <div className="flex items-start justify-between gap-3">
-          <h3 className="font-display text-lg font-semibold leading-snug text-ink">
-            {item.name}
-          </h3>
+          <OpenItem blocked={blocked} onOpen={() => onSelect(item)} className="min-w-0 flex-1">
+            <h3 className="font-display text-lg font-semibold leading-snug text-ink">
+              {item.name}
+            </h3>
+          </OpenItem>
           {/* Without an image there is no glass chip, so the price goes here. */}
           {!hasImage && (
             <span
@@ -172,9 +176,9 @@ export function MenuItemCard({
         </div>
         {/* The description lives on the back of the card. It used to sit here
             clamped to two lines, which cut every one of the client's cake
-            descriptions mid-sentence. Only drawn when there is no photo to
-            click — with a photo, the photo is the control. */}
-        {canFlip && !hasImage && (
+            descriptions mid-sentence. The photo now opens the item, so this
+            link is the way to turn the card on every item that has one. */}
+        {canFlip && (
           <button
             type="button"
             onClick={() => setFlipped(true)}

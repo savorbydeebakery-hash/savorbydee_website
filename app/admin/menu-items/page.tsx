@@ -275,15 +275,24 @@ export default function AdminMenuItemsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visibleItems.map((item) => (
           <Card key={item.id} className="flex flex-col gap-3">
+            {/* The photo and the name open the editor, same as Edit. Out of
+                the tab order: the Edit button is the keyboard route. */}
             {item.image_url && (
-              <div className="aspect-[4/3] overflow-hidden rounded-xl bg-pink-soft">
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setEditing(item)}
+                className="block aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-pink-soft"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
-              </div>
+              </button>
             )}
             <div className="flex-1">
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold text-ink">{item.name}</h3>
+                <button type="button" tabIndex={-1} onClick={() => setEditing(item)} className="cursor-pointer text-left">
+                  <h3 className="font-semibold text-ink hover:text-berry">{item.name}</h3>
+                </button>
                 <span className="text-sm font-semibold text-pink whitespace-nowrap">
                   {formatPrice(item.base_price_cents)}
                 </span>

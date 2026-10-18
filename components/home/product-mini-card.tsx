@@ -12,16 +12,16 @@ import type { MenuItemForCart } from "@/lib/cart/types";
  * radius, name on one line under it, price as "₹N onwards", and no card chrome
  * at all — no border, no shadow, no padding. The image IS the card.
  *
- * The card turns over to show the description. Which control turns it depends
- * on what the item has:
+ * The photo opens the item, exactly as the name does: customers tap the
+ * picture far more often than the text under it, and it used to only turn
+ * the card over (or do nothing at all when there was no description).
+ * Changed 2026-10-18 at the client's request.
  *
- *   photo    — the photo is the control, and no button is drawn
- *   no photo — a "What's in it?" button sits under the price
- *   no description — neither, because there is nothing on the back
- *
- * That last case is the common one today: 104 of the 124 live items have no
- * description. Drawing the button anyway would put a control on most of the
- * menu that turns the card over to an empty panel.
+ * The card still turns over to show the description, from a "What's in it?"
+ * link under the price, drawn only when there is a description. That is the
+ * uncommon case: 104 of the 124 live items have none, and a link on those
+ * would turn the card over to an empty panel. The options sheet shows the
+ * description too.
  *
  * E2E CONTRACT — mirrored from components/menu-item-card.tsx, because
  * e2e/*.spec.ts selects on these and this card now stands in for that one on
@@ -90,21 +90,21 @@ export function ProductMiniCard({
 
   const front = (
     <div className="flex h-full flex-col">
-      {/* With a description behind it the photo is the control that turns the
-          card; without one it is just a picture and must not be a button. */}
-      {hasPhoto &&
-        (canFlip ? (
-          <button
-            type="button"
-            onClick={() => setFlipped(true)}
-            aria-label={`What is in ${item.name}?`}
-            className="block w-full rounded-[var(--bk-r-inner)] focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2"
-          >
-            {photo}
-          </button>
-        ) : (
-          photo
-        ))}
+      {/* The photo opens the item, like the name below it. Kept out of the
+          tab order and the accessibility tree: the name button is the same
+          action, and announcing it twice per card doubles the menu's stops. */}
+      {hasPhoto && (
+        <button
+          type="button"
+          disabled={blocked}
+          onClick={() => onSelect(item)}
+          tabIndex={-1}
+          aria-hidden="true"
+          className="block w-full cursor-pointer rounded-[var(--bk-r-inner)] focus:outline-none disabled:cursor-not-allowed"
+        >
+          {photo}
+        </button>
+      )}
 
       {/* Badges sit in the flow rather than over the image, because there is
           usually no image to sit over. */}
@@ -152,9 +152,8 @@ export function ProductMiniCard({
         <span className="sr-only">{blocked ? "Unavailable" : "Add to Cart"}</span>
       </button>
 
-      {/* Only when there is no photo to click, and only when there is
-          something to read. */}
-      {!hasPhoto && canFlip && (
+      {/* Only when there is something to read. */}
+      {canFlip && (
         <button
           type="button"
           onClick={() => setFlipped(true)}

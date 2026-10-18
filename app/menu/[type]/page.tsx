@@ -48,28 +48,6 @@ const MENUS: Record<
   },
 };
 
-/**
- * Section order on the daily menu, matching the client's Swiggy listing.
- *
- * Her customers read that list every day, so the site showing the same
- * categories in a different order makes the two look like different shops.
- * Categories are stored with a sort_order that puts the preorder cake
- * categories first, which is right for the preorder menu and wrong here.
- *
- * A category not named here falls to the end, in its stored order, so adding
- * one in admin never drops its items off the page.
- */
-const DAILY_CATEGORY_ORDER = [
-  "All Day Breakfast Bakes",
-  "Shortbread Cookies",
-  "Frosted Sponge Cakes",
-  "Tea Cakes",
-  "Snacks",
-  "Desserts",
-  "Cupcakes, Muffins & Brownies",
-  "Mini pizzas",
-];
-
 export async function generateMetadata({
   params,
 }: {
@@ -122,13 +100,11 @@ export default async function MenuTypePage({
   const groups: MenuGroup[] | undefined =
     type === "daily"
       ? (() => {
-          const rank = (name: string) => {
-            const i = DAILY_CATEGORY_ORDER.indexOf(name);
-            return i === -1 ? DAILY_CATEGORY_ORDER.length : i;
-          };
-          const sorted = [...(categories ?? [])].sort(
-            (a, b) => rank(a.name) - rank(b.name) || a.sort_order - b.sort_order
-          );
+          // Same order as the preorder menu: the arrows in Admin ->
+          // Categories. This used to be a fixed list copied from the Swiggy
+          // listing, which the arrows could not change (changed 2026-10-18 at
+          // the client's request, so the order is hers to set).
+          const sorted = categories ?? [];
           const known = new Set(sorted.map((c) => c.id));
           const sections: MenuGroup[] = sorted.map((c) => ({
             id: c.id,
