@@ -171,7 +171,7 @@ describe("validateSlotAgainstHours", () => {
   it("rejects a slot before opening", () => {
     const result = validateSlotAgainstHours(ist("2026-08-19T07:00"), weeklyHours);
     expect(result.valid).toBe(false);
-    expect(result.error).toMatch(/between 09:00 and 18:00/);
+    expect(result.error).toMatch(/between 9:00 am and 6:00 pm/);
   });
 
   it("rejects a slot at or after closing", () => {
@@ -313,7 +313,7 @@ describe("validateDeliveryWindow", () => {
   it("rejects a delivery slot before the delivery window opens", () => {
     const r = validateDeliveryWindow(ist("2026-09-02T09:30"), "10:00", "20:00");
     expect(r.valid).toBe(false);
-    expect(r.error).toMatch(/between 10:00 and 20:00/);
+    expect(r.error).toMatch(/between 10:00 am and 8:00 pm/);
   });
 
   it("rejects a delivery slot after the delivery window closes", () => {

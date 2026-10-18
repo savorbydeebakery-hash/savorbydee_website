@@ -7,6 +7,7 @@ import {
   formatIstSlot,
   formatIstDate,
   formatIstTime,
+  formatClock,
   istDayBounds,
   istDateParts,
   istDayName,
@@ -164,5 +165,28 @@ describe("istInputAfterHours", () => {
     expect(istInputAfterHours(2, new Date("2026-09-01T00:37:00.000Z"))).toBe(
       "2026-09-01T08:07"
     );
+  });
+});
+
+describe("formatClock", () => {
+  it("shows stored 24-hour settings as 12-hour times", () => {
+    expect(formatClock("09:00")).toBe("9:00 am");
+    expect(formatClock("21:00")).toBe("9:00 pm");
+    expect(formatClock("20:30")).toBe("8:30 pm");
+    expect(formatClock("12:00")).toBe("12:00 pm");
+    expect(formatClock("00:15")).toBe("12:15 am");
+  });
+
+  it("leaves a malformed setting as it is", () => {
+    expect(formatClock("late")).toBe("late");
+    expect(formatClock(null)).toBe("");
+  });
+});
+
+describe("12-hour times everywhere", () => {
+  it("formatIstSlot and formatIstTime show am/pm", () => {
+    // 15:30 UTC is 21:00 IST.
+    expect(formatIstTime("2026-10-18T15:30:00Z")).toMatch(/09:00\s?pm/i);
+    expect(formatIstSlot("2026-10-18T15:30:00Z")).toMatch(/pm/i);
   });
 });

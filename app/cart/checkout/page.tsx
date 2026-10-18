@@ -22,6 +22,7 @@ import {
   instantToIstInput,
   istInputAfterHours,
   formatIstSlot,
+  formatClock,
 } from "@/lib/time/ist";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -616,7 +617,7 @@ export default function CheckoutPage() {
             </Badge>
             {effectiveFulfillment === "delivery" && (
               <p className="mb-3 text-sm text-ink-soft">
-                We deliver between {deliveryWindow.from} and {deliveryWindow.to} IST.
+                We deliver between {formatClock(deliveryWindow.from)} and {formatClock(deliveryWindow.to)} IST.
               </p>
             )}
             <Input

@@ -11,6 +11,7 @@ import {
   istDayName,
   istMinutesOfDay,
   parseClockMinutes,
+  formatClock,
 } from "@/lib/time/ist";
 
 export interface SiteNoticeRules {
@@ -362,7 +363,7 @@ export function validateSlotAgainstHours(
   if (slotMinutes < openMinutes || slotMinutes >= closeMinutes) {
     return {
       valid: false,
-      error: `On ${label}s we take slots between ${dayHours.from} and ${dayHours.to} IST.`,
+      error: `On ${label}s we take slots between ${formatClock(dayHours.from)} and ${formatClock(dayHours.to)} IST.`,
     };
   }
 
@@ -398,7 +399,7 @@ export function validateDeliveryWindow(
   if (slotMinutes < openMinutes || slotMinutes > closeMinutes) {
     return {
       valid: false,
-      error: `We deliver between ${from} and ${to} IST. Please pick a time in that window, or choose collection.`,
+      error: `We deliver between ${formatClock(from)} and ${formatClock(to)} IST. Please pick a time in that window, or choose collection.`,
     };
   }
 

@@ -103,7 +103,24 @@ export function formatIst(
 ): string {
   const d = toDate(value);
   if (!d) return "";
-  return d.toLocaleString("en-IN", { ...options, timeZone: IST_TIME_ZONE });
+  // 12-hour with am/pm unless a caller asks otherwise (client's request,
+  // 2026-10-18). en-IN already defaults to it, but the default comes from the
+  // runtime's locale data, so it is stated rather than relied on.
+  return d.toLocaleString("en-IN", { hour12: true, ...options, timeZone: IST_TIME_ZONE });
+}
+
+/**
+ * A stored clock setting ("21:00", as opening hours and the delivery window
+ * are kept) in the 12-hour form customers read: "9:00 pm". Anything that is
+ * not HH:MM comes back unchanged rather than as a wrong time.
+ */
+export function formatClock(clock: string | null | undefined): string {
+  const minutes = parseClockMinutes(clock);
+  if (!Number.isFinite(minutes)) return clock ?? "";
+  const h24 = Math.floor(minutes / 60) % 24;
+  const mm = String(minutes % 60).padStart(2, "0");
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${mm} ${h24 < 12 ? "am" : "pm"}`;
 }
 
 /** Day and time together, the format order cards and emails use. */
