@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button, FileButton } from "@/components/ui/button";
@@ -199,8 +200,16 @@ export default function AdminGalleryPage() {
         {photos.map((photo) => (
           <Card key={photo.id} className="flex flex-col gap-2 p-3">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-pink-soft">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.image_url} alt={photo.caption ?? ""} className={`h-full w-full object-cover ${!photo.is_active ? "opacity-40" : ""}`} />
+              {/* Resized by Supabase and loaded as it scrolls into view. This
+                  was a plain <img> of every original, so opening the page
+                  pulled ~100 full-size phone photos and took ~40 seconds. */}
+              <Image
+                src={photo.image_url}
+                alt={photo.caption ?? ""}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 260px"
+                className={`object-cover ${!photo.is_active ? "opacity-40" : ""}`}
+              />
               <div className="absolute right-1 top-1 flex flex-col gap-1">
                 <button onClick={() => moveOrder(photo, "up")} aria-label="Move photo earlier" className="rounded-lg bg-white/80 p-1 text-ink hover:bg-white"><ArrowUp size={14} /></button>
                 <button onClick={() => moveOrder(photo, "down")} aria-label="Move photo later" className="rounded-lg bg-white/80 p-1 text-ink hover:bg-white"><ArrowDown size={14} /></button>

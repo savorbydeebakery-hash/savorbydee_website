@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -282,10 +283,16 @@ export default function AdminMenuItemsPage() {
                 type="button"
                 tabIndex={-1}
                 onClick={() => setEditing(item)}
-                className="block aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-pink-soft"
+                className="relative block aspect-[4/3] cursor-pointer overflow-hidden rounded-xl bg-pink-soft"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.image_url} alt={item.name} className="h-full w-full object-cover" />
+                {/* Resized and lazy, as in Admin -> Gallery. */}
+                <Image
+                  src={item.image_url}
+                  alt={item.name}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
+                  className="object-cover"
+                />
               </button>
             )}
             <div className="flex-1">
