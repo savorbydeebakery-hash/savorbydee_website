@@ -186,7 +186,7 @@ describe("formatClock", () => {
 describe("12-hour times everywhere", () => {
   it("formatIstSlot and formatIstTime show am/pm", () => {
     // 15:30 UTC is 21:00 IST.
-    expect(formatIstTime("2026-10-18T15:30:00Z")).toMatch(/09:00\s?pm/i);
+    expect(formatIstTime("2026-10-18T15:30:00Z")).toMatch(/^9:00\s?pm$/i);
     expect(formatIstSlot("2026-10-18T15:30:00Z")).toMatch(/pm/i);
   });
 });

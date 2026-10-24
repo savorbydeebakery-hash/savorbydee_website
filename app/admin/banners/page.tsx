@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { uploadFile } from "@/lib/storage/upload-helper";
+import { uploadFile, deleteFile } from "@/lib/storage/upload-helper";
 import { Plus, Pencil, Trash2, X, Upload } from "lucide-react";
 import { instantToIstInput, istInputToInstant } from "@/lib/time/ist";
 import { describeWriteError } from "@/lib/admin/write-error";
@@ -75,13 +75,20 @@ export default function AdminBannersPage() {
     fetchBanners();
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, imageUrl: string | null) => {
     if (!confirm("Delete this banner?")) return;
     setListError(null);
     const { error } = await supabase.from("promo_banners").delete().eq("id", id);
     if (error) {
       setListError(describeWriteError(error, "this banner"));
       return;
+    }
+    // The image used to stay behind, so every deleted banner left its file in
+    // storage. Removed only after the row, as Menu Items does, so a refused
+    // delete never leaves a banner pointing at a missing image.
+    if (imageUrl) {
+      const path = imageUrl.split("/promo-banners/")[1];
+      if (path) await deleteFile("promo-banners", decodeURIComponent(path));
     }
     fetchBanners();
   };
@@ -145,7 +152,7 @@ export default function AdminBannersPage() {
               <Button size="sm" variant="outline" onClick={() => setEditing(banner)} aria-label={`Edit banner: ${banner.title}`}>
                 <Pencil size={14} />
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => handleDelete(banner.id)} aria-label={`Delete banner: ${banner.title}`}>
+              <Button size="sm" variant="ghost" onClick={() => handleDelete(banner.id, banner.poster_image_url)} aria-label={`Delete banner: ${banner.title}`}>
                 <Trash2 size={14} className="text-red-500" />
               </Button>
             </div>

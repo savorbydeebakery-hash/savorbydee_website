@@ -129,7 +129,8 @@ export function formatIstSlot(value: string | number | Date | null | undefined):
     weekday: "short",
     day: "numeric",
     month: "short",
-    hour: "2-digit",
+    // "9:00 am", not "09:00 am": the leading zero is a 24-hour habit.
+    hour: "numeric",
     minute: "2-digit",
   });
 }
@@ -141,7 +142,7 @@ export function formatIstDate(value: string | number | Date | null | undefined):
 
 /** Clock time only. */
 export function formatIstTime(value: string | number | Date | null | undefined): string {
-  return formatIst(value, { hour: "2-digit", minute: "2-digit" });
+  return formatIst(value, { hour: "numeric", minute: "2-digit" });
 }
 
 /**
