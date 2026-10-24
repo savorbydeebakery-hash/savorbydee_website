@@ -1,7 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "savor-bakery",
-  "main": ".open-next/worker.js",
+  // Wraps .open-next/worker.js to add the cron handler it lacks.
+  "main": "cloudflare-worker.mjs",
   "compatibility_date": "2026-08-19",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
@@ -21,12 +22,20 @@
   "observability": {
     "enabled": true
   },
+  // No cron by default. Set per environment below, on the live worker only:
+  // both workers share one database, so a cron on each would send every
+  // unacknowledged-order reminder twice.
   "triggers": {
-    "crons": ["*/1 * * * *"]
+    "crons": []
   },
   "env": {
     "staging": {
+      // Despite the name, this is the worker serving savorbydee.in: every
+      // normal deploy targets it (deploy.yml defaults to --env staging).
       "name": "savor-bakery-staging",
+      "triggers": {
+        "crons": ["*/1 * * * *"]
+      },
       "kv_namespaces": [
         {
           "binding": "NEXT_TAG_CACHE_KV",
@@ -40,6 +49,9 @@
     },
     "production": {
       "name": "savor-bakery-production",
+      "triggers": {
+        "crons": []
+      },
       "kv_namespaces": [
         {
           "binding": "NEXT_TAG_CACHE_KV",

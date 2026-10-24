@@ -2,16 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendAckWatchdog } from "@/lib/email/send";
 import { formatIstSlot } from "@/lib/time/ist";
+import {
+  needsAckReminder,
+  ACK_REMINDER_AFTER_MS,
+  ACK_REMINDER_MAX_AGE_MS,
+} from "@/lib/orders/ack-reminder";
 
 /**
- * T4.3: 30s ack watchdog — Cloudflare Cron Trigger.
- * Runs every minute (cron: every 1 minute). Checks for orders that:
- *   1. Were created > 30 seconds ago
- *   2. Have NOT been acknowledged (acknowledged_at IS NULL)
- *   3. Have NOT already had a watchdog email sent (staff_email_sent_at check)
+ * Unacknowledged-order reminder. Called once a minute by the Worker's cron
+ * handler (cloudflare-worker.mjs).
  *
- * For each unacknowledged order, sends a fallback email to staff.
- * Also cleans up processed_webhooks entries older than 30 days.
+ * Emails staff once about an order that is still pending and unacknowledged
+ * five minutes after it was placed — the rule is in lib/orders/ack-reminder.ts.
+ *
+ * History (2026-10-24): this never ran, because the built worker had no cron
+ * handler. And had it run, it would have found nothing: it only looked at
+ * orders with no staff_email_sent_at, which the order API stamps on every
+ * order the moment the new-order email goes.
+ *
+ * Also clears processed_webhooks older than 30 days, once an hour.
  *
  * Security: protected by CRON_SECRET header.
  */
@@ -27,25 +36,26 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
   const now = new Date();
-  const thirtySecondsAgo = new Date(now.getTime() - 30 * 1000).toISOString();
 
   try {
-    // Find unacknowledged orders older than 30s
-    // that haven't had a watchdog email sent yet
-    const { data: unackedOrders, error } = await supabase
+    // Narrowed in SQL to the window the rule can match; the rule itself
+    // (including "not already reminded") is applied below.
+    const { data: candidates, error } = await supabase
       .from("orders")
       .select("*")
+      .eq("status", "pending")
       .is("acknowledged_at", null)
-      .lt("created_at", thirtySecondsAgo)
-      .is("staff_email_sent_at", null)
+      .lte("created_at", new Date(now.getTime() - ACK_REMINDER_AFTER_MS).toISOString())
+      .gte("created_at", new Date(now.getTime() - ACK_REMINDER_MAX_AGE_MS).toISOString())
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(50);
 
     if (error) {
       console.error("[cron/ack-watchdog] Query error:", error);
       return NextResponse.json({ error: "Query failed" }, { status: 500 });
     }
 
+    const unackedOrders = (candidates ?? []).filter((o) => needsAckReminder(o, now.getTime()));
     let emailsSent = 0;
     let emailsFailed = 0;
 
@@ -66,7 +76,7 @@ export async function GET(request: NextRequest) {
             adminUrl: "/admin/orders",
           });
 
-          // Mark email as sent so we don't spam
+          // Re-stamped so the next run sees the reminder went (see the rule).
           await supabase
             .from("orders")
             .update({ staff_email_sent_at: now.toISOString() })
@@ -83,19 +93,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Cleanup: delete processed_webhooks older than 30 days
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    await supabase
-      .from("processed_webhooks")
-      .delete()
-      .lt("processed_at", thirtyDaysAgo);
+    // Cleanup: delete processed_webhooks older than 30 days. Hourly is
+    // plenty, and keeps the every-minute run to one query when idle.
+    if (now.getUTCMinutes() === 0) {
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      await supabase
+        .from("processed_webhooks")
+        .delete()
+        .lt("processed_at", thirtyDaysAgo);
+    }
 
     return NextResponse.json({
       ok: true,
-      checked: unackedOrders?.length ?? 0,
+      checked: candidates?.length ?? 0,
+      reminded: unackedOrders.length,
       emailsSent,
       emailsFailed,
-      cleanup: "processed_webhooks >30d deleted",
     });
   } catch (error) {
     console.error("[cron/ack-watchdog] Unexpected error:", error);
