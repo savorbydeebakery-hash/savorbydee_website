@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Package, Cake, Tag, Image as ImageIcon, TrendingUp, Clock, Settings, ClipboardList, Trophy } from "lucide-react";
 import { istDayBounds, formatIstTime } from "@/lib/time/ist";
+import { HoursChanges } from "@/components/admin/hours-changes";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,9 @@ export default async function AdminDashboard() {
   return (
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-ink mb-6">Dashboard</h1>
+
+      {/* Close early, open late, closed for the day — admins only. */}
+      {isAdmin && <HoursChanges />}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-8">

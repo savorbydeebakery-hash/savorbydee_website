@@ -26,6 +26,8 @@ export interface ShopStatus {
   /** ISO instant the bakery next opens, or null. */
   nextOpenIso: string | null;
   reason: ClosedReason;
+  /** The owner's message when today's hours were changed in Admin. */
+  note?: string | null;
 }
 
 const FALLBACK: ShopStatus = {
@@ -90,6 +92,8 @@ export function closedMessage(status: ShopStatus): string {
       return `We are closed today. ${back}`;
     case "holiday":
       return `We are closed for the day. ${back}`;
+    case "changed-hours":
+      return `${status.note?.trim() || "We've had to change our hours today."} ${back}`;
     case "before-open":
       return `We are not open just yet. ${back}`;
     default:

@@ -1,11 +1,11 @@
 import {
   IST_OFFSET,
   istDateKey,
-  istDayName,
   istMinutesOfDay,
   parseClockMinutes,
 } from "@/lib/time/ist";
 import type { WeeklyHours } from "@/lib/cart/validation";
+import { dayWindow, type HoursOverrides } from "@/lib/shop/hours-override";
 
 /**
  * Is the bakery open right now, and if not, when does it open next?
@@ -19,7 +19,14 @@ import type { WeeklyHours } from "@/lib/cart/validation";
  * pinned rather than left to the runtime's zone.
  */
 
-export type ClosedReason = "open" | "before-open" | "after-close" | "closed-day" | "holiday";
+export type ClosedReason =
+  | "open"
+  | "before-open"
+  | "after-close"
+  | "closed-day"
+  | "holiday"
+  /** Closed because of a one-day change in Admin (lib/shop/hours-override). */
+  | "changed-hours";
 
 export interface OpenState {
   /** Within today's operating hours. */
@@ -33,6 +40,8 @@ export interface OpenState {
   dailyMenuOpen: boolean;
   /** Today's daily-menu cutoff instant, when today is an open day. */
   dailyMenuClosesAt: Date | null;
+  /** The admin's message for customers, when today's hours were changed. */
+  note: string | null;
 }
 
 /** The daily menu shuts before the shop does, so the last bakes can be handed over. */
@@ -50,34 +59,18 @@ function nextDateKey(dateKey: string): string {
   return istDateKey(new Date(`${dateKey}T12:00:00${IST_OFFSET}`).getTime() + 86_400_000);
 }
 
-/** The open/close window for a given IST day, or null when shut. */
-function windowFor(
-  dateKey: string,
-  weeklyHours: WeeklyHours | null | undefined,
-  holidays: Set<string>
-): { open: number; close: number } | null {
-  if (holidays.has(dateKey)) return null;
-
-  const dayHours = weeklyHours?.[istDayName(`${dateKey}T12:00:00${IST_OFFSET}`)];
-  if (!dayHours || !dayHours.open) return null;
-
-  const open = parseClockMinutes(dayHours.from);
-  const close = parseClockMinutes(dayHours.to);
-  if (Number.isNaN(open) || Number.isNaN(close) || close <= open) return null;
-
-  return { open, close };
-}
-
 export function getOpenState(
   weeklyHours: WeeklyHours | null | undefined,
   holidays: string[] = [],
   cutoffClock: string = DEFAULT_DAILY_MENU_CUTOFF,
-  now: Date = new Date()
+  now: Date = new Date(),
+  overrides: HoursOverrides = {}
 ): OpenState {
   // An unconfigured schedule means "always open" rather than "always closed".
   // Same failure direction as the slot validator: a missing setting must not
   // put a CLOSED sign on a bakery that is actually trading.
-  if (!weeklyHours || Object.keys(weeklyHours).length === 0) {
+  const todayKeyEarly = istDateKey(now);
+  if ((!weeklyHours || Object.keys(weeklyHours).length === 0) && !overrides[todayKeyEarly]) {
     return {
       isOpen: true,
       reason: "open",
@@ -85,13 +78,19 @@ export function getOpenState(
       closesAt: null,
       dailyMenuOpen: true,
       dailyMenuClosesAt: null,
+      note: null,
     };
   }
 
   const holidaySet = new Set(holidays);
   const todayKey = istDateKey(now);
   const nowMinutes = istMinutesOfDay(now);
-  const today = windowFor(todayKey, weeklyHours, holidaySet);
+  const windowFor = (key: string) => dayWindow(key, weeklyHours, holidaySet, overrides) ?? null;
+  const today = windowFor(todayKey);
+  // When today's hours were changed in Admin, say so, with her message.
+  const todayOverride = overrides[todayKey];
+  const changedToday = !holidaySet.has(todayKey) && !!todayOverride;
+  const note = changedToday ? todayOverride.note ?? null : null;
 
   // The cutoff cannot outlast the close, and a malformed value falls back to
   // the close rather than shutting the daily menu all day.
@@ -102,7 +101,7 @@ export function getOpenState(
   const findNextOpen = (fromKey: string, skipToday: boolean): Date | null => {
     let key = skipToday ? nextDateKey(fromKey) : fromKey;
     for (let i = 0; i < MAX_LOOKAHEAD_DAYS; i++) {
-      const w = windowFor(key, weeklyHours, holidaySet);
+      const w = windowFor(key);
       if (w) return instantAt(key, w.open);
       key = nextDateKey(key);
     }
@@ -112,11 +111,12 @@ export function getOpenState(
   if (!today) {
     return {
       isOpen: false,
-      reason: holidaySet.has(todayKey) ? "holiday" : "closed-day",
+      reason: holidaySet.has(todayKey) ? "holiday" : changedToday ? "changed-hours" : "closed-day",
       nextOpen: findNextOpen(todayKey, true),
       closesAt: null,
       dailyMenuOpen: false,
       dailyMenuClosesAt: null,
+      note,
     };
   }
 
@@ -128,22 +128,24 @@ export function getOpenState(
   if (nowMinutes < today.open) {
     return {
       isOpen: false,
-      reason: "before-open",
+      reason: today.changed ? "changed-hours" : "before-open",
       nextOpen: instantAt(todayKey, today.open),
       closesAt: null,
       dailyMenuOpen: false,
       dailyMenuClosesAt,
+      note,
     };
   }
 
   if (nowMinutes >= today.close) {
     return {
       isOpen: false,
-      reason: "after-close",
+      reason: today.changed ? "changed-hours" : "after-close",
       nextOpen: findNextOpen(todayKey, true),
       closesAt: null,
       dailyMenuOpen: false,
       dailyMenuClosesAt,
+      note,
     };
   }
 
@@ -154,5 +156,6 @@ export function getOpenState(
     closesAt,
     dailyMenuOpen: !Number.isNaN(cutoffMinutes) && nowMinutes < cutoffMinutes,
     dailyMenuClosesAt,
+    note,
   };
 }

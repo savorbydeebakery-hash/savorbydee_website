@@ -24,6 +24,7 @@ import {
   formatIstSlot,
   formatClock,
 } from "@/lib/time/ist";
+import { readOverrides, type HoursOverrides } from "@/lib/shop/hours-override";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -105,9 +106,10 @@ export default function CheckoutPage() {
   // Opening hours and holidays, so the picker cannot offer a slot the API is
   // about to reject. Null until loaded — an unknown schedule constrains
   // nothing rather than blocking every date.
-  const [schedule, setSchedule] = useState<{ weekly: WeeklyHours | null; holidays: string[] }>({
+  const [schedule, setSchedule] = useState<{ weekly: WeeklyHours | null; holidays: string[]; overrides: HoursOverrides }>({
     weekly: null,
     holidays: [],
+    overrides: {},
   });
   // Whether that request has come back at all. Without this the slot step let
   // a closed day straight through whenever the click beat the fetch: the
@@ -140,7 +142,7 @@ export default function CheckoutPage() {
         const { data } = await supabase
           .from("site_settings")
           .select(
-            "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, delivery_enabled, whatsapp_number, delivery_from, delivery_to, free_delivery_threshold_cents, payment_window_minutes"
+            "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, hours_overrides, delivery_enabled, whatsapp_number, delivery_from, delivery_to, free_delivery_threshold_cents, payment_window_minutes"
           )
           .eq("id", 1)
           .single();
@@ -159,6 +161,7 @@ export default function CheckoutPage() {
         setSchedule({
           weekly: (data.weekly_hours as WeeklyHours | null) ?? null,
           holidays: (data.holidays as string[] | null) ?? [],
+          overrides: readOverrides(data.hours_overrides),
         });
         setDeliveryEnabled(data.delivery_enabled ?? true);
         setWhatsappNumber(data.whatsapp_number?.trim() || null);
@@ -207,7 +210,7 @@ export default function CheckoutPage() {
   // rather than left to the device's zone.
   const minSlot = useMemo(() => {
     const earliest = schedule.weekly
-      ? getEarliestValidSlot(noticeHours, schedule.weekly, schedule.holidays)
+      ? getEarliestValidSlot(noticeHours, schedule.weekly, schedule.holidays, new Date(), schedule.overrides)
       : null;
     return earliest ? instantToIstInput(earliest) : istInputAfterHours(noticeHours);
   }, [noticeHours, schedule]);
@@ -252,7 +255,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    const hoursCheck = validateSlotAgainstHours(slot, schedule.weekly, schedule.holidays);
+    const hoursCheck = validateSlotAgainstHours(slot, schedule.weekly, schedule.holidays, schedule.overrides);
     if (!hoursCheck.valid) {
       slotError(hoursCheck.error!);
       return;
@@ -278,7 +281,7 @@ export default function CheckoutPage() {
   const suggestedSlot = useMemo(() => {
     if (!slotProblem || !schedule.weekly) return null;
     const hours = Math.max(noticeHours, slotProblem.noticeHours ?? 0);
-    const earliest = getEarliestValidSlot(hours, schedule.weekly, schedule.holidays);
+    const earliest = getEarliestValidSlot(hours, schedule.weekly, schedule.holidays, new Date(), schedule.overrides);
     if (!earliest) return null;
     if (
       effectiveFulfillment === "delivery" &&

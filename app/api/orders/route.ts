@@ -16,6 +16,7 @@ import type { CartItem, MenuItemForCart } from "@/lib/cart/types";
 import { repriceCart, postedTotalIsShort, type RepriceResult } from "@/lib/cart/server-pricing";
 import { istInputToInstant, formatIstSlot, istDateParts } from "@/lib/time/ist";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
+import { readOverrides } from "@/lib/shop/hours-override";
 import { samePhone } from "@/lib/customers/phone";
 import { notifyStaff } from "@/lib/push/send";
 import { publicOrder, DEFAULT_PAYMENT_WINDOW_MINUTES } from "@/lib/payments/order-payment";
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
     )
       .from("site_settings")
       .select(
-        "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, daily_menu_cutoff, delivery_enabled, delivery_from, delivery_to, free_delivery_threshold_cents, bakery_name, address_line1, address_line2, address_city, address_state, payment_window_minutes"
+        "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, hours_overrides, daily_menu_cutoff, delivery_enabled, delivery_from, delivery_to, free_delivery_threshold_cents, bakery_name, address_line1, address_line2, address_city, address_state, payment_window_minutes"
       )
       .eq("id", 1)
       .single();
@@ -180,10 +181,15 @@ export async function POST(request: NextRequest) {
     // "Orders will be reviewed only during business hours." The storefront
     // greys the menu out and refuses the add-to-cart, but a tab left open
     // since the afternoon would still post here at midnight.
+    // One-day changes from Admin (close early, open late…), applied here too
+    // so the API agrees with the banner and checkout.
+    const hoursOverrides = readOverrides(noticeSettings?.hours_overrides);
     const openState = getOpenState(
       noticeSettings?.weekly_hours as Parameters<typeof getOpenState>[0],
       (noticeSettings?.holidays as string[] | null) ?? [],
-      noticeSettings?.daily_menu_cutoff ?? DEFAULT_DAILY_MENU_CUTOFF
+      noticeSettings?.daily_menu_cutoff ?? DEFAULT_DAILY_MENU_CUTOFF,
+      new Date(),
+      hoursOverrides
     );
 
     if (!openState.isOpen) {
@@ -192,7 +198,7 @@ export async function POST(request: NextRequest) {
         : "";
       return NextResponse.json(
         {
-          error: `We are closed and not accepting orders right now.${back}`,
+          error: `${openState.note ? `${openState.note} ` : ""}We are closed and not accepting orders right now.${back}`,
           reopensAt: openState.nextOpen?.toISOString() ?? null,
         },
         { status: 400 }
@@ -411,7 +417,8 @@ export async function POST(request: NextRequest) {
     const hoursCheck = validateSlotAgainstHours(
       slot,
       noticeSettings?.weekly_hours as Parameters<typeof validateSlotAgainstHours>[1],
-      (noticeSettings?.holidays as string[] | null) ?? []
+      (noticeSettings?.holidays as string[] | null) ?? [],
+      hoursOverrides
     );
     if (!hoursCheck.valid) {
       return NextResponse.json({ error: hoursCheck.error, field: "slot" }, { status: 400 });

@@ -16,6 +16,7 @@ import { getSiteSettings } from "@/lib/site/public-data";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 import type { WeeklyHours } from "@/lib/cart/validation";
 import { PromoBanner } from "@/components/promo-banner";
+import { readOverrides } from "@/lib/shop/hours-override";
 import { PublicChrome } from "@/components/layout/public-chrome";
 
 /**
@@ -93,7 +94,9 @@ async function readShopStatus(): Promise<ShopStatus> {
     const state = getOpenState(
       (data?.weekly_hours as WeeklyHours | null) ?? null,
       (data?.holidays as string[] | null) ?? [],
-      data?.daily_menu_cutoff ?? DEFAULT_DAILY_MENU_CUTOFF
+      data?.daily_menu_cutoff ?? DEFAULT_DAILY_MENU_CUTOFF,
+      new Date(),
+      readOverrides(data?.hours_overrides)
     );
 
     return {
@@ -101,6 +104,7 @@ async function readShopStatus(): Promise<ShopStatus> {
       dailyMenuOpen: state.dailyMenuOpen,
       nextOpenIso: state.nextOpen?.toISOString() ?? null,
       reason: state.reason,
+      note: state.note,
     };
   } catch {
     return { isOpen: true, dailyMenuOpen: true, nextOpenIso: null, reason: "open" };

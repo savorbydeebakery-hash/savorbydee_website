@@ -12,7 +12,9 @@ import {
   istMinutesOfDay,
   parseClockMinutes,
   formatClock,
+  formatIst,
 } from "@/lib/time/ist";
+import { dayWindow, type HoursOverrides } from "@/lib/shop/hours-override";
 
 export interface SiteNoticeRules {
   /** Default notice for DAILY MENU items. */
@@ -248,19 +250,11 @@ function nextIstDateKey(dateKey: string): string {
 function openWindow(
   slot: Date,
   weeklyHours: WeeklyHours | null | undefined,
-  holidaySet: Set<string>
+  holidaySet: Set<string>,
+  overrides: HoursOverrides = {}
 ): { openMinutes: number; closeMinutes: number } | null {
-  if (holidaySet.has(istDateKey(slot))) return null;
-
-  const dayHours = weeklyHours?.[istDayName(slot)];
-  if (!dayHours || !dayHours.open) return null;
-
-  const openMinutes = parseClockMinutes(dayHours.from);
-  const closeMinutes = parseClockMinutes(dayHours.to);
-  if (Number.isNaN(openMinutes) || Number.isNaN(closeMinutes)) return null;
-  if (closeMinutes <= openMinutes) return null;
-
-  return { openMinutes, closeMinutes };
+  const w = dayWindow(istDateKey(slot), weeklyHours, holidaySet, overrides);
+  return w ? { openMinutes: w.open, closeMinutes: w.close } : null;
 }
 
 /**
@@ -282,7 +276,8 @@ export function getEarliestValidSlot(
   requiredNoticeHours: number,
   weeklyHours: WeeklyHours,
   holidays: string[] = [],
-  fromTime: Date = new Date()
+  fromTime: Date = new Date(),
+  overrides: HoursOverrides = {}
 ): Date | null {
   const holidaySet = new Set(holidays);
   let candidate = new Date(fromTime.getTime() + requiredNoticeHours * 3_600_000);
@@ -290,7 +285,7 @@ export function getEarliestValidSlot(
   // 30 days is the search horizon; a bakery closed for a month has a problem
   // this function cannot solve.
   for (let i = 0; i < 40; i++) {
-    const window = openWindow(candidate, weeklyHours, holidaySet);
+    const window = openWindow(candidate, weeklyHours, holidaySet, overrides);
 
     if (!window) {
       candidate = istInstantAt(nextIstDateKey(istDateKey(candidate)), 0);
@@ -329,20 +324,40 @@ export function getEarliestValidSlot(
 export function validateSlotAgainstHours(
   slot: Date,
   weeklyHours: WeeklyHours | null | undefined,
-  holidays: string[] = []
+  holidays: string[] = [],
+  overrides: HoursOverrides = {}
 ): { valid: boolean; error: string | null } {
-  if (!weeklyHours || Object.keys(weeklyHours).length === 0) {
+  const dateKey = istDateKey(slot);
+  if ((!weeklyHours || Object.keys(weeklyHours).length === 0) && !overrides[dateKey]) {
     return { valid: true, error: null };
   }
 
   const holidaySet = new Set(holidays);
 
-  if (holidaySet.has(istDateKey(slot))) {
+  if (holidaySet.has(dateKey)) {
     return { valid: false, error: "We are closed that day. Please choose another date." };
   }
 
+  // A one-day change (Admin -> hours) decides this date on its own.
+  if (overrides[dateKey]) {
+    const day = formatIst(slot, { weekday: "short", day: "numeric", month: "short" });
+    const w = dayWindow(dateKey, weeklyHours, holidaySet, overrides);
+    if (!w) {
+      return { valid: false, error: `We are closed on ${day}. Please choose another day.` };
+    }
+    const m = istMinutesOfDay(slot);
+    if (m < w.open || m >= w.close) {
+      const clock = (n: number) => formatClock(`${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`);
+      return {
+        valid: false,
+        error: `On ${day} our hours have changed: we take slots between ${clock(w.open)} and ${clock(w.close)} IST.`,
+      };
+    }
+    return { valid: true, error: null };
+  }
+
   const dayName = istDayName(slot);
-  const dayHours = weeklyHours[dayName];
+  const dayHours = weeklyHours?.[dayName];
 
   // A weekday absent from the settings object is unconfigured, not closed.
   if (!dayHours) return { valid: true, error: null };
