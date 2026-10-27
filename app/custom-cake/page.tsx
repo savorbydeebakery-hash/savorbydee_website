@@ -19,6 +19,9 @@ export default function CustomCakePage() {
   const [submitted, setSubmitted] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [referenceUrl, setReferenceUrl] = useState<string | null>(null);
+  // Shown from the customer's own device: the stored photo is private (only
+  // admins can open it), so its link shows a broken image here.
+  const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
@@ -43,6 +46,7 @@ export default function CustomCakePage() {
     setUploading(false);
     if (result.url) {
       setReferenceUrl(result.url);
+      setPreview(URL.createObjectURL(file));
       setError(null);
     } else {
       // The storage error ("row-level security", "mime type not supported")
@@ -102,7 +106,7 @@ export default function CustomCakePage() {
           Thank you for your interest! Our team will review your request and contact you
           within 24 hours with a quote.
         </p>
-        <Button onClick={() => { setSubmitted(false); setForm({ customer_name: "", customer_phone: "", cake_type: "fully_custom", flavor: "", weight: "", decoration: "", message_on_cake: "", description: "", requested_date: "" }); setReferenceUrl(null); }} variant="outline">
+        <Button onClick={() => { setSubmitted(false); setForm({ customer_name: "", customer_phone: "", cake_type: "fully_custom", flavor: "", weight: "", decoration: "", message_on_cake: "", description: "", requested_date: "" }); setReferenceUrl(null); setPreview(null); }} variant="outline">
           Submit Another Inquiry
         </Button>
       </div>
@@ -185,8 +189,8 @@ export default function CustomCakePage() {
             {referenceUrl ? (
               <div className="relative inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={referenceUrl} alt="Reference" className="h-32 w-32 rounded-xl object-cover" />
-                <button type="button" onClick={() => setReferenceUrl(null)} className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white">
+                <img src={preview ?? referenceUrl} alt="Reference" className="h-32 w-32 rounded-xl object-cover" />
+                <button type="button" onClick={() => { setReferenceUrl(null); setPreview(null); }} className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white">
                   <X size={14} />
                 </button>
               </div>
