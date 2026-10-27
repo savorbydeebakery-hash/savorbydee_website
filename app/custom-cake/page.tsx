@@ -41,8 +41,18 @@ export default function CustomCakePage() {
     setUploading(true);
     const result = await uploadFile("custom-cake-refs", file);
     setUploading(false);
-    if (result.url) setReferenceUrl(result.url);
-    else setError(result.error ?? "Upload failed");
+    if (result.url) {
+      setReferenceUrl(result.url);
+      setError(null);
+    } else {
+      // The storage error ("row-level security", "mime type not supported")
+      // means nothing to a customer; say what to do instead.
+      setError(
+        file.size > 5 * 1024 * 1024
+          ? "That photo is larger than 5 MB. Please choose a smaller one, or send it to us on WhatsApp after submitting."
+          : "That photo couldn't be uploaded. Please try a JPG or PNG, or send it to us on WhatsApp after submitting."
+      );
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

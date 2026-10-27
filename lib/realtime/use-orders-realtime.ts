@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { E2E_FIXTURE_NAMES } from "@/lib/orders/ack-reminder";
 
 export interface OrderRow {
   id: string;
@@ -46,8 +47,13 @@ function isFreshUnacknowledged(o: OrderRow, withinMs: number): boolean {
   );
 }
 
-/** Tells the alarm (lib/alarm/alarm-client.ts) to ring for this order. */
+/**
+ * Tells the alarm (lib/alarm/alarm-client.ts) to ring for this order. Never
+ * for the daily E2E run's fixture orders, placed at 11:00 and deleted
+ * minutes later: staff kept hearing an alarm for an order that vanished.
+ */
 function announceNewOrder(o: OrderRow) {
+  if (o.guest_name && E2E_FIXTURE_NAMES.includes(o.guest_name)) return;
   window.dispatchEvent(new CustomEvent("savor-new-order", { detail: o }));
 }
 

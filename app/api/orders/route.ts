@@ -19,6 +19,7 @@ import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 import { readOverrides } from "@/lib/shop/hours-override";
 import { samePhone } from "@/lib/customers/phone";
 import { notifyStaff } from "@/lib/push/send";
+import { E2E_FIXTURE_NAMES } from "@/lib/orders/ack-reminder";
 import { publicOrder, DEFAULT_PAYMENT_WINDOW_MINUTES } from "@/lib/payments/order-payment";
 
 /**
@@ -610,7 +611,9 @@ export async function POST(request: NextRequest) {
     // Separate from the email above, which has never been deliverable (see
     // lib/email/client.ts). notifyStaff never throws and gives up after a few
     // seconds, so a slow push service can't hold up the customer.
-    await notifyStaff({
+    // Not for the daily E2E run's fixture orders: it would buzz every staff
+    // phone at 11:00 each morning for an order deleted minutes later.
+    if (!E2E_FIXTURE_NAMES.includes(guest.name)) await notifyStaff({
       kind: "order",
       title: `🔔 New order ${humanId} · ₹${(chargedTotalCents / 100).toFixed(0)}`,
       body: `${guest.name} · ${fulfillment === "delivery" ? "Delivery" : "Pickup"} ${formatIstSlot(slot)}. Open it and press Acknowledge.`,

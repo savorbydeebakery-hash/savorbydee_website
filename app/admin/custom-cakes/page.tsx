@@ -257,12 +257,7 @@ export default function AdminCustomCakesPage() {
               </div>
             )}
 
-            {inquiry.reference_image_url && (
-              <div className="aspect-video overflow-hidden rounded-xl bg-pink-soft">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={inquiry.reference_image_url} alt="Reference" className="h-full w-full object-cover" />
-              </div>
-            )}
+            {inquiry.reference_image_url && <ReferencePhoto url={inquiry.reference_image_url} />}
 
             <Button size="sm" variant="outline" onClick={() => openEdit(inquiry)}>
               <Pencil size={14} /> Edit & Quote
@@ -338,5 +333,47 @@ export default function AdminCustomCakesPage() {
         </Modal>
       )}
     </div>
+  );
+}
+
+/**
+ * The customer's reference photo. The bucket is private, so the stored public
+ * link never loaded; this asks for a link that works for an hour, which only
+ * an admin is allowed to do (migration 00048).
+ */
+function ReferencePhoto({ url }: { url: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const path = decodeURIComponent(url.split("/custom-cake-refs/")[1] ?? "").split("?")[0];
+    if (!path) return;
+    let live = true;
+    void createClient()
+      .storage.from("custom-cake-refs")
+      .createSignedUrl(path, 3600)
+      .then(({ data, error }) => {
+        if (!live) return;
+        if (data?.signedUrl) setSrc(data.signedUrl);
+        else if (error) setFailed(true);
+      });
+    return () => {
+      live = false;
+    };
+  }, [url]);
+
+  if (failed) return <p className="text-xs text-ink-faint">Reference photo couldn&rsquo;t be loaded.</p>;
+  return (
+    <a
+      href={src ?? undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block aspect-video overflow-hidden rounded-xl bg-pink-soft"
+    >
+      {src && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="Customer's reference photo" className="h-full w-full object-cover" />
+      )}
+    </a>
   );
 }
