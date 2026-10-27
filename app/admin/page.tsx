@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Package, Cake, Tag, Image as ImageIcon, TrendingUp, Clock, Settings } from "lucide-react";
+import { Package, Cake, Tag, Image as ImageIcon, TrendingUp, Clock, Settings, ClipboardList, Trophy } from "lucide-react";
 import { istDayBounds, formatIstTime } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +15,9 @@ export default async function AdminDashboard() {
   // before it.
   const { start: today, end: tomorrow } = istDayBounds();
 
-  // Custom cakes are admin-only, so a staff dashboard leaves them out rather
-  // than showing a count of rows it is not allowed to read.
+  // Custom cakes, the gallery and settings are admin-only, so a staff
+  // dashboard leaves out their tile and buttons rather than linking to pages
+  // that turn staff away.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -139,9 +140,17 @@ export default async function AdminDashboard() {
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           { href: "/admin/menu-items", label: "Manage Menu", icon: Tag },
-          { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
-          ...(isAdmin ? [{ href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake }] : []),
-          { href: "/admin/settings", label: "Settings", icon: Settings },
+          ...(isAdmin
+            ? [
+                { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
+                { href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake },
+                { href: "/admin/settings", label: "Settings", icon: Settings },
+              ]
+            : [
+                { href: "/admin/orders", label: "Orders", icon: Package },
+                { href: "/admin/stock", label: "Today's Stock", icon: ClipboardList },
+                { href: "/admin/customers", label: "Customers", icon: Trophy },
+              ]),
         ].map((link) => {
           const Icon = link.icon;
           return (

@@ -21,6 +21,7 @@ import {
   Star,
   Camera,
   ClipboardList,
+  Lock,
 } from "lucide-react";
 
 const navItems = [
@@ -30,17 +31,21 @@ const navItems = [
   { href: "/admin/stock", label: "Today's Stock", icon: ClipboardList },
   { href: "/admin/menu-items", label: "Menu Items", icon: Tag },
   { href: "/admin/categories", label: "Categories", icon: Tag },
-  { href: "/admin/banners", label: "Promo Banners", icon: Megaphone },
-  { href: "/admin/gallery", label: "Gallery", icon: ImageIcon },
-  { href: "/admin/behind-the-scenes", label: "Behind the Scenes", icon: Camera },
-  // Admin only (2026-10-18): staff are alerted to new requests on the
-  // Orders page and pass them to the owner. Migration 00047 enforces it.
+  // Admin only, at the client's request: the website's content and settings
+  // (2026-10-27, migration 00048) and Custom Cakes (2026-10-18, migration
+  // 00047 — staff are alerted to new requests on Orders and tell the owner).
+  // Hidden from staff here, and refused below if a staff member opens one.
+  { href: "/admin/banners", label: "Promo Banners", icon: Megaphone, adminOnly: true },
+  { href: "/admin/gallery", label: "Gallery", icon: ImageIcon, adminOnly: true },
+  { href: "/admin/behind-the-scenes", label: "Behind the Scenes", icon: Camera, adminOnly: true },
   { href: "/admin/custom-cakes", label: "Custom Cakes", icon: Cake, adminOnly: true },
-  { href: "/admin/reviews", label: "Reviews", icon: Star },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/reviews", label: "Reviews", icon: Star, adminOnly: true },
+  { href: "/admin/settings", label: "Settings", icon: Settings, adminOnly: true },
   { href: "/admin/customers", label: "Customers", icon: Trophy },
   { href: "/admin/accounts", label: "Accounts", icon: Users },
 ];
+
+const ADMIN_ONLY_PATHS = navItems.filter((i) => "adminOnly" in i && i.adminOnly).map((i) => i.href);
 
 export const dynamic = "force-dynamic";
 
@@ -178,7 +183,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main content */}
       <div className="lg:pl-64">
-        <div className="min-h-screen p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="min-h-screen p-4 sm:p-6 lg:p-8">
+          {role !== "admin" && ADMIN_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ? (
+            <div className="mx-auto max-w-md py-20 text-center">
+              <Lock className="mx-auto mb-4 text-ink-faint" size={32} />
+              <h1 className="mb-2 text-xl font-bold text-ink">This page is for admins</h1>
+              <p className="text-ink-soft">
+                Please ask the owner if something here needs changing.
+              </p>
+            </div>
+          ) : (
+            children
+          )}
+        </div>
       </div>
     </div>
   );
