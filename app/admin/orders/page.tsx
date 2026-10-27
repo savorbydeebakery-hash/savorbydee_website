@@ -7,6 +7,7 @@ import { describeWriteError } from "@/lib/admin/write-error";
 import { useOrdersRealtime } from "@/lib/realtime/use-orders-realtime";
 import { useAlarmClient } from "@/lib/alarm/alarm-client";
 import { AlertSetup } from "@/components/admin/alert-setup";
+import { StockReminder } from "@/components/admin/stock-reminder";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -203,6 +204,7 @@ export default function AdminOrdersPage() {
       )}
 
       <AlertSetup soundReady={soundReady} unlockSound={unlockSound} testAlarm={testAlarm} />
+      <StockReminder />
 
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">

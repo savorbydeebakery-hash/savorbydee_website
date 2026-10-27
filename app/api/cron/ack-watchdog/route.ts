@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendAckWatchdog } from "@/lib/email/send";
 import { notifyStaff } from "@/lib/push/send";
+import { dayWindow, readOverrides } from "@/lib/shop/hours-override";
+import { stockReminderDue } from "@/lib/shop/stock-reminder";
+import { IST_OFFSET, istDateKey, istMinutesOfDay } from "@/lib/time/ist";
+import type { WeeklyHours } from "@/lib/cart/validation";
 import { formatIstSlot } from "@/lib/time/ist";
 import {
   needsAckReminder,
@@ -104,6 +108,52 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // --- Morning stock reminder (migration 00052, lib/shop/stock-reminder) ---
+    // Separate try: a problem here must not stop the order reminders above.
+    let stockReminded = false;
+    try {
+      const todayKey = istDateKey(now);
+      const { data: s } = await supabase
+        .from("site_settings")
+        .select("weekly_hours, holidays, hours_overrides")
+        .eq("id", 1)
+        .maybeSingle();
+      const window = dayWindow(
+        todayKey,
+        (s?.weekly_hours as WeeklyHours | null) ?? null,
+        new Set((s?.holidays as string[] | null) ?? []),
+        readOverrides(s?.hours_overrides)
+      );
+      const nowMinutes = istMinutesOfDay(now);
+      // Only look further inside the window when it could be due.
+      if (window && nowMinutes >= window.open + 30 && nowMinutes < window.close) {
+        const dayStart = new Date(`${todayKey}T00:00:00${IST_OFFSET}`).toISOString();
+        const [{ data: checks, error: checksError }, { data: sent }] = await Promise.all([
+          supabase.from("stock_checks").select("id").gte("saved_at", dayStart).limit(1),
+          supabase.from("staff_alerts").select("id").eq("kind", "stock").gte("created_at", dayStart).limit(1),
+        ]);
+        if (
+          !checksError &&
+          stockReminderDue({
+            window,
+            nowMinutes,
+            setToday: (checks?.length ?? 0) > 0,
+            remindedToday: (sent?.length ?? 0) > 0,
+          })
+        ) {
+          await notifyStaff({
+            kind: "stock",
+            title: "📋 Today's Stock isn't set yet",
+            body: "Set today's counts so the website can't oversell. Tap to open Today's Stock.",
+            url: "/admin/stock",
+          });
+          stockReminded = true;
+        }
+      }
+    } catch (e) {
+      console.error("[cron/ack-watchdog] stock reminder failed:", e);
+    }
+
     // Cleanup: delete processed_webhooks older than 30 days. Hourly is
     // plenty, and keeps the every-minute run to one query when idle.
     if (now.getUTCMinutes() === 0) {
@@ -118,6 +168,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       checked: candidates?.length ?? 0,
       reminded: unackedOrders.length,
+      stockReminded,
       emailsSent,
       emailsFailed,
     });

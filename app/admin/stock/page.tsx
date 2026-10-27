@@ -125,10 +125,11 @@ export default function AdminStockPage() {
       );
       return;
     }
-    if (!dirty) return;
-
+    // With nothing changed this still saves: an empty list records that
+    // today's counts were checked and are right, which clears the morning
+    // reminder (migration 00052).
     setSaving(true);
-    const { error: rpcError } = await supabase.rpc("set_stock_counts", { lines: plan.lines });
+    const { error: rpcError } = await supabase.rpc("set_stock_counts", { lines: dirty ? plan.lines : [] });
     setSaving(false);
 
     if (rpcError) {
@@ -136,7 +137,7 @@ export default function AdminStockPage() {
       setError(`${describeWriteError(rpcError, "today's counts")} No counts were changed.`);
       return;
     }
-    setSavedCount(plan.lines.length);
+    setSavedCount(dirty ? plan.lines.length : 0);
     await load();
   };
 
@@ -191,7 +192,10 @@ export default function AdminStockPage() {
       )}
       {savedCount !== null && (
         <p className="mb-4 flex items-center gap-2 rounded-xl bg-mint-soft px-4 py-3 text-sm text-ink">
-          <Check size={16} /> Saved {savedCount} count{savedCount === 1 ? "" : "s"}.
+          <Check size={16} />{" "}
+          {savedCount === 0
+            ? "Today's counts confirmed."
+            : `Saved ${savedCount} count${savedCount === 1 ? "" : "s"}.`}
         </p>
       )}
 
@@ -269,9 +273,9 @@ export default function AdminStockPage() {
           <Button
             variant="primary"
             onClick={save}
-            disabled={saving || (!dirty && plan.invalid.length === 0)}
+            disabled={saving}
           >
-            {saving ? "Saving..." : "Save counts"}
+            {saving ? "Saving..." : dirty || plan.invalid.length > 0 ? "Save counts" : "Confirm today's counts"}
           </Button>
         </div>
       </div>

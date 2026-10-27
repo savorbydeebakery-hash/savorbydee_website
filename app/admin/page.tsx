@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Package, Cake, Tag, Image as ImageIcon, TrendingUp, Clock, Settings, ClipboardList, Trophy } from "lucide-react";
 import { istDayBounds, formatIstTime } from "@/lib/time/ist";
 import { HoursChanges } from "@/components/admin/hours-changes";
+import { StockReminder } from "@/components/admin/stock-reminder";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,8 @@ export default async function AdminDashboard() {
   return (
     <div className="mx-auto max-w-6xl">
       <h1 className="text-2xl font-bold text-ink mb-6">Dashboard</h1>
+
+      <StockReminder />
 
       {/* Close early, open late, closed for the day — admins only. */}
       {isAdmin && <HoursChanges />}
