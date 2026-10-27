@@ -1,0 +1,149 @@
+name: Nightly database backup
+
+# Free backups (2026-10-28). The Supabase free plan keeps none, so a mistake,
+# a bug or a Supabase problem could otherwise lose orders, customers and the
+# menu for good. How to restore: docs/backups.md.
+#
+# Every night: copy the database, prove the copy restores (load it into an
+# empty Postgres and compare row counts with the live site), encrypt it, and
+# keep it as a workflow artifact for 30 days. A failed step fails the run, and
+# GitHub emails about failed scheduled runs.
+#
+# This repository is PUBLIC. Artifacts of public repositories can be
+# downloaded by anyone signed in to GitHub, so the backup is only ever stored
+# encrypted (AES-256, with the BACKUP_PASSPHRASE secret). Nothing unencrypted
+# leaves the runner, and the logs print counts only, never data.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL     Supabase → Connect → "Session pooler" connection
+#                       string, with the database password filled in.
+#   BACKUP_PASSPHRASE   A long passphrase kept somewhere safe. Without it the
+#                       backups cannot be opened — by anyone, including us.
+
+on:
+  schedule:
+    - cron: "30 21 * * *" # 03:00 IST
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      # An empty Postgres for the restore drill. Throwaway, gone after the run.
+      scratch:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: scratch
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      # Tables whose row counts must survive the round trip.
+      CHECK_TABLES: orders order_items menu_items categories profiles site_settings custom_cake_inquiries gallery_photos reviews promo_banners behind_the_scenes push_subscriptions
+    steps:
+      - name: Require the secrets
+        shell: bash
+        run: |
+          missing=""
+          [ -z "$DB_URL" ] && missing="$missing SUPABASE_DB_URL"
+          [ -z "$PASSPHRASE" ] && missing="$missing BACKUP_PASSPHRASE"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing. See docs/backups.md."
+            exit 1
+          fi
+
+      - name: Install the Postgres 17 client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common > /dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          sudo apt-get install -y -qq postgresql-client-17 > /dev/null
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Copy the database
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p backup
+          # Everything the website owns: tables, data, functions, triggers, policies.
+          pg_dump "$DB_URL" --schema=public --no-owner --no-privileges --quote-all-identifiers -f backup/public.sql
+          # Login accounts (needed to restore admins and staff).
+          pg_dump "$DB_URL" --data-only --table=auth.users --table=auth.identities --no-owner --no-privileges -f backup/auth.sql
+          # Row counts at copy time, for the drill and for the record.
+          for t in $CHECK_TABLES; do
+            n=$(psql "$DB_URL" -At -c "select count(*) from public.\"$t\"" 2>/dev/null || echo missing)
+            echo "$t $n"
+          done > backup/counts.txt
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > backup/taken-at.txt
+          echo "Copied. Row counts:"; cat backup/counts.txt
+
+      - name: Restore drill (into the empty scratch database)
+        shell: bash
+        env:
+          PGPASSWORD: scratch
+        run: |
+          set -uo pipefail
+          S="psql -h localhost -U postgres -d postgres -q"
+          # The minimum of Supabase the website's schema refers to.
+          $S -c "create role anon; create role authenticated; create role service_role;
+                 create schema auth; create table auth.users (id uuid primary key);
+                 create function auth.uid() returns uuid language sql as 'select null::uuid';
+                 create function auth.role() returns text language sql as 'select null::text';
+                 create function auth.jwt() returns jsonb language sql as 'select null::jsonb';" > /dev/null
+          # Some Supabase-only objects can't be recreated in plain Postgres (and
+          # foreign keys to the stubbed auth.users fail); the data is what's
+          # checked, so errors are kept in the log rather than stopping here.
+          $S -f backup/public.sql > restore.log 2>&1 || true
+          echo "Restore messages: $(grep -c ERROR restore.log || true) (Supabase-only objects; data checked below)"
+          bad=0
+          while read -r t n; do
+            [ "$n" = "missing" ] && { echo "skip  $t (not in live database)"; continue; }
+            r=$($S -At -c "select count(*) from public.\"$t\"" 2>/dev/null || echo error)
+            if [ "$r" = "$n" ]; then echo "OK    $t $r"; else echo "FAIL  $t live=$n restored=$r"; bad=1; fi
+          done < backup/counts.txt
+          if [ "$bad" = 1 ]; then
+            echo "::error::The backup did not restore with the same row counts."
+            grep ERROR restore.log | head -20
+            exit 1
+          fi
+
+      - name: Encrypt
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="savor-backup-$(date -u +%Y-%m-%d)"
+          tar -czf - -C backup . | gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --pinentry-mode loopback --passphrase "$PASSPHRASE" -o "$name.tar.gz.gpg"
+          # Prove it opens with the passphrase before keeping it.
+          gpg --batch --quiet --pinentry-mode loopback --passphrase "$PASSPHRASE" -d "$name.tar.gz.gpg" | tar -tzf - > /dev/null
+          rm -rf backup restore.log
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          ls -la "$name.tar.gz.gpg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.name }}
+          path: ${{ steps.pack.outputs.name }}.tar.gz.gpg
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Nightly backup"
+            if [ "${{ job.status }}" = "success" ]; then
+              echo "Encrypted backup **${{ steps.pack.outputs.name }}** saved for 30 days. It restored with matching row counts."
+            else
+              echo "**The backup failed.** See the log, and docs/backups.md."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
