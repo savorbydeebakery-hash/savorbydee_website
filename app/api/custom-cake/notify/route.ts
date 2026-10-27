@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyStaff } from "@/lib/push/send";
 import {
   STAFF_ALERTS_CHANNEL,
   CUSTOM_CAKE_EVENT,
@@ -51,6 +52,14 @@ export async function POST(request: NextRequest) {
   if (Date.now() - Date.parse(inquiry.created_at) > FRESH_MS) {
     return NextResponse.json({ error: "Request is too old to announce" }, { status: 409 });
   }
+
+  // Staff phones first, including locked ones (lib/push), so a broadcast
+  // failure below can't skip it. Same rule: no customer details.
+  await notifyStaff({
+    kind: "custom_cake",
+    title: "🎂 New custom cake request",
+    body: "A customer has asked for a custom cake. Please tell the owner.",
+  });
 
   const payload: CustomCakeAlertPayload = { at: inquiry.created_at };
   try {

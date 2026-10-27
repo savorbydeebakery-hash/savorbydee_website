@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendAckWatchdog } from "@/lib/email/send";
+import { notifyStaff } from "@/lib/push/send";
 import { formatIstSlot } from "@/lib/time/ist";
 import {
   needsAckReminder,
@@ -61,11 +62,21 @@ export async function GET(request: NextRequest) {
 
     if (unackedOrders && unackedOrders.length > 0) {
       for (const order of unackedOrders) {
-        try {
-          const minutesUnacknowledged = Math.floor(
-            (now.getTime() - new Date(order.created_at).getTime()) / 60000
-          );
+        const minutesUnacknowledged = Math.floor(
+          (now.getTime() - new Date(order.created_at).getTime()) / 60000
+        );
 
+        // Push and email are tried independently, and the order is stamped
+        // either way: one reminder attempt per order. Stamping only on a sent
+        // email (which has never been deliverable) would have pushed every
+        // minute for an hour.
+        await notifyStaff({
+          kind: "reminder",
+          title: `⏰ ${order.human_id} still not acknowledged`,
+          body: `${order.guest_name ?? "A customer"} ordered ${Math.max(1, minutesUnacknowledged)} min ago. Open Orders and press Acknowledge.`,
+        });
+
+        try {
           await sendAckWatchdog({
             humanId: order.human_id,
             customerName: order.guest_name ?? "Unknown",
@@ -76,12 +87,6 @@ export async function GET(request: NextRequest) {
             adminUrl: "/admin/orders",
           });
 
-          // Re-stamped so the next run sees the reminder went (see the rule).
-          await supabase
-            .from("orders")
-            .update({ staff_email_sent_at: now.toISOString() })
-            .eq("id", order.id);
-
           emailsSent++;
         } catch (emailError) {
           console.error(
@@ -90,6 +95,12 @@ export async function GET(request: NextRequest) {
           );
           emailsFailed++;
         }
+
+        // Re-stamped so the next run sees the reminder went (see the rule).
+        await supabase
+          .from("orders")
+          .update({ staff_email_sent_at: now.toISOString() })
+          .eq("id", order.id);
       }
     }
 

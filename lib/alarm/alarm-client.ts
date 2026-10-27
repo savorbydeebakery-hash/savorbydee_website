@@ -7,18 +7,27 @@ import {
   CUSTOM_CAKE_EVENT,
   type CustomCakeAlertPayload,
 } from "@/lib/alarm/staff-alerts";
+import { showLocalNotification } from "@/lib/push/client";
 
 /**
- * T4.2: Admin alarm client.
- * Multi-layer alarm: Web Audio (oscillator beep) + Notification API +
- * title flash + favicon badge + cross-tab BroadcastChannel.
+ * T4.2: Admin alarm client, for the Orders page while it is open.
+ * Beep (Web Audio) + vibration + notification + title flash + cross-tab sync.
  *
- * Triggered by "savor-new-order" custom event (from realtime subscription).
- * Silenced when staff acknowledges the order.
+ * Triggered by the "savor-new-order" event (lib/realtime/use-orders-realtime)
+ * and by custom cake broadcasts (lib/alarm/staff-alerts.ts). Silenced when
+ * staff acknowledge the order.
  *
- * Also rings for a new custom cake request (a broadcast on the staff-alerts
- * channel; see lib/alarm/staff-alerts.ts). Staff cannot open those, so the
- * Orders page shows a "tell the owner" notice until someone taps Got it.
+ * Phones (fixed 2026-10-27, after the alarm rang on a laptop but not on the
+ * client's phone in the demo):
+ *  - Sound: a phone only lets a page make sound after a tap on it. The beep
+ *    used to create its audio on its own when an order arrived, so phones
+ *    stayed silent. Audio is now unlocked by the first tap anywhere on the
+ *    page, and `soundReady` tells the Orders page to ask for that tap.
+ *  - Notifications: Android Chrome refuses `new Notification()` and threw
+ *    inside the alarm, stopping it half-way. They now go through the service
+ *    worker (lib/push/client.ts), and never throw.
+ *  - Vibration, where the phone supports it.
+ *  - A locked phone runs no page at all; for that, see push (lib/push).
  */
 
 /** What one alarm says: in the flashing tab title and the pop-up. */
@@ -40,14 +49,44 @@ export function useAlarmClient() {
   const originalTitleRef = useRef<string>(typeof document !== "undefined" ? document.title : "");
   const broadcastRef = useRef<BroadcastChannel | null>(null);
   const alarmActiveRef = useRef(false);
+  // True once this page is allowed to make sound (after a tap, on phones).
+  const [soundReady, setSoundReady] = useState(false);
+
+  const audio = useCallback((): AudioContext | null => {
+    if (typeof window === "undefined") return null;
+    const Ctor = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return null;
+    if (!audioContextRef.current) audioContextRef.current = new Ctor();
+    return audioContextRef.current;
+  }, []);
+
+  /**
+   * Must run inside a tap or key press. Resumes audio and plays a silent
+   * sound, which is what iOS and Android need before they allow later beeps.
+   */
+  const unlockSound = useCallback(async () => {
+    const ctx = audio();
+    if (!ctx) return false;
+    try {
+      if (ctx.state !== "running") await ctx.resume();
+      const buffer = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch {
+      // stays locked; the page keeps asking for a tap
+    }
+    const ok = ctx.state === "running";
+    setSoundReady(ok);
+    return ok;
+  }, [audio]);
 
   // --- Web Audio beep ---
   const playBeep = useCallback(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new AudioContext();
-    }
-    const ctx = audioContextRef.current;
-    if (ctx.state === "suspended") ctx.resume();
+    const ctx = audio();
+    if (!ctx) return;
+    if (ctx.state === "suspended") void ctx.resume().catch(() => {});
 
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
@@ -62,20 +101,12 @@ export function useAlarmClient() {
 
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.5);
-  }, []);
 
-  // --- Notification API ---
-  const showNotification = useCallback((title: string, body: string) => {
-    if (typeof Notification === "undefined") return;
-    if (Notification.permission === "granted") {
-      new Notification(title, {
-        body,
-        icon: "/favicon.ico",
-        tag: "savor-new-order",
-        requireInteraction: true,
-      });
-    }
-  }, []);
+    // Android phones also buzz. iPhones ignore this (no vibration API).
+    try {
+      navigator.vibrate?.(400);
+    } catch {}
+  }, [audio]);
 
   // --- Title flash ---
   const startTitleFlash = useCallback((text: string) => {
@@ -97,10 +128,7 @@ export function useAlarmClient() {
     document.title = originalTitleRef.current;
   }, []);
 
-  // --- Favicon badge (simple approach: change title) ---
-  // A full favicon badge would require canvas drawing, but title flash is sufficient
-
-// --- Stop alarm ---
+  // --- Stop alarm ---
   const stopAlarm = useCallback(() => {
     alarmActiveRef.current = false;
 
@@ -108,6 +136,9 @@ export function useAlarmClient() {
       clearInterval(beepIntervalRef.current);
       beepIntervalRef.current = null;
     }
+    try {
+      navigator.vibrate?.(0);
+    } catch {}
 
     stopTitleFlash();
 
@@ -122,29 +153,26 @@ export function useAlarmClient() {
       if (alarmActiveRef.current) return; // already alarming
       alarmActiveRef.current = true;
 
-      // Web Audio beep loop
-      playBeep();
-      beepIntervalRef.current = setInterval(playBeep, BEEP_INTERVAL_MS);
-
-      // Notification
-      showNotification(alert.title, alert.body);
-
-      // Title flash
+      // Each step guarded, so one that a browser refuses can't stop the rest.
+      try {
+        playBeep();
+        beepIntervalRef.current = setInterval(playBeep, BEEP_INTERVAL_MS);
+      } catch {}
+      void showLocalNotification(alert.title, alert.body, `savor-${alert.tab}`);
       startTitleFlash(alert.tab);
 
-      // Broadcast to other tabs
       if (broadcastRef.current) {
         broadcastRef.current.postMessage({ type: "alarm-start", alert });
       }
 
-      // Auto-stop after 30s (watchdog will send email fallback)
+      // Auto-stop after 30s (the reminder push follows at 5 minutes).
       setTimeout(() => {
         if (alarmActiveRef.current) {
           stopAlarm();
         }
       }, ALARM_SOUND_DURATION_MS);
     },
-    [playBeep, showNotification, startTitleFlash, stopAlarm]
+    [playBeep, startTitleFlash, stopAlarm]
   );
 
   const startAlarm = useCallback(
@@ -152,10 +180,21 @@ export function useAlarmClient() {
       raiseAlarm({
         tab: `🔔 NEW ORDER — ${orderId}`,
         title: `🔔 New Order: ${orderId}`,
-        body: `${customerName} placed a new order. Acknowledge within 30s!`,
+        body: `${customerName} placed a new order. Open it and press Acknowledge.`,
       }),
     [raiseAlarm]
   );
+
+  /** The Test button: everything a real order does, on this device only. */
+  const testAlarm = useCallback(async () => {
+    await unlockSound();
+    stopAlarm();
+    raiseAlarm({
+      tab: "🔔 TEST ALARM",
+      title: "🔔 Test alarm",
+      body: "Sound and alerts are working on this device.",
+    });
+  }, [unlockSound, stopAlarm, raiseAlarm]);
 
   // --- New custom cake request ---
   // When it arrived, while the "tell the owner" notice is up; null otherwise.
@@ -185,12 +224,27 @@ export function useAlarmClient() {
     stopAlarm();
   }, [stopAlarm]);
 
-  // --- Request notification permission on mount ---
+  // The first tap or key press anywhere on the page unlocks sound. Permission
+  // for notifications is no longer asked for here: phones ignore a question
+  // that doesn't come from a tap, so the Orders page has a button for it.
   useEffect(() => {
-    if (typeof Notification !== "undefined" && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
+    const unlock = () => {
+      void unlockSound().then((ok) => {
+        if (ok) {
+          window.removeEventListener("pointerdown", unlock, true);
+          window.removeEventListener("keydown", unlock, true);
+        }
+      });
+    };
+    window.addEventListener("pointerdown", unlock, true);
+    window.addEventListener("keydown", unlock, true);
+    return () => {
+      window.removeEventListener("pointerdown", unlock, true);
+      window.removeEventListener("keydown", unlock, true);
+    };
+  }, [unlockSound]);
 
+  useEffect(() => {
     // Setup BroadcastChannel for cross-tab sync
     if (typeof BroadcastChannel !== "undefined") {
       broadcastRef.current = new BroadcastChannel(BROADCAST_CHANNEL);
@@ -227,5 +281,13 @@ export function useAlarmClient() {
     };
   }, [startAlarm, raiseAlarm, stopAlarm]);
 
-  return { startAlarm, stopAlarm, customCakeAlertAt, dismissCustomCakeAlert };
+  return {
+    startAlarm,
+    stopAlarm,
+    testAlarm,
+    unlockSound,
+    soundReady,
+    customCakeAlertAt,
+    dismissCustomCakeAlert,
+  };
 }

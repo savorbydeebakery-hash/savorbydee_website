@@ -37,12 +37,38 @@ export interface OrderRow {
  * Subscribes to postgres_changes on the orders table.
  * Auto-reconnects on disconnect. Returns live order list + new order callback.
  */
+/** A pending order nobody has acknowledged, placed within the last `withinMs`. */
+function isFreshUnacknowledged(o: OrderRow, withinMs: number): boolean {
+  return (
+    !o.acknowledged_at &&
+    o.status === "pending" &&
+    Date.now() - Date.parse(o.created_at) < withinMs
+  );
+}
+
+/** Tells the alarm (lib/alarm/alarm-client.ts) to ring for this order. */
+function announceNewOrder(o: OrderRow) {
+  window.dispatchEvent(new CustomEvent("savor-new-order", { detail: o }));
+}
+
 export function useOrdersRealtime() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [connected, setConnected] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  // Every order this page has already seen, so each new one rings once,
+  // whichever way it arrives. null until the first load.
+  const knownIdsRef = useRef<Set<string> | null>(null);
 
-  // Initial fetch
+  /**
+   * Fetches the list, and rings for orders the page has not seen before.
+   *
+   * The alarm used to ring only for an order the realtime feed delivered at
+   * the moment it was placed. A phone drops that feed whenever the screen
+   * locks, and the 15-second refresh that picked missed orders up added them
+   * silently — so on phones a new order often never rang (client demo,
+   * 2026-10-27). Now the refresh rings too, and the page refreshes the
+   * instant the phone wakes or the tab comes back.
+   */
   const fetchOrders = useCallback(async () => {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -52,7 +78,22 @@ export function useOrdersRealtime() {
       .limit(100);
 
     if (!error && data) {
-      setOrders(data as OrderRow[]);
+      const rows = data as OrderRow[];
+      const known = knownIdsRef.current;
+      if (known) {
+        for (const o of rows) {
+          if (known.has(o.id)) continue;
+          known.add(o.id);
+          if (isFreshUnacknowledged(o, 2 * 3600_000)) announceNewOrder(o);
+        }
+      } else {
+        knownIdsRef.current = new Set(rows.map((o) => o.id));
+        // Opening Orders with a new order still waiting (say the phone was
+        // asleep when it came in) rings for the newest one.
+        const waiting = rows.find((o) => isFreshUnacknowledged(o, 15 * 60_000));
+        if (waiting) announceNewOrder(waiting);
+      }
+      setOrders(rows);
     }
   }, []);
 
@@ -178,10 +219,12 @@ export function useOrdersRealtime() {
             if (prev.some((o) => o.id === newOrder.id)) return prev;
             return [newOrder, ...prev];
           });
-          // Trigger alarm via custom event
-          window.dispatchEvent(
-            new CustomEvent("savor-new-order", { detail: newOrder })
-          );
+          // Ring, unless a refresh already rang for it.
+          const known = (knownIdsRef.current ??= new Set());
+          if (!known.has(newOrder.id)) {
+            known.add(newOrder.id);
+            announceNewOrder(newOrder);
+          }
         }
       )
       .on(
@@ -208,7 +251,19 @@ export function useOrdersRealtime() {
 
     channelRef.current = channel;
 
+    // Catch up the moment the phone wakes, the tab comes back, or the
+    // connection returns: timers are frozen while a phone sleeps.
+    const catchUp = () => {
+      if (document.visibilityState === "visible") void fetchOrders();
+    };
+    document.addEventListener("visibilitychange", catchUp);
+    window.addEventListener("online", catchUp);
+    window.addEventListener("pageshow", catchUp);
+
     return () => {
+      document.removeEventListener("visibilitychange", catchUp);
+      window.removeEventListener("online", catchUp);
+      window.removeEventListener("pageshow", catchUp);
       clearTimeout(timerId);
       clearInterval(pollId);
       if (channelRef.current) {

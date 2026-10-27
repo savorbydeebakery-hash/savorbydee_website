@@ -103,6 +103,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-pink-soft/10">
+      {/* "Add to Home Screen" from the admin installs Savor Staff, opening on
+          Orders. On iPhone that is also what makes order notifications
+          possible at all (web push needs a Home Screen app there). React
+          moves these into <head>. */}
+      <link rel="manifest" href="/staff.webmanifest" />
+      <link rel="apple-touch-icon" href="/staff-apple-touch-icon.png" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-title" content="Savor Staff" />
       {/* Mobile header */}
       <div className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-ink/8 bg-white px-4 lg:hidden">
         <Link href="/admin" className="font-bold text-ink">

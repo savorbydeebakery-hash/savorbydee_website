@@ -17,6 +17,7 @@ import { repriceCart, postedTotalIsShort, type RepriceResult } from "@/lib/cart/
 import { istInputToInstant, formatIstSlot, istDateParts } from "@/lib/time/ist";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 import { samePhone } from "@/lib/customers/phone";
+import { notifyStaff } from "@/lib/push/send";
 import { publicOrder, DEFAULT_PAYMENT_WINDOW_MINUTES } from "@/lib/payments/order-payment";
 
 /**
@@ -597,6 +598,16 @@ export async function POST(request: NextRequest) {
       console.error("[api/orders] Email send error:", emailError);
       // Non-fatal — order is still created
     }
+
+    // --- Push to staff phones (lib/push) ---
+    // Separate from the email above, which has never been deliverable (see
+    // lib/email/client.ts). notifyStaff never throws and gives up after a few
+    // seconds, so a slow push service can't hold up the customer.
+    await notifyStaff({
+      kind: "order",
+      title: `🔔 New order ${humanId} · ₹${(chargedTotalCents / 100).toFixed(0)}`,
+      body: `${guest.name} · ${fulfillment === "delivery" ? "Delivery" : "Pickup"} ${formatIstSlot(slot)}. Open it and press Acknowledge.`,
+    });
 
     // --- Return full order data (gap fix: guest order retrieval) ---
     return NextResponse.json(

@@ -6,6 +6,7 @@ import { describeSelections } from "@/lib/orders/line-summary";
 import { describeWriteError } from "@/lib/admin/write-error";
 import { useOrdersRealtime } from "@/lib/realtime/use-orders-realtime";
 import { useAlarmClient } from "@/lib/alarm/alarm-client";
+import { AlertSetup } from "@/components/admin/alert-setup";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,7 @@ function statusLabel(status: string): string {
 export default function AdminOrdersPage() {
   const { orders, connected, acknowledgeOrder, updateOrderStatus, updatePayment, setDeliveryFee } =
     useOrdersRealtime();
-  const { customCakeAlertAt, dismissCustomCakeAlert } = useAlarmClient();
+  const { customCakeAlertAt, dismissCustomCakeAlert, soundReady, unlockSound, testAlarm } = useAlarmClient();
 
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -200,6 +201,8 @@ export default function AdminOrdersPage() {
           </Button>
         </div>
       )}
+
+      <AlertSetup soundReady={soundReady} unlockSound={unlockSound} testAlarm={testAlarm} />
 
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">

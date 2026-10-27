@@ -1,0 +1,14 @@
+{
+  "name": "Savor by Dee — Staff",
+  "short_name": "Savor Staff",
+  "description": "Orders and alerts for Savor by Dee staff.",
+  "start_url": "/admin/orders",
+  "scope": "/admin/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#653230",
+  "icons": [
+    { "src": "/staff-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/staff-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
