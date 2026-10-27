@@ -24,9 +24,9 @@ keep an eye on.
 | 8 | **Overselling Today's Menu.** An item with no count in Today's Stock has unlimited stock, and over-the-counter sales don't reduce the website's count. | Orders for bakes that are already gone. | Set Today's Stock every morning (it's in the daily routine); lower a count when selling over the counter. | **Watch** |
 | 9 | **Storage filling up.** Gallery photos are stored at full phone size (about 3 MB each, roughly 310 MB for 100). The free Supabase plan includes 1 GB. | Uploads start failing. | Shrink photos before upload (can be built: resize in the browser to about 2000 px), or upgrade Supabase. | **Watch**, can build |
 | 10 | **Supabase free-plan limits.** No downloadable backups, and photo resizing may be a paid feature. Resizing currently works, but if Supabase stops providing it, every product photo on the site would break at once. | Data loss with no backup; broken images site-wide. | Check the plan in Supabase → Billing. Export the database weekly, or move to Pro (US$25/month) once orders are steady. | **You** |
-| 11 | **Nobody is told when the site is down.** The only check is the daily 11:00 test. | Hours of downtime before anyone notices. | Free uptime monitor (UptimeRobot or Cloudflare health check) on savorbydee.in, alerting Jeremy's phone. | **You** (5 minutes) |
+| 11 | **Nobody is told when the site is down.** The only check is the daily 11:00 test. | Hours of downtime before anyone notices. | Free uptime monitor (UptimeRobot or Cloudflare health check) on savorbydee.in, alerting Jeremy's phone. | **Done** (27 Oct): .github/workflows/uptime.yml checks every 10 minutes; GitHub emails on failure |
 | 12 | **Staff locked out of their account.** The site has no "Forgot password" link, and the built-in Supabase emails are rate-limited. | A staff member can't sign in at opening time. | An admin can send a sign-in link from Supabase → Authentication → Users. A "Forgot password" page can be built once email (#2) works. | **Watch**, can build |
-| 13 | **Leftover accounts.** `staff@savorbakery.in` (setup leftover, unreachable email) and `staff@gmail.com` (demo, a real stranger's address) are still staff. `admin@savorbakery.in` is the test robot's admin login, with its password in GitHub secrets. | A login nobody controls getting into the admin. | Set the first two to Customer or delete them now. Keep the robot account, with a long password. | **You** (or ask Jeremy) |
+| 13 | **Leftover accounts.** `staff@savorbakery.in` (setup leftover, unreachable email) and `staff@gmail.com` (demo, a real stranger's address) are still staff. `admin@savorbakery.in` is the test robot's admin login, with its password in GitHub secrets. | A login nobody controls getting into the admin. | staff@savorbakery.in set to Customer on 27 Oct; staff@gmail.com kept as the demo staff login. Keep the robot account, with a long password. | **You** (or ask Jeremy) |
 | 14 | **Four old September orders still pending** (Jane, jeremy, abba, Gjgfh). | "Unacknowledged" never reads 0, so a real new one is easy to miss. | All test orders and custom cake requests deleted on 27 Oct (backup: `clients website/pre-launch-test-data-backup-2026-10-27.json`). | **Done** |
 
 ## Still to test before launch
@@ -35,9 +35,9 @@ keep an eye on.
 |---|---|---|
 | A notification arriving on a real phone | Android: Chrome → Orders → turn on notifications → Test alert → lock the phone. iPhone: Add to Home Screen first. | The server sends and Google accepts the push, but no notification could be confirmed in an automated browser. A real phone is the proof. |
 | A real order with real money | Small order from a customer's phone, pay by UPI from a different phone, Mark as paid with the UTR, through to Fulfilled. | The whole money path, plus the alarm and push for a real order. |
-| Emergency hours during opening hours | Dashboard → Close early (a time an hour away), try to book after it, then Back to normal hours. | Only tested at night on 27 Oct, when the shop was already closed. |
-| A custom cake request with a photo | From the public form on a phone, then open it in Admin → Custom Cakes. | Customer uploads only started working on 27 Oct. |
 | A real staff member's phone | Their own account set to Staff, alerts turned on. | So they see the staff menu and get their own alerts. |
+
+**Tested live on 27 Oct:** emergency hours (close now with a message, close early, closed all day, checkout's Use earliest skipping the closed day, everything put back) and a custom cake request with a photo from a phone-sized screen (uploads, previews, stored privately, opens for admins).
 
 ## Already covered (and how)
 
