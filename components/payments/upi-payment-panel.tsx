@@ -10,6 +10,7 @@ import { formatPrice } from "@/lib/cart/math";
 import { formatIst } from "@/lib/time/ist";
 import { paymentStage, type PaymentStage } from "@/lib/payments/state";
 import type { OrderPayment } from "@/lib/payments/order-payment";
+import { buildPlainUpiUri } from "@/lib/payments/upi";
 import {
   waLink,
   paymentProofMessage,
@@ -360,7 +361,129 @@ function PayStep({ order, payment, amount }: { order: PanelOrder; payment: Order
           </li>
         )}
       </ul>
+
+      <PlainPayFallback upi={upi} amount={amount} amountValue={(payment.amountCents / 100).toFixed(2)} orderId={order.human_id} isPhone={isPhone} />
     </section>
+  );
+}
+
+/**
+ * When the UPI app refuses the payment ("You've exceeded the bank limit for
+ * this payment", seen on Google Pay with an HDFC account for ₹640 in the
+ * client's test, 2026-10-28). The QR above fills in the amount and note; to a
+ * personal UPI account some apps and banks decline that as an unregistered
+ * shop payment. Paying the UPI ID with the amount typed by hand goes through,
+ * so this offers exactly that: a QR naming the payee only, and the three
+ * steps. See buildPlainUpiUri.
+ */
+function PlainPayFallback({
+  upi,
+  amount,
+  amountValue,
+  orderId,
+  isPhone,
+}: {
+  upi: NonNullable<OrderPayment["upi"]>;
+  amount: string;
+  amountValue: string;
+  orderId: string;
+  isPhone: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [qr, setQr] = useState<string | null>(null);
+  const plainUri = buildPlainUpiUri({ vpa: upi.vpa, payeeName: upi.payeeName });
+
+  useEffect(() => {
+    if (!open || qr) return;
+    let cancelled = false;
+    QRCode.toDataURL(plainUri, { errorCorrectionLevel: "M", margin: 2, width: 480 })
+      .then((url) => !cancelled && setQr(url))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, qr, plainUri]);
+
+  return (
+    <details
+      className="mt-4 rounded-xl border border-ink/10 bg-white p-4 text-sm"
+      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
+    >
+      <summary className="cursor-pointer font-semibold text-ink">
+        Payment app showing an error, like &ldquo;exceeded the bank limit&rdquo;?
+      </summary>
+      <div className="mt-3 flex flex-col gap-3 leading-relaxed text-ink-soft">
+        <p>
+          Some apps refuse a payment that has the amount already filled in. Your money
+          hasn&rsquo;t gone. Pay this way instead, and type the amount yourself:
+        </p>
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+          <div className="flex flex-col items-center gap-2">
+            <div className="rounded-2xl border border-ink/10 bg-white p-2">
+              {qr ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qr} width={176} height={176} alt={`UPI QR code for ${upi.payeeName}, without an amount`} className="h-44 w-44" />
+              ) : (
+                <div className="flex h-44 w-44 items-center justify-center text-xs text-ink-faint">Loading…</div>
+              )}
+            </div>
+            {qr && (
+              <a
+                href={qr}
+                download={`savor-${orderId}-upi-qr-simple.png`}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-berry underline-offset-4 hover:underline"
+              >
+                <Download size={15} aria-hidden="true" /> Save this QR
+              </a>
+            )}
+          </div>
+          <ol className="flex list-decimal flex-col gap-2 pl-5">
+            <li>
+              {isPhone ? (
+                <>
+                  <a href={plainUri} className="font-semibold text-berry underline">Open your UPI app</a>, or scan
+                  this QR (Save it, then Scan QR → upload from gallery).
+                </>
+              ) : (
+                <>Scan this QR with your UPI app.</>
+              )}{" "}
+              Or pay the UPI ID <strong className="break-all text-ink">{upi.vpa}</strong>.
+            </li>
+            <li>
+              Type the amount: <strong className="text-ink">{amount}</strong>{" "}
+              <CopyButton value={amountValue} label="Copy amount" />
+            </li>
+            <li>
+              In the note, write <strong className="text-ink">{orderId}</strong>{" "}
+              <CopyButton value={orderId} label="Copy order number" />
+            </li>
+          </ol>
+        </div>
+        <p className="text-xs">
+          Still not working? Your bank may have a lower limit today (it&rsquo;s lower for
+          the first day after setting up UPI). Message us on WhatsApp and we&rsquo;ll help.
+        </p>
+      </div>
+    </details>
+  );
+}
+
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const [done, setDone] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard?.writeText(value).then(() => {
+          setDone(true);
+          setTimeout(() => setDone(false), 1500);
+        });
+      }}
+      className="ml-1 inline-flex items-center gap-1 rounded-md border border-ink/15 px-1.5 py-0.5 text-xs text-ink-soft hover:border-ink/30"
+      aria-label={label}
+    >
+      <Copy size={12} aria-hidden="true" /> {done ? "Copied" : "Copy"}
+    </button>
   );
 }
 
@@ -628,8 +751,9 @@ function HelpList({ amount, payment }: { amount: string; payment: OrderPayment }
         <div>
           <dt className="font-semibold text-ink">The UPI app didn&rsquo;t open, or showed an error</dt>
           <dd>
-            Tap <strong>Save QR</strong> and scan it from your gallery inside the UPI app,
-            or pay the UPI ID by hand using the amount and note above.
+            Open <strong>Payment app showing an error?</strong> above: it has a simple QR
+            without the amount. Scan it (or pay the UPI ID by hand), type the amount,
+            and put your order number in the note.
           </dd>
         </div>
         <div>
@@ -645,10 +769,12 @@ function HelpList({ amount, payment }: { amount: string; payment: OrderPayment }
           <dd>We refund the second payment in full, by UPI, within 3 working days.</dd>
         </div>
         <div>
-          <dt className="font-semibold text-ink">The amount is over my UPI limit</dt>
+          <dt className="font-semibold text-ink">It says I&rsquo;ve exceeded the bank limit</dt>
           <dd>
-            Banks set a daily UPI limit, and it is lower for the first day after setting
-            up UPI. Message us{payment.phone ? ` or call ${payment.phone}` : ""} and
+            For a small amount this usually isn&rsquo;t your limit: some apps refuse a
+            payment with the amount filled in. Use the simple QR above and type the
+            amount yourself. If it&rsquo;s really your limit (it&rsquo;s lower for the
+            first day after setting up UPI), message us{payment.phone ? ` or call ${payment.phone}` : ""} and
             we&rsquo;ll sort out another way.
           </dd>
         </div>

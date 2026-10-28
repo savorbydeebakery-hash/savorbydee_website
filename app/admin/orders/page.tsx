@@ -8,6 +8,7 @@ import { useOrdersRealtime } from "@/lib/realtime/use-orders-realtime";
 import { useAlarmClient } from "@/lib/alarm/alarm-client";
 import { AlertSetup } from "@/components/admin/alert-setup";
 import { StockReminder } from "@/components/admin/stock-reminder";
+import { OrdersByDay } from "@/components/admin/orders-by-day";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -258,86 +259,15 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Orders table */}
-      <div className="overflow-x-auto rounded-2xl border border-ink/8">
-        <table className="w-full text-sm">
-          <thead className="bg-pink-soft/50 text-left">
-            <tr>
-              <th className="px-4 py-3 font-semibold text-ink">Order ID</th>
-              <th className="px-4 py-3 font-semibold text-ink">Customer</th>
-              <th className="px-4 py-3 font-semibold text-ink">Total</th>
-              <th className="px-4 py-3 font-semibold text-ink">Payment</th>
-              <th className="px-4 py-3 font-semibold text-ink">Slot</th>
-              <th className="px-4 py-3 font-semibold text-ink">Status</th>
-              <th className="px-4 py-3 font-semibold text-ink">Ack</th>
-              <th className="px-4 py-3 font-semibold text-ink">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ink/5">
-            {filteredOrders.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-ink-faint">
-                  No orders found
-                </td>
-              </tr>
-            ) : (
-              filteredOrders.map((order) => (
-                <tr
-                  key={order.id}
-                  className={`hover:bg-pink-soft/30 transition-colors cursor-pointer ${
-                    !order.acknowledged_at ? "bg-yellow-soft/30" : ""
-                  }`}
-                  onClick={() => openDetail(order)}
-                >
-                  <td className="px-4 py-3 font-medium text-ink">{order.human_id}</td>
-                  <td className="px-4 py-3">
-                    <div className="text-ink">{order.guest_name}</div>
-                    <div className="text-xs text-ink-faint">{order.guest_phone}</div>
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-pink">
-                    {formatPrice(order.total_cents)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(() => {
-                      const pay = adminPaymentBadge(order);
-                      return <Badge color={pay.color}>{pay.label}</Badge>;
-                    })()}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-ink-soft">
-                    {formatIst(order.requested_slot, {
-                      day: "numeric", month: "short",
-                      hour: "2-digit", minute: "2-digit",
-                    })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge color={statusColors[order.status] ?? "neutral"}>
-                      {statusLabel(order.status)}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    {order.acknowledged_at ? (
-                      <Check className="text-mint" size={18} />
-                    ) : (
-                      <Bell className="text-pink animate-pulse" size={18} />
-                    )}
-                  </td>
-                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                    {!order.acknowledged_at && (
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => handleAcknowledge(order.id)}
-                      >
-                        Acknowledge
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Orders, grouped by the day they're picked up or delivered. */}
+      <OrdersByDay
+        orders={filteredOrders}
+        searching={searchQuery.trim() !== ""}
+        onOpen={openDetail}
+        onAcknowledge={handleAcknowledge}
+        statusLabel={statusLabel}
+        statusColors={statusColors}
+      />
 
       {/* Order detail modal */}
       <Modal

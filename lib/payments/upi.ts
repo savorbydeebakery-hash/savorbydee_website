@@ -76,3 +76,23 @@ export function buildUpiUri({
   ];
   return `upi://pay?${params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&")}`;
 }
+
+/**
+ * A UPI link with only the payee: no amount, no note. The customer types the
+ * amount themselves.
+ *
+ * The fallback for when an app refuses the full link. Google Pay on an HDFC
+ * account declined a ₹640 pre-filled payment to the owner's personal UPI ID
+ * with "You've exceeded the bank limit for this payment" (client test,
+ * 2026-10-28): a QR with the amount and note filled in, paying a personal
+ * account, looks like a shop payment from an unregistered shop, and risk
+ * checks decline it with that generic message. The same payment made to the
+ * UPI ID by hand goes through. A business UPI account removes the problem.
+ */
+export function buildPlainUpiUri({ vpa, payeeName }: { vpa: string; payeeName: string }): string {
+  const params: [string, string][] = [
+    ["pa", vpa.trim()],
+    ["pn", cleanPayeeName(payeeName) || "Savor by Dee"],
+  ];
+  return `upi://pay?${params.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&")}`;
+}

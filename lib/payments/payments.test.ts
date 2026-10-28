@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildUpiUri, isValidVpa, upiAmount, cleanPayeeName, transactionNote } from "./upi";
+import { buildUpiUri, buildPlainUpiUri, isValidVpa, upiAmount, cleanPayeeName, transactionNote } from "./upi";
 import {
   paymentStage,
   acceptsPayment,
@@ -241,5 +241,13 @@ describe("order payment block", () => {
       customer_id: "uuid",
     });
     expect(shown).toEqual({ human_id: "SAV-1", total_cents: 1 });
+  });
+});
+
+describe("plain UPI link (fallback when an app refuses the full one)", () => {
+  it("names the payee only: no amount, no note", () => {
+    const uri = buildPlainUpiUri({ vpa: " doretta.blah-googlemail.com@oksbi ", payeeName: "Doretta Blah" });
+    expect(uri).toBe("upi://pay?pa=doretta.blah-googlemail.com%40oksbi&pn=Doretta%20Blah");
+    expect(uri).not.toMatch(/[?&](am|tn|cu)=/);
   });
 });

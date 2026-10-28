@@ -407,6 +407,13 @@ function MenuItemForm({
     }
   );
 
+  // The dietary tags box holds exactly what was typed and is split into tags
+  // only on save. It used to split on every keystroke and redraw from the
+  // result, so a comma vanished the moment it was typed (an empty tag after it
+  // was dropped) — "non-veg, contains eggs" could only be typed as
+  // "non-veg contains eggs" (client video, 2026-10-28).
+  const [tagsText, setTagsText] = useState((item?.dietary_tags ?? []).join(", "));
+
   // The option lists live as rows of raw text while the modal is open and are
   // converted back once, on save. Seeded from the item and never re-derived
   // from `form`, so nothing the client types can be overwritten mid-edit.
@@ -466,6 +473,7 @@ function MenuItemForm({
       variants: fromOptionDrafts(variantRows, "price_delta"),
       decoration_tiers: fromOptionDrafts(decorationRows, "price_delta"),
       addons: fromAddonDrafts(addonRows),
+      dietary_tags: tagsText.split(",").map((t) => t.trim()).filter(Boolean),
     });
   };
 
@@ -601,8 +609,8 @@ function MenuItemForm({
 
         <Input
           label="Dietary Tags (comma-separated: egg, eggless, vegan, gluten-free)"
-          value={(form.dietary_tags ?? []).join(", ")}
-          onChange={(e) => setForm({ ...form, dietary_tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) })}
+          value={tagsText}
+          onChange={(e) => setTagsText(e.target.value)}
         />
 
         <div className="flex gap-4">
