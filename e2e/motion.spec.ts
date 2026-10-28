@@ -34,25 +34,35 @@ async function scrollSectionIntoBand(page: import("@playwright/test").Page, id: 
   }
 }
 
+/**
+ * The sections actually on the page, in order. Read from the chips rather
+ * than named in the test: the owner renames, reorders and deletes categories
+ * in the admin (deleting "Mini pizzas" on 2026-10-28 failed these tests while
+ * the page was fine).
+ */
+async function sectionIds(page: import("@playwright/test").Page): Promise<string[]> {
+  const ids = await page.locator("[data-chip]").evaluateAll((els) => els.map((e) => e.getAttribute("data-chip") ?? ""));
+  return ids.filter(Boolean);
+}
+
 test.describe("daily menu category sections", () => {
   test("the chip for the section you are reading is marked current", async ({ page }) => {
     await page.goto("/menu/daily");
     await page.waitForLoadState("networkidle");
 
-    const chips = page.locator("[data-chip]");
-    await expect(chips).toHaveCount(8);
+    const ids = await sectionIds(page);
+    expect(ids.length, "Today's Menu should have at least two sections").toBeGreaterThanOrEqual(2);
+    const [earlier, later] = ids.slice(-2);
 
-    await scrollSectionIntoBand(page, "cat-snacks");
-    await expect(page.locator('[data-chip="cat-snacks"][aria-current="location"]')).toBeVisible({
+    await scrollSectionIntoBand(page, earlier);
+    await expect(page.locator(`[data-chip="${earlier}"][aria-current="location"]`)).toBeVisible({
       timeout: 5000,
     });
 
     // And it moves on, rather than latching on the first section it saw.
-    await scrollSectionIntoBand(page, "cat-mini-pizzas");
-    await expect(
-      page.locator('[data-chip="cat-mini-pizzas"][aria-current="location"]')
-    ).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('[data-chip="cat-snacks"][aria-current="location"]')).toHaveCount(0);
+    await scrollSectionIntoBand(page, later);
+    await expect(page.locator(`[data-chip="${later}"][aria-current="location"]`)).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(`[data-chip="${earlier}"][aria-current="location"]`)).toHaveCount(0);
 
     // Exactly one chip is ever current.
     await expect(page.locator('[data-chip][aria-current="location"]')).toHaveCount(1);
@@ -64,11 +74,12 @@ test.describe("daily menu category sections", () => {
 
     // The stagger animates FROM hidden, so a card left at opacity 0 would mean
     // the animation never finished — the failure mode that matters here.
-    const lastSection = page.locator("#cat-mini-pizzas");
-    await scrollSectionIntoBand(page, "cat-mini-pizzas");
+    const last = (await sectionIds(page)).at(-1)!;
+    const lastSection = page.locator(`#${last}`);
+    await scrollSectionIntoBand(page, last);
 
     const cards = lastSection.locator(".menu-item-card");
-    await expect(cards).toHaveCount(4);
+    expect(await cards.count()).toBeGreaterThan(0);
 
     // NOT a check for opacity 1: a card is drawn at opacity-50 while the shop
     // is closed, which is styling and nothing to do with the stagger. What
