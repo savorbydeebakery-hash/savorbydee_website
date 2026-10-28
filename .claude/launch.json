@@ -9,6 +9,15 @@
         "dev"
       ],
       "port": 3000
+    },
+    {
+      "name": "dev-orders",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "-e",
+        "const m=require('fs').readFileSync('.dev.vars','utf8').match(/^SUPABASE_SERVICE_ROLE_KEY=(.*)$/m);process.env.SUPABASE_SERVICE_ROLE_KEY=m[1].trim().replace(/^\"|\"$/g,'');require('child_process').spawn('npm',['run','dev'],{stdio:'inherit',shell:true,env:process.env}).on('exit',(c)=>process.exit(c??0))"
+      ],
+      "port": 3000
     }
   ]
 }

@@ -11,6 +11,7 @@ import { MAX_LINE_QUANTITY } from "@/lib/cart/validation";
 import { optionLabel } from "@/lib/cart/types";
 import type { MenuItemForCart, CartItemSelection } from "@/lib/cart/types";
 import { useCanOrder } from "@/components/shop/shop-status";
+import { KITCHEN_NOTE } from "@/lib/menu/kitchen-note";
 
 interface ItemDetailModalProps {
   item: MenuItemForCart | null;
@@ -168,6 +169,21 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
         {/* Description */}
         {item.description && (
           <p className="text-sm text-ink-soft leading-relaxed">{item.description}</p>
+        )}
+
+        {/* Dietary tags from admin (veg, eggless, contains nuts…). The menu
+            grids only show photos and prices, so this is where they're seen. */}
+        {item.dietary_tags && item.dietary_tags.length > 0 && (
+          <div>
+            <ul className="flex flex-wrap gap-1.5" aria-label="Dietary information">
+              {item.dietary_tags.map((tag) => (
+                <li key={tag} className="rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink">
+                  {tag}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-xs text-ink-faint">{KITCHEN_NOTE}</p>
+          </div>
         )}
 
         {/* Live stock. Shown for a tracked item whether or not any is left,

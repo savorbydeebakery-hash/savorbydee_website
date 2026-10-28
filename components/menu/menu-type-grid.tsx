@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useGSAP } from "@gsap/react";
 import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
 import { ItemDetailModal } from "@/components/item-detail-modal";
+import { KITCHEN_NOTE } from "@/lib/menu/kitchen-note";
 import { ProductMiniCard } from "@/components/home/product-mini-card";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
@@ -285,6 +286,8 @@ export function MenuTypeGrid({
           ))}
         </div>
       )}
+
+      <p className="mx-auto mt-12 max-w-2xl text-center text-xs text-bk-muted">{KITCHEN_NOTE}</p>
 
       {selected && (
         <ItemDetailModal

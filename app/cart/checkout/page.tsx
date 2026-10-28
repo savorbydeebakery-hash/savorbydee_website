@@ -238,6 +238,12 @@ export default function CheckoutPage() {
     if (!isDailyCart || effectiveFulfillment !== "delivery" || !schedule.weekly) return false;
     const earliest = getEarliestValidSlot(noticeHours, schedule.weekly, schedule.holidays, new Date(), schedule.overrides);
     if (!earliest || istDateKey(earliest) !== todayKey) return true;
+    // Earlier than deliveries start (an early opening, or deliveries set to
+    // begin late): the first delivery is at the start time, not impossible.
+    const start = deliveryWindow.from ? istInputToInstant(`${todayKey}T${deliveryWindow.from.padStart(5, "0")}`) : null;
+    if (start && earliest < start) {
+      return !validateSlotAgainstHours(start, schedule.weekly, schedule.holidays, schedule.overrides).valid;
+    }
     return !validateDeliveryWindow(earliest, deliveryWindow.from, deliveryWindow.to).valid;
   }, [isDailyCart, effectiveFulfillment, schedule, noticeHours, todayKey, deliveryWindow]);
 

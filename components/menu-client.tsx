@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { MenuItemCard } from "@/components/menu-item-card";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { RevealGroup, RevealItem } from "@/components/kinetic/reveal";
+import { KITCHEN_NOTE } from "@/lib/menu/kitchen-note";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
 interface MenuCategory {
@@ -163,6 +164,13 @@ export function MenuClient({ categories, menuItems, tag, initialCategory }: Menu
           </RevealGroup>
         </section>
       ))}
+
+      {/* Said once here rather than as a tag on every item. */}
+      {menuItems.length > 0 && (
+        <p className="mx-auto max-w-2xl rounded-xl bg-ink/5 px-4 py-3 text-center text-sm text-ink-soft">
+          {KITCHEN_NOTE}
+        </p>
+      )}
 
       {/* Empty state */}
       {menuItems.length === 0 && (
