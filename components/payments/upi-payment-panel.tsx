@@ -447,7 +447,7 @@ function PlainPayFallback({
               ) : (
                 <>Scan this QR with your UPI app.</>
               )}{" "}
-              Or pay the UPI ID <strong className="break-all text-ink">{upi.vpa}</strong>.
+              Or pay our <strong className="text-ink">UPI ID</strong> (shown above, with a Copy button) by hand.
             </li>
             <li>
               Type the amount: <strong className="text-ink">{amount}</strong>{" "}
