@@ -31,6 +31,8 @@ export const E2E_FIXTURE_NAMES = [
   "Probe Check",
   "Price Probe",
   "Razorpay Test",
+  // The custom cake enquiry spec (an enquiry, not an order).
+  "Cake Inquiry Test",
 ];
 
 export interface AckReminderCandidate {

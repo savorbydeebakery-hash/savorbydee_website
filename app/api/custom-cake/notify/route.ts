@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyStaff } from "@/lib/push/send";
+import { E2E_FIXTURE_NAMES } from "@/lib/orders/ack-reminder";
 import {
   STAFF_ALERTS_CHANNEL,
   CUSTOM_CAKE_EVENT,
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
 
   const { data: inquiry } = await createAdminClient()
     .from("custom_cake_inquiries")
-    .select("created_at")
+    .select("created_at, customer_name")
     .eq("id", id)
     .maybeSingle();
   if (!inquiry) {
@@ -51,6 +52,11 @@ export async function POST(request: NextRequest) {
   }
   if (Date.now() - Date.parse(inquiry.created_at) > FRESH_MS) {
     return NextResponse.json({ error: "Request is too old to announce" }, { status: 409 });
+  }
+  // The E2E spec's enquiry: every deploy files one, and it must not buzz
+  // staff phones. scripts/purge-e2e-rows.mjs removes the row afterwards.
+  if (E2E_FIXTURE_NAMES.includes(inquiry.customer_name)) {
+    return NextResponse.json({ ok: true, skipped: "test" }, { status: 202 });
   }
 
   // Staff phones first, including locked ones (lib/push), so a broadcast

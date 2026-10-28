@@ -118,6 +118,17 @@ jobs:
           E2E_BASE_URL: ${{ env.TARGET_URL }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      - name: Remove the rows this run created
+        # Same as e2e-daily.yml: every deploy files a "Cake Inquiry Test"
+        # enquiry on the live site, which otherwise sits in Dee's list.
+        if: always()
+        shell: bash
+        run: node scripts/purge-e2e-rows.mjs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
