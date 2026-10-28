@@ -11,6 +11,8 @@ import {
   getRequiredNoticeHours,
   explainRequiredNotice,
   getEarliestValidSlot,
+  cartMenuKind,
+  formatNotice,
   validateSlotAgainstHours,
   validateDeliveryWindow,
   DEFAULT_NOTICE_RULES,
@@ -23,8 +25,10 @@ import {
   istInputAfterHours,
   formatIstSlot,
   formatClock,
+  istDateKey,
 } from "@/lib/time/ist";
 import { readOverrides, type HoursOverrides } from "@/lib/shop/hours-override";
+import { cashAtPickupAllowed, readCashSetting, type CashAtPickup } from "@/lib/payments/cash";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -132,6 +136,9 @@ export default function CheckoutPage() {
     to: "20:00",
   });
   const [freeDeliveryOver, setFreeDeliveryOver] = useState<number | null>(null);
+  // "off" until settings load, so cash is never offered on a guess.
+  const [cashSetting, setCashSetting] = useState<CashAtPickup>("off");
+  const [chosenPayMethod, setChosenPayMethod] = useState<"upi" | "cash">("upi");
 
   useEffect(() => {
     let cancelled = false;
@@ -141,9 +148,9 @@ export default function CheckoutPage() {
         const supabase = createClient();
         const { data } = await supabase
           .from("site_settings")
-          .select(
-            "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, hours_overrides, delivery_enabled, whatsapp_number, delivery_from, delivery_to, free_delivery_threshold_cents, payment_window_minutes"
-          )
+          // Every column: naming one the database doesn't have yet fails the
+          // whole read, and checkout would fall back to defaults.
+          .select("*")
           .eq("id", 1)
           .single();
 
@@ -157,7 +164,10 @@ export default function CheckoutPage() {
           bulkNoticeHours: data.bulk_notice_hours ?? DEFAULT_NOTICE_RULES.bulkNoticeHours,
           customCakeNoticeDays:
             data.custom_cake_notice_days ?? DEFAULT_NOTICE_RULES.customCakeNoticeDays,
+          dailyPickupNoticeMinutes:
+            data.daily_pickup_notice_minutes ?? DEFAULT_NOTICE_RULES.dailyPickupNoticeMinutes,
         });
+        setCashSetting(readCashSetting(data.cash_at_pickup));
         setSchedule({
           weekly: (data.weekly_hours as WeeklyHours | null) ?? null,
           holidays: (data.holidays as string[] | null) ?? [],
@@ -193,11 +203,17 @@ export default function CheckoutPage() {
   // reach the same place.
   const effectiveFulfillment = deliveryEnabled ? fulfillment : "pickup";
 
-  const noticeHours = getRequiredNoticeHours(items, noticeRules);
+  // Today's Menu: 10 minutes to collect, 2 hours to deliver (settings).
+  const noticeHours = getRequiredNoticeHours(items, noticeRules, effectiveFulfillment);
+  const isDailyCart = cartMenuKind(items) === "daily";
+  const todayKey = istDateKey(new Date());
+  // Cash at pickup: offered only where the order API will accept it.
+  const cashCheck = cashAtPickupAllowed(cashSetting, effectiveFulfillment, cartMenuKind(items) === "preorder");
+  const payMethod: "upi" | "cash" = cashCheck.allowed ? chosenPayMethod : "upi";
   // WHY the wait is this long, rather than inferring it from the number. See
   // explainRequiredNotice: guessing gave "bulk order requirements" for a single
   // made-to-order cake, because 24 is not 120.
-  const notice = explainRequiredNotice(items, noticeRules);
+  const notice = explainRequiredNotice(items, noticeRules, effectiveFulfillment);
   // One answer for all four places that mention the delivery charge. They were
   // written separately and drifted: an order over the threshold was told it
   // qualified for free delivery, then that delivery was charged separately,
@@ -214,6 +230,16 @@ export default function CheckoutPage() {
       : null;
     return earliest ? instantToIstInput(earliest) : istInputAfterHours(noticeHours);
   }, [noticeHours, schedule]);
+
+  // A Today's Menu delivery has to be today, 2 hours out, inside opening and
+  // delivery hours. Late in the day that is impossible, and saying so up front
+  // beats letting the customer pick times that all fail.
+  const dailyDeliveryClosedToday = useMemo(() => {
+    if (!isDailyCart || effectiveFulfillment !== "delivery" || !schedule.weekly) return false;
+    const earliest = getEarliestValidSlot(noticeHours, schedule.weekly, schedule.holidays, new Date(), schedule.overrides);
+    if (!earliest || istDateKey(earliest) !== todayKey) return true;
+    return !validateDeliveryWindow(earliest, deliveryWindow.from, deliveryWindow.to).valid;
+  }, [isDailyCart, effectiveFulfillment, schedule, noticeHours, todayKey, deliveryWindow]);
 
   const handleProceedToFulfillment = () => {
     setSlotProblem(null);
@@ -247,10 +273,27 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (dailyDeliveryClosedToday) {
+      slotError(
+        `It's too late for a delivery from Today's Menu today: deliveries need ${formatNotice(noticeHours)} and end at ${formatClock(deliveryWindow.to)}. Please choose pickup instead.`
+      );
+      return;
+    }
+
     if (slot.getTime() < Date.now() + noticeHours * 3_600_000 - 60_000) {
       slotError(
-        `This order needs at least ${noticeHours} hours notice. Please choose a later slot.`,
+        `This order needs at least ${formatNotice(noticeHours)} notice. Please choose a later slot.`,
         noticeHours
+      );
+      return;
+    }
+
+    // Today's Menu is for today: its stock counts are today's bakes.
+    if (isDailyCart && istDateKey(slot) !== todayKey) {
+      slotError(
+        effectiveFulfillment === "delivery"
+          ? "Today's Menu is for today only, and it's too late to deliver today. Choose pickup, or order from the Preorder Menu for another day."
+          : "Today's Menu is for today only. Please choose a time today."
       );
       return;
     }
@@ -283,6 +326,8 @@ export default function CheckoutPage() {
     const hours = Math.max(noticeHours, slotProblem.noticeHours ?? 0);
     const earliest = getEarliestValidSlot(hours, schedule.weekly, schedule.holidays, new Date(), schedule.overrides);
     if (!earliest) return null;
+    // Today's Menu can't move to another day, so tomorrow is no suggestion.
+    if (isDailyCart && istDateKey(earliest) !== todayKey) return null;
     if (
       effectiveFulfillment === "delivery" &&
       !validateDeliveryWindow(earliest, deliveryWindow.from, deliveryWindow.to).valid
@@ -290,7 +335,7 @@ export default function CheckoutPage() {
       return null;
     }
     return earliest;
-  }, [slotProblem, noticeHours, schedule, effectiveFulfillment, deliveryWindow]);
+  }, [slotProblem, noticeHours, schedule, effectiveFulfillment, deliveryWindow, isDailyCart, todayKey]);
 
   // Back to the picker, with it in view and focused (and opened, where the
   // browser allows it), so "change the time" is one tap.
@@ -359,6 +404,7 @@ export default function CheckoutPage() {
           requestedSlot,
           guest,
           deliveryAddress: effectiveFulfillment === "delivery" ? deliveryAddress : undefined,
+          paymentMethod: payMethod,
           notes,
         }),
       });
@@ -616,8 +662,27 @@ export default function CheckoutPage() {
           <div>
             <h2 className="text-lg font-semibold text-ink mb-3">Select a Slot</h2>
             <Badge color="pink" className="mb-3">
-              Minimum {noticeHours}h notice required
+              {isDailyCart
+                ? effectiveFulfillment === "pickup"
+                  ? `Today's Menu: ready to collect from ${formatNotice(noticeHours)} after you order`
+                  : `Today's Menu: delivered from ${formatNotice(noticeHours)} after you order`
+                : `Please order at least ${formatNotice(noticeHours)} ahead`}
             </Badge>
+            {dailyDeliveryClosedToday && (
+              <p className="mb-3 rounded-xl bg-yellow-soft px-3 py-2 text-sm text-ink">
+                <strong>Delivery isn&rsquo;t possible today any more.</strong> Today&rsquo;s Menu
+                deliveries need {formatNotice(noticeHours)} and end at{" "}
+                {formatClock(deliveryWindow.to)}. Please choose <strong>Pickup</strong> above.
+              </p>
+            )}
+            {isDailyCart && !dailyDeliveryClosedToday && (
+              <p className="mb-3 text-sm text-ink-soft">
+                {effectiveFulfillment === "pickup"
+                  ? `Today's bakes are already made, so you can collect from ${formatNotice(noticeHours)} after ordering.`
+                  : `Deliveries take up to ${formatNotice(noticeHours)}, for traffic and the unexpected.`}{" "}
+                Today&rsquo;s Menu is for today only.
+              </p>
+            )}
             {effectiveFulfillment === "delivery" && (
               <p className="mb-3 text-sm text-ink-soft">
                 We deliver between {formatClock(deliveryWindow.from)} and {formatClock(deliveryWindow.to)} IST.
@@ -629,6 +694,7 @@ export default function CheckoutPage() {
               label="Requested date & time (IST)"
               value={requestedSlot}
               min={minSlot}
+              max={isDailyCart ? `${todayKey}T23:59` : undefined}
               onChange={(e) => setRequestedSlot(e.target.value)}
             />
             <p className="mt-2 text-xs text-ink-faint">
@@ -820,8 +886,55 @@ export default function CheckoutPage() {
             </div>
           </Card>
 
-          {/* Said BEFORE the order is placed, so nobody is surprised by the
-              QR, the deadline or the WhatsApp step on the next page. */}
+          {/* How to pay. Cash only where the order API allows it: pickups,
+              and by default Today's Menu only (lib/payments/cash.ts). */}
+          {cashCheck.allowed ? (
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold text-ink">How would you like to pay?</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {(
+                  [
+                    ["upi", "Pay now by UPI", "Recommended. Your order is confirmed as soon as the money reaches us."],
+                    ["cash", "Pay cash when I collect", "Bring the exact amount. We hold your order for 30 minutes after your pickup time."],
+                  ] as const
+                ).map(([value, title, hint]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setChosenPayMethod(value)}
+                    aria-pressed={payMethod === value}
+                    className={`rounded-2xl border p-4 text-left transition-colors ${payMethod === value ? "border-pink bg-pink-soft" : "border-ink/15 bg-white hover:border-pink"}`}
+                  >
+                    <p className="font-semibold text-ink">{title}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-ink-soft">{hint}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            cashSetting !== "off" &&
+            cashCheck.reason && <p className="text-xs text-ink-soft">{cashCheck.reason}</p>
+          )}
+
+          {payMethod === "cash" ? (
+            <div className="rounded-xl bg-mint-soft border border-mint/20 p-4">
+              <h3 className="mb-2 text-sm font-semibold text-ink">Paying cash at pickup</h3>
+              <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-sm leading-relaxed text-ink-soft">
+                <li>Place your order. Nothing to pay now.</li>
+                <li>
+                  Collect it at your pickup time and pay{" "}
+                  <strong className="text-ink">{formatPrice(totalCents)}</strong> in cash.
+                </li>
+                <li>
+                  We hold your order for <strong className="text-ink">30 minutes</strong> after your
+                  pickup time. Can&rsquo;t make it? Tell us on WhatsApp so the bakes can go to someone
+                  else.
+                </li>
+              </ol>
+            </div>
+          ) : (
+          /* Said BEFORE the order is placed, so nobody is surprised by the
+              QR, the deadline or the WhatsApp step on the next page. */
           <div className="rounded-xl bg-mint-soft border border-mint/20 p-4">
             <h3 className="mb-2 text-sm font-semibold text-ink">How payment works</h3>
             <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-sm leading-relaxed text-ink-soft">
@@ -840,9 +953,12 @@ export default function CheckoutPage() {
               </li>
             </ol>
             <p className="mt-2 text-xs text-ink-soft">
-              We take UPI only &mdash; no cards or cash on delivery for the bakes.
+              {effectiveFulfillment === "delivery"
+                ? "Deliveries are paid by UPI before we set off. No cards, and no cash on delivery for the bakes."
+                : "No card payments."}
             </p>
           </div>
+          )}
 
           <p className="text-xs text-ink-soft">
             By placing this order you agree to our{" "}
@@ -861,7 +977,7 @@ export default function CheckoutPage() {
               ← Back
             </Button>
             <Button onClick={handleSubmitOrder} variant="primary" size="lg" disabled={submitting}>
-              {submitting ? "Placing order..." : "Place order & pay"}
+              {submitting ? "Placing order..." : payMethod === "cash" ? "Place order" : "Place order & pay"}
             </Button>
           </div>
         </div>

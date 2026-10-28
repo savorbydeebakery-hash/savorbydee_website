@@ -17,8 +17,14 @@ import {
 import { dayWindow, type HoursOverrides } from "@/lib/shop/hours-override";
 
 export interface SiteNoticeRules {
-  /** Default notice for DAILY MENU items. */
+  /** Default notice for DAILY MENU items delivered (traffic, the unexpected). */
   globalNoticeHours: number; // default 2
+  /**
+   * Default notice for DAILY MENU items collected from the shop, in minutes:
+   * the bakes are already made (client request, 2026-10-28). Optional so
+   * callers that predate it fall back to the default.
+   */
+  dailyPickupNoticeMinutes?: number; // default 10
   /** Default notice for PREORDER items — those are baked from scratch. */
   preorderNoticeHours: number; // default 24
   /**
@@ -60,6 +66,7 @@ export const MAX_LINE_QUANTITY = 1000;
 
 export const DEFAULT_NOTICE_RULES: SiteNoticeRules = {
   globalNoticeHours: 2,
+  dailyPickupNoticeMinutes: 10,
   preorderNoticeHours: 24,
   bulkThreshold: 12,
   bulkNoticeHours: 24,
@@ -95,11 +102,37 @@ export function hasCustomNoticeItems(items: CartItem[]): boolean {
  * order — thirteen of one cake is a baking problem, one each of thirteen
  * things is just a normal order.
  */
+/**
+ * The Today's Menu default for this kind of order: 10 minutes to collect
+ * (the bakes are made), 2 hours to deliver. Delivery is the default because
+ * it is the longer, safer of the two when the kind isn't known yet.
+ */
+export function dailyMenuNoticeHours(
+  rules: SiteNoticeRules,
+  fulfillment: "pickup" | "delivery" = "delivery"
+): number {
+  if (fulfillment === "pickup") {
+    return (rules.dailyPickupNoticeMinutes ?? DEFAULT_NOTICE_RULES.dailyPickupNoticeMinutes!) / 60;
+  }
+  return rules.globalNoticeHours;
+}
+
+/** "10 minutes", "2 hours", "1 hour 30 minutes", "5 days" — for customers. */
+export function formatNotice(hours: number): string {
+  const minutes = Math.round(hours * 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  if (minutes % (24 * 60) === 0 && minutes >= 48 * 60) return `${minutes / (24 * 60)} days`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h} hour${h === 1 ? "" : "s"}${m ? ` ${m} minutes` : ""}`;
+}
+
 export function getRequiredNoticeHours(
   items: CartItem[],
-  rules: SiteNoticeRules = DEFAULT_NOTICE_RULES
+  rules: SiteNoticeRules = DEFAULT_NOTICE_RULES,
+  fulfillment: "pickup" | "delivery" = "delivery"
 ): number {
-  if (items.length === 0) return rules.globalNoticeHours;
+  if (items.length === 0) return dailyMenuNoticeHours(rules, fulfillment);
 
   const notices: number[] = [];
 
@@ -110,7 +143,7 @@ export function getRequiredNoticeHours(
     // this existed has no dailyMenu at all, and treating "unknown" as preorder
     // would silently push a 2-hour order out to 24.
     const isPreorder = item.dailyMenu === false;
-    const menuDefault = isPreorder ? rules.preorderNoticeHours : rules.globalNoticeHours;
+    const menuDefault = isPreorder ? rules.preorderNoticeHours : dailyMenuNoticeHours(rules, fulfillment);
     notices.push(item.noticeHours ?? menuDefault);
 
     const threshold = item.bulkThreshold ?? rules.bulkThreshold;
@@ -146,9 +179,10 @@ export interface NoticeExplanation {
 
 export function explainRequiredNotice(
   items: CartItem[],
-  rules: SiteNoticeRules = DEFAULT_NOTICE_RULES
+  rules: SiteNoticeRules = DEFAULT_NOTICE_RULES,
+  fulfillment: "pickup" | "delivery" = "delivery"
 ): NoticeExplanation {
-  if (items.length === 0) return { hours: rules.globalNoticeHours, cause: "menu" };
+  if (items.length === 0) return { hours: dailyMenuNoticeHours(rules, fulfillment), cause: "menu" };
 
   let best: NoticeExplanation = { hours: -1, cause: "menu" };
   const consider = (hours: number, cause: NoticeCause, itemName?: string) => {
@@ -161,7 +195,7 @@ export function explainRequiredNotice(
 
   for (const item of items) {
     const isPreorder = item.dailyMenu === false;
-    const menuDefault = isPreorder ? rules.preorderNoticeHours : rules.globalNoticeHours;
+    const menuDefault = isPreorder ? rules.preorderNoticeHours : dailyMenuNoticeHours(rules, fulfillment);
     const own = item.noticeHours ?? menuDefault;
     consider(own, item.noticeHours != null ? "item" : "menu", item.name);
 

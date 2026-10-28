@@ -19,7 +19,7 @@ describe("resolveNotice", () => {
 
   it("names the menu it took the default from", () => {
     expect(resolveNotice({ ...base, dailyMenu: true }).explanation).toBe(
-      "2 hours — the default for today's menu"
+      "2 hours — the default for today's menu deliveries; pickups are ready 10 minutes after ordering"
     );
     expect(resolveNotice({ ...base }).explanation).toBe(
       "24 hours — the default for the preorder menu"

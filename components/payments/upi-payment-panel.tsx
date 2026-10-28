@@ -11,6 +11,7 @@ import { formatIst } from "@/lib/time/ist";
 import { paymentStage, type PaymentStage } from "@/lib/payments/state";
 import type { OrderPayment } from "@/lib/payments/order-payment";
 import { buildPlainUpiUri } from "@/lib/payments/upi";
+import { CASH_HOLD_MINUTES } from "@/lib/payments/cash";
 import {
   waLink,
   paymentProofMessage,
@@ -45,6 +46,7 @@ export interface PanelOrder extends MessageOrder {
   payment_status: string;
   payment_due_at?: string | null;
   payment_reference?: string | null;
+  payment_method?: string | null;
   fulfillment: string;
   guest_name: string;
   guest_phone: string;
@@ -84,6 +86,11 @@ export function UpiPaymentPanel({
     return <SettledPanel stage={stage} order={order} amount={amount} />;
   }
 
+  // Chose to pay cash when collecting: nothing to do online.
+  if (stage === "cash_due") {
+    return <CashPanel order={order} payment={payment} amount={amount} />;
+  }
+
   return (
     <Card className="flex flex-col gap-5" aria-labelledby="payment-heading">
       <StageIntro stage={stage} amount={amount} dueLabel={dueLabel} windowMinutes={payment.windowMinutes} />
@@ -120,6 +127,51 @@ export function UpiPaymentPanel({
 }
 
 /* ------------------------------------------------------------------------ */
+
+/**
+ * The customer chose to pay cash when collecting (lib/payments/cash.ts). Says
+ * exactly what to bring and when, that the order is held for a while after
+ * the pickup time, and how to tell us if they can't come — the one way a cash
+ * order costs the bakery is a customer who quietly doesn't turn up.
+ */
+function CashPanel({ order, payment, amount }: { order: PanelOrder; payment: OrderPayment; amount: string }) {
+  const when = order.requested_slot ? `${formatIst(order.requested_slot, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} IST` : null;
+  const ask = payment.whatsapp
+    ? waLink(payment.whatsapp, `Hi Savor by Dee! About my order ${order.human_id} (cash at pickup): `)
+    : null;
+  return (
+    <Card className="flex flex-col gap-4" aria-labelledby="payment-heading">
+      <div className="flex gap-3">
+        <CheckCircle2 className="mt-0.5 shrink-0 text-cocoa" size={22} aria-hidden="true" />
+        <div>
+          <h2 id="payment-heading" className="text-lg font-semibold text-ink">
+            Pay {amount} in cash when you collect
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+            Your order is placed. Nothing to pay now.
+          </p>
+        </div>
+      </div>
+      <ul className="flex flex-col gap-2 rounded-xl bg-shell/70 p-4 text-sm leading-relaxed text-ink">
+        {when && <li>• <strong>Collect from:</strong> {when}</li>}
+        <li>• <strong>Bring:</strong> {amount} in cash (exact change helps).</li>
+        <li>
+          • We hold your order for <strong>{CASH_HOLD_MINUTES} minutes</strong> after your pickup time.
+          After that it may be released.
+        </li>
+      </ul>
+      <p className="text-sm leading-relaxed text-ink-soft">
+        <strong className="text-ink">Can&rsquo;t make it, or running late?</strong> Please tell us
+        as soon as you can, so the bakes can go to someone else.
+      </p>
+      {ask && (
+        <a href={ask} target="_blank" rel="noopener noreferrer" className={clsx(linkButton, "self-start bg-[#1f7a4d] text-white hover:bg-[#1a6942]")}>
+          <MessageCircle size={18} aria-hidden="true" /> Message us on WhatsApp
+        </a>
+      )}
+    </Card>
+  );
+}
 
 function StageIntro({
   stage,

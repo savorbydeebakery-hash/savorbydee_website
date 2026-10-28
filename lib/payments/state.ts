@@ -12,6 +12,10 @@
  *   paid      staff saw the money arrive (see migration 00045)
  *   failed    staff looked and could not find the payment
  *   refunded  money sent back
+ *
+ * An unpaid order the customer chose to pay in cash at pickup (lib/payments/
+ * cash.ts) is "cash_due": nothing to chase online, no deadline, paid at the
+ * counter and marked with Paid in cash.
  */
 
 export type PaymentStage =
@@ -21,12 +25,14 @@ export type PaymentStage =
   | "checking"
   | "not_found"
   | "awaiting"
-  | "overdue";
+  | "overdue"
+  | "cash_due";
 
 export interface PaymentStageInput {
   status: string;
   payment_status: string;
   payment_due_at?: string | null;
+  payment_method?: string | null;
 }
 
 export function paymentStage(order: PaymentStageInput, now: number = Date.now()): PaymentStage {
@@ -45,6 +51,9 @@ export function paymentStage(order: PaymentStageInput, now: number = Date.now())
       return "not_found";
   }
 
+  // Unpaid, to be paid in cash at the counter: no QR, no deadline.
+  if (order.payment_method === "cash_on_pickup") return "cash_due";
+
   // unpaid, or anything unexpected. An order with no deadline (placed before
   // the window existed) is never overdue — there is nothing to be late for.
   const due = order.payment_due_at ? Date.parse(order.payment_due_at) : NaN;
@@ -59,7 +68,7 @@ export function acceptsPayment(stage: PaymentStage): boolean {
 
 /** The page should keep checking for a change made by staff. */
 export function isWaitingOnBakery(stage: PaymentStage): boolean {
-  return stage === "awaiting" || stage === "checking" || stage === "overdue" || stage === "not_found";
+  return stage === "awaiting" || stage === "checking" || stage === "overdue" || stage === "not_found" || stage === "cash_due";
 }
 
 type BadgeColor = "pink" | "mint" | "lavender" | "peach" | "sky" | "yellow" | "neutral";
@@ -73,6 +82,7 @@ export const CUSTOMER_PAYMENT_LABEL: Record<PaymentStage, { text: string; color:
   paid: { text: "Paid", color: "mint" },
   refunded: { text: "Refunded", color: "neutral" },
   cancelled: { text: "Cancelled", color: "neutral" },
+  cash_due: { text: "Pay cash at pickup", color: "yellow" },
 };
 
 /**
@@ -99,6 +109,7 @@ export const ADMIN_PAYMENT_BADGE: Record<PaymentStage, { label: string; color: B
   paid: { label: "Paid", color: "mint" },
   refunded: { label: "Refunded", color: "neutral" },
   cancelled: { label: "Cancelled", color: "neutral" },
+  cash_due: { label: "Cash at pickup", color: "yellow" },
 };
 
 /**

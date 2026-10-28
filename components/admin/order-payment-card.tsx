@@ -34,6 +34,8 @@ export function OrderPaymentCard({
   const [amount, setAmount] = useState(() => String((order.payment_received_cents ?? order.total_cents) / 100));
   const [utr, setUtr] = useState(order.payment_reference ?? "");
   const [checked, setChecked] = useState(false);
+  // A cash-at-pickup order that was paid by UPI at the counter after all.
+  const [upiInstead, setUpiInstead] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +64,10 @@ export function OrderPaymentCard({
       ...(order.status === "pending" ? { status: "confirmed" } : {}),
     });
 
-  const open = stage === "awaiting" || stage === "overdue" || stage === "checking" || stage === "not_found";
+  const open =
+    stage === "awaiting" || stage === "overdue" || stage === "checking" || stage === "not_found" || stage === "cash_due";
+  // The customer chose to pay cash when collecting (lib/payments/cash.ts).
+  const cashForm = stage === "cash_due" && !upiInstead;
   const received = order.payment_received_cents;
   const diff = paymentDifferenceCents(order.total_cents, received);
 
@@ -143,10 +148,18 @@ export function OrderPaymentCard({
         </p>
       )}
 
+      {stage === "cash_due" && (
+        <p className="mb-4 rounded-xl bg-yellow-soft px-3 py-2 text-sm text-ink">
+          <strong>💵 Cash at pickup.</strong> Collect {formatPrice(order.total_cents)} when the
+          customer comes, then record it below. The order is held for 30 minutes after the pickup
+          time.
+        </p>
+      )}
+
       {open && (
         <div className="flex flex-col gap-3 rounded-xl border border-ink/10 p-3">
-          <p className="text-sm font-semibold text-ink">Record the payment</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <p className="text-sm font-semibold text-ink">{cashForm ? "Record the cash" : "Record the payment"}</p>
+          <div className={`grid grid-cols-1 gap-3 ${cashForm ? "" : "sm:grid-cols-2"}`}>
             <label className="flex flex-col gap-1 text-sm text-ink-soft">
               Amount received (₹)
               <input
@@ -159,6 +172,7 @@ export function OrderPaymentCard({
                 className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-ink"
               />
             </label>
+            {!cashForm && (
             <label className="flex flex-col gap-1 text-sm text-ink-soft">
               UPI transaction ID (UTR)
               <input
@@ -170,6 +184,7 @@ export function OrderPaymentCard({
                 className="rounded-xl border border-ink/15 bg-white px-3 py-2 font-mono text-ink"
               />
             </label>
+            )}
           </div>
           {previewDiff != null && previewDiff !== 0 && (
             <p className="text-xs text-red-700">
@@ -189,12 +204,32 @@ export function OrderPaymentCard({
               onChange={(e) => setChecked(e.target.checked)}
               className="mt-1"
             />
+            {cashForm ? (
+              <span>I&rsquo;ve received this amount in cash.</span>
+            ) : (
             <span>
               I&rsquo;ve checked our bank or UPI app and this money has arrived. A screenshot
               on its own isn&rsquo;t proof &mdash; screenshots can be edited or reused.
             </span>
+            )}
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {cashForm ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={busy || !checked || !amountValid}
+                  onClick={() => void markPaid("cash_on_pickup")}
+                >
+                  Paid in cash
+                </Button>
+                <button type="button" onClick={() => setUpiInstead(true)} className="text-xs text-ink-soft underline">
+                  They paid by UPI instead
+                </button>
+              </>
+            ) : (
+              <>
             <Button
               size="sm"
               variant="primary"
@@ -211,6 +246,8 @@ export function OrderPaymentCard({
             >
               Paid in cash
             </Button>
+              </>
+            )}
             {stage === "checking" && (
               <Button
                 size="sm"

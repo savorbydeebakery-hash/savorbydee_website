@@ -36,7 +36,7 @@ const MENUS: Record<
     label: "Daily Menu",
     column: "daily_menu",
     blurb:
-      "What is going into the oven today. The list changes daily, so this is the one worth checking before you order.",
+      "What came out of the oven today, for today only. Collect from 10 minutes after you order, or have it delivered within 2 hours. The list changes daily, so check it before you order.",
     empty: "Today's list is not up yet. Check back shortly.",
     // Two-word label over a one-word second line, which is the shape Little
     // Token's trust strip uses and the reason three fit across a phone.

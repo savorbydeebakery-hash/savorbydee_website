@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSiteSettings } from "@/lib/site/public-data";
 import { formatIst } from "@/lib/time/ist";
+import { readCashSetting } from "@/lib/payments/cash";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,11 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
   const s: Settings = data ?? {};
 
   const name = s.bakery_name?.trim() || "Savor by Dee";
+  // Today's Menu: pickups are ready soon after ordering (the bakes are made);
+  // deliveries need longer. Both from settings (migration 00053).
   const dailyNotice = s.global_notice_hours ?? 2;
+  const dailyPickupMinutes = (s as { daily_pickup_notice_minutes?: number | null }).daily_pickup_notice_minutes ?? 10;
+  const cashSetting = readCashSetting((s as { cash_at_pickup?: unknown }).cash_at_pickup);
   const preorderNotice = s.preorder_notice_hours ?? 24;
   // The cancellation window per menu is the same as its notice period: until
   // then, baking has not started.
@@ -155,8 +160,10 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                 </p>
                 <ul className="list-disc pl-5">
                   <li>
-                    <strong>Today&rsquo;s Menu</strong> &mdash; at least{" "}
-                    <strong>{dailyNotice} hours</strong>
+                    <strong>Today&rsquo;s Menu</strong> &mdash; for <strong>today only</strong>:
+                    ready to collect from <strong>{dailyPickupMinutes} minutes</strong> after you
+                    order, or delivered at least <strong>{dailyNotice} hours</strong> after you
+                    order (traffic and the unexpected can take that long)
                   </li>
                   <li>
                     <strong>Preorder Menu</strong> &mdash; at least{" "}
@@ -174,15 +181,17 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                 <p>
                   Placing an order is a request to buy. We accept it, and your order is{" "}
                   <strong>confirmed</strong>, only once your payment has reached our account
-                  and we have marked it confirmed on your order page.
+                  and we have marked it confirmed on your order page
+                  {cashSetting !== "off" ? <> (or, if you chose to pay cash at pickup, when you collect and pay)</> : null}.
                 </p>
               </Section>
 
               <Section title="Payment">
                 <p>
-                  We take payment by <strong>UPI only</strong>. After you place an order, your
-                  order page shows a UPI QR code and our UPI ID, with the exact amount and
-                  your order number filled in.
+                  We take payment by <strong>UPI</strong>
+                  {cashSetting !== "off" ? <>, or <strong>cash at pickup</strong> (below)</> : <> only</>}. After
+                  you place an order, your order page shows a UPI QR code and our UPI ID, with
+                  the exact amount and your order number filled in.
                 </p>
                 <ul className="list-disc pl-5">
                   <li>
@@ -213,6 +222,21 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   </li>
                   <li>We charge nothing extra for paying by UPI.</li>
                 </ul>
+                {cashSetting !== "off" && (
+                  <>
+                    <p>
+                      <strong>Cash at pickup.</strong> If you collect your order yourself
+                      {cashSetting === "daily" ? <> and it is from Today&rsquo;s Menu</> : null}, you
+                      may choose at checkout to pay the exact total in cash when you collect. We
+                      hold the order for <strong>30 minutes</strong> after your pickup time; after
+                      that we may release it. If you can&rsquo;t come, please tell us on WhatsApp.
+                    </p>
+                    <p>
+                      <strong>Deliveries are always paid by UPI before we set off</strong>; cash is
+                      not accepted for the bakes on delivery.
+                    </p>
+                  </>
+                )}
                 <p>
                   Delivery is charged separately and paid in cash on arrival &mdash; see the{" "}
                   <PolicyLink slug="shipping">Shipping &amp; Delivery Policy</PolicyLink>.
@@ -524,7 +548,8 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   We do not ship nationwide and we do not use courier partners — every order
                   is delivered locally or collected in person. You choose a pickup or delivery
                   slot at checkout, and your order is ready at that slot once it is paid,
-                  subject to the notice periods: {dailyNotice} hours for Today&rsquo;s Menu,{" "}
+                  subject to the notice periods: for Today&rsquo;s Menu, {dailyPickupMinutes} minutes for a
+                  pickup and {dailyNotice} hours for a delivery (same day only),{" "}
                   {preorderNotice} hours for the Preorder Menu, {bulkNotice} hours for more than{" "}
                   {bulkQty} of any one item, and up to {customDays} days for custom cakes.
                 </p>

@@ -137,7 +137,8 @@ export default function AdminOrdersPage() {
     // both promise that. Not a hard block: staff may know something the
     // screen doesn't (paid in person, a regular on account).
     const target = orders.find((o) => o.id === orderId) ?? selectedOrder;
-    if (target && target.payment_status !== "paid" && KITCHEN_STATUSES.has(newStatus)) {
+    // Cash-at-pickup orders are paid at the counter, so being unpaid until then is expected.
+    if (target && target.payment_status !== "paid" && target.payment_method !== "cash_on_pickup" && KITCHEN_STATUSES.has(newStatus)) {
       const ok = window.confirm(
         `Order ${target.human_id} has NOT been paid. Move it to "${statusLabel(newStatus)}" anyway?`
       );

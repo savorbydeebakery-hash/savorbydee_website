@@ -67,6 +67,9 @@ interface SiteSettings {
   upi_payee_name: string | null;
   payment_whatsapp_number: string | null;
   payment_window_minutes: number;
+  // Cash at pickup and Today's Menu pickup notice — migration 00053.
+  cash_at_pickup?: "off" | "daily" | "all";
+  daily_pickup_notice_minutes?: number;
   fssai_license_number: string | null;
   grievance_officer_name: string | null;
   hero_image_url: string | null;
@@ -364,7 +367,20 @@ export default function AdminSettingsPage() {
           <div className="rounded-xl bg-pink-soft/50 p-3">
             <p className="text-sm text-ink-soft">Notice windows stack by MAX. The effective notice is the maximum of all applicable windows.</p>
           </div>
-          <Input label="Daily Menu Notice (hours)" type="number" value={settings.global_notice_hours} onChange={(e) => update("global_notice_hours", parseInt(e.target.value) || 2)} />
+          <Input
+            label="Today's Menu pickup: ready after (minutes)"
+            type="number"
+            min={0}
+            max={240}
+            value={settings.daily_pickup_notice_minutes ?? 10}
+            onChange={(e) => update("daily_pickup_notice_minutes", Math.min(240, Math.max(0, parseInt(e.target.value || "10", 10))))}
+          />
+          <Input label="Today's Menu delivery: notice (hours)" type="number" value={settings.global_notice_hours} onChange={(e) => update("global_notice_hours", parseInt(e.target.value) || 2)} />
+          <p className="-mt-2 text-xs text-ink-faint">
+            Today&rsquo;s bakes are already made, so a pickup can be soon after ordering. A
+            delivery needs longer, for traffic and the unexpected. Today&rsquo;s Menu is for today
+            only.
+          </p>
           <Input label="Preorder Notice (hours)" type="number" value={settings.preorder_notice_hours} onChange={(e) => update("preorder_notice_hours", parseInt(e.target.value) || 24)} />
           <p className="-mt-2 text-xs text-ink-faint">
             Today&rsquo;s bakes are ready quickly; preorder items are made from scratch.
@@ -551,6 +567,26 @@ export default function AdminSettingsPage() {
           <p className="-mt-2 text-xs text-ink-faint">
             After this, an unpaid order shows as <strong>overdue</strong> and the customer is
             asked to message you before paying. Between 15 and 1440 (24 hours).
+          </p>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink-soft">Cash at pickup</span>
+            <select
+              disabled={!isAdmin}
+              value={settings.cash_at_pickup ?? "daily"}
+              onChange={(e) => update("cash_at_pickup", e.target.value as "off" | "daily" | "all")}
+              className="rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm text-ink focus:border-pink focus:outline-none focus:ring-2 focus:ring-pink/20 disabled:opacity-60"
+            >
+              <option value="daily">Today&apos;s Menu pickups only (recommended)</option>
+              <option value="all">Any pickup, including preorders</option>
+              <option value="off">Off: UPI only</option>
+            </select>
+          </label>
+          <p className="-mt-2 text-xs text-ink-faint">
+            Lets customers who collect choose to pay cash at the counter, for when UPI isn&rsquo;t
+            working for them. <strong>Deliveries are always paid by UPI first</strong>, so nobody
+            can refuse to pay at the door. Today&rsquo;s Menu only is safest: those bakes are already
+            made, while a cake baked specially for a preorder would be wasted if nobody came.
           </p>
 
           {isValidVpa(settings.upi_id) && (

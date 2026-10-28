@@ -74,7 +74,7 @@ export default async function MenuPage({
           <h1 className="text-h1 text-shell">Preorder Menu</h1>
           <p className="mx-auto mt-4 max-w-xl text-[#D8CCC0]">
             Every item is made fresh when you order. Please allow at least{" "}
-            {settings?.global_notice_hours ?? 2} hours for standard items.
+            {settings?.preorder_notice_hours ?? 24} hours.
           </p>
         </div>
       </section>

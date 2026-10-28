@@ -8,13 +8,15 @@ import {
   validateGuestInfo,
   validateDeliveryAddress,
   getRequiredNoticeHours,
+  formatNotice,
   validateSlotAgainstHours,
   validateDeliveryWindow,
   DEFAULT_NOTICE_RULES,
 } from "@/lib/cart/validation";
 import type { CartItem, MenuItemForCart } from "@/lib/cart/types";
 import { repriceCart, postedTotalIsShort, type RepriceResult } from "@/lib/cart/server-pricing";
-import { istInputToInstant, formatIstSlot, istDateParts } from "@/lib/time/ist";
+import { istInputToInstant, formatIstSlot, istDateParts, istDateKey } from "@/lib/time/ist";
+import { cashAtPickupAllowed, readCashSetting } from "@/lib/payments/cash";
 import { getOpenState, DEFAULT_DAILY_MENU_CUTOFF } from "@/lib/shop/open-state";
 import { readOverrides } from "@/lib/shop/hours-override";
 import { samePhone } from "@/lib/customers/phone";
@@ -74,6 +76,8 @@ export async function POST(request: NextRequest) {
         landmark?: string;
       };
       notes?: string;
+      /** "cash" = pay cash when collecting (lib/payments/cash.ts). Default UPI. */
+      paymentMethod?: "upi" | "cash";
     };
     const idempotencyKey = request.headers.get("idempotency-key");
 
@@ -149,9 +153,10 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
       .from("site_settings")
-      .select(
-        "global_notice_hours, preorder_notice_hours, bulk_threshold, bulk_notice_hours, custom_cake_notice_days, weekly_hours, holidays, hours_overrides, daily_menu_cutoff, delivery_enabled, delivery_from, delivery_to, free_delivery_threshold_cents, bakery_name, address_line1, address_line2, address_city, address_state, payment_window_minutes"
-      )
+      // Every column, not a list: naming a column the database doesn't have
+      // yet (a migration not run) fails the whole read, and every rule below
+      // would then fall back to its default — including "always open".
+      .select("*")
       .eq("id", 1)
       .single();
 
@@ -165,6 +170,8 @@ export async function POST(request: NextRequest) {
         noticeSettings?.bulk_notice_hours ?? DEFAULT_NOTICE_RULES.bulkNoticeHours,
       customCakeNoticeDays:
         noticeSettings?.custom_cake_notice_days ?? DEFAULT_NOTICE_RULES.customCakeNoticeDays,
+      dailyPickupNoticeMinutes:
+        noticeSettings?.daily_pickup_notice_minutes ?? DEFAULT_NOTICE_RULES.dailyPickupNoticeMinutes,
     };
 
     // Delivery can be switched off in admin. The checkout hides the tile, but
@@ -222,7 +229,9 @@ export async function POST(request: NextRequest) {
 
     // Fallback only — replaced by the database-derived value inside the block
     // below whenever the ordered items are actually found.
-    let requiredHours = getRequiredNoticeHours(items as CartItem[], noticeRules);
+    let requiredHours = getRequiredNoticeHours(items as CartItem[], noticeRules, fulfillment);
+    // Which menu the order is from, once the items are found in the database.
+    let orderKind: "daily" | "preorder" | null = null;
 
     // --- Stock (AUTHORITATIVE) ---
     // Same reasoning as the notice window: the modal caps the quantity picker,
@@ -282,7 +291,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (trustedLines.length > 0) {
-        requiredHours = getRequiredNoticeHours(trustedLines, noticeRules);
+        requiredHours = getRequiredNoticeHours(trustedLines, noticeRules, fulfillment);
 
         // One order, one collection slot. A basket spanning both menus cannot
         // honour either window.
@@ -297,6 +306,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
+        orderKind = kinds.has("preorder") ? "preorder" : "daily";
       }
 
       // --- Price (AUTHORITATIVE) ---
@@ -401,13 +411,43 @@ export async function POST(request: NextRequest) {
     if (slotMs < earliestMs) {
       return NextResponse.json(
         {
-          error: `This order needs at least ${requiredHours} hours notice. Please choose a later slot.`,
+          error: `This order needs at least ${formatNotice(requiredHours)} notice. Please choose a later slot.`,
           requiredNoticeHours: requiredHours,
           // Tells checkout to offer "Change date & time" on this error.
           field: "slot",
         },
         { status: 400 }
       );
+    }
+
+    // --- Today's Menu is for today (AUTHORITATIVE) ---
+    // Today's Stock counts are today's bakes; a Today's Menu order booked
+    // for another day would sell stock that won't exist then.
+    if (orderKind === "daily" && istDateKey(slot) !== istDateKey(new Date())) {
+      return NextResponse.json(
+        {
+          error:
+            fulfillment === "delivery"
+              ? "Today's Menu is for today only, and it's too late to deliver today. Choose pickup, or order from the Preorder Menu for another day."
+              : "Today's Menu is for today only. Please choose a time today.",
+          field: "slot",
+        },
+        { status: 400 }
+      );
+    }
+
+    // --- Cash at pickup (AUTHORITATIVE) ---
+    // Checkout only offers it where allowed; this is the rule itself.
+    const payByCash = body.paymentMethod === "cash";
+    if (payByCash) {
+      const cash = cashAtPickupAllowed(
+        readCashSetting(noticeSettings?.cash_at_pickup),
+        fulfillment,
+        orderKind === "preorder"
+      );
+      if (!cash.allowed) {
+        return NextResponse.json({ error: cash.reason, field: "payment" }, { status: 400 });
+      }
     }
 
     // --- Opening hours (AUTHORITATIVE) ---
@@ -504,11 +544,14 @@ export async function POST(request: NextRequest) {
         // verified by staff. The deadline is what "overdue" is measured
         // against, fixed now so a later change to the window does not
         // retroactively make an order late.
-        payment_method: "upi_manual",
-        payment_due_at: new Date(
-          Date.now() +
-            (noticeSettings?.payment_window_minutes ?? DEFAULT_PAYMENT_WINDOW_MINUTES) * 60_000
-        ).toISOString(),
+        // Cash at pickup has no online deadline: it is paid at the counter.
+        payment_method: payByCash ? "cash_on_pickup" : "upi_manual",
+        payment_due_at: payByCash
+          ? null
+          : new Date(
+              Date.now() +
+                (noticeSettings?.payment_window_minutes ?? DEFAULT_PAYMENT_WINDOW_MINUTES) * 60_000
+            ).toISOString(),
         total_cents: chargedTotalCents,
         notes: notes || null,
         razorpay_order_id: idempotencyKey ? `idem-${idempotencyKey}` : null,
@@ -615,7 +658,7 @@ export async function POST(request: NextRequest) {
     // phone at 11:00 each morning for an order deleted minutes later.
     if (!E2E_FIXTURE_NAMES.includes(guest.name)) await notifyStaff({
       kind: "order",
-      title: `🔔 New order ${humanId} · ₹${(chargedTotalCents / 100).toFixed(0)}`,
+      title: `🔔 New order ${humanId} · ₹${(chargedTotalCents / 100).toFixed(0)}${payByCash ? " · 💵 cash at pickup" : ""}`,
       body: `${guest.name} · ${fulfillment === "delivery" ? "Delivery" : "Pickup"} ${formatIstSlot(slot)}. Open it and press Acknowledge.`,
     });
 

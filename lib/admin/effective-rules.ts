@@ -65,7 +65,9 @@ export function resolveNotice(input: NoticeInputs): ResolvedRule {
   } else {
     value = menuDefault;
     source = "menu";
-    from = `the default for ${menuName}`;
+    from = input.dailyMenu
+      ? "the default for today's menu deliveries; pickups are ready 10 minutes after ordering"
+      : `the default for ${menuName}`;
   }
 
   // A custom cake's window is a floor, not an override: it applies only when
