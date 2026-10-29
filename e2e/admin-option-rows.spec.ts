@@ -27,7 +27,7 @@ test("menu item option rows accept typing", async ({ page }) => {
 
   await page.goto("/login");
   await page.getByLabel(/email/i).fill(adminEmail);
-  await page.getByLabel(/password/i).fill(adminPassword);
+  await page.getByLabel("Password", { exact: true }).fill(adminPassword);
   await Promise.all([
     page.waitForURL(/\/admin/),
     page.locator("form").getByRole("button", { name: /sign in/i }).click(),

@@ -16,7 +16,7 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
   const adminPage = await adminContext.newPage();
   await adminPage.goto("/login");
   await adminPage.getByLabel(/email/i).fill(adminEmail);
-  await adminPage.getByLabel(/password/i).fill(adminPassword);
+  await adminPage.getByLabel("Password", { exact: true }).fill(adminPassword);
   await Promise.all([
     adminPage.waitForURL(/\/admin/),
     adminPage.locator("form").getByRole("button", { name: /sign in/i }).click(),
