@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { fillSignIn } from "./helpers/sign-in";
 
 /**
  * The menu item's option lists can be typed into.
@@ -26,8 +27,7 @@ test("menu item option rows accept typing", async ({ page }) => {
   const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
 
   await page.goto("/login");
-  await page.getByLabel(/email/i).fill(adminEmail);
-  await page.getByLabel("Password", { exact: true }).fill(adminPassword);
+  await fillSignIn(page, adminEmail, adminPassword);
   await Promise.all([
     page.waitForURL(/\/admin/),
     page.locator("form").getByRole("button", { name: /sign in/i }).click(),

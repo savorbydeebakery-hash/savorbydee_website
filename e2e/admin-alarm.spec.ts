@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { skipWhenClosed } from "./helpers/shop-open";
 import { fillEarliestSlot } from "./helpers/slot";
+import { fillSignIn } from "./helpers/sign-in";
 
 /**
  * T6.7: Admin alarm fires on new order.
@@ -15,8 +16,7 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
   const adminContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
   await adminPage.goto("/login");
-  await adminPage.getByLabel(/email/i).fill(adminEmail);
-  await adminPage.getByLabel("Password", { exact: true }).fill(adminPassword);
+  await fillSignIn(adminPage, adminEmail, adminPassword);
   await Promise.all([
     adminPage.waitForURL(/\/admin/),
     adminPage.locator("form").getByRole("button", { name: /sign in/i }).click(),
@@ -51,7 +51,10 @@ test("admin dashboard alarm fires on new order", async ({ browser }) => {
   // panel's reference.
   await expect(customerPage.getByText(/SAV-/).first()).toBeVisible({ timeout: 15_000 });
 
-  // Admin sees the new order appear (realtime or poll fallback)
+  // Admin sees the new order appear (realtime or poll fallback). The orders
+  // page opens on Today; this order is for a later day, and a new order is
+  // always under "Needs action" until someone acknowledges it.
+  await adminPage.getByRole("button", { name: /^Needs action/ }).first().click();
   await expect(adminPage.getByText(/Alarm Test/).first()).toBeVisible({ timeout: 20_000 });
 
   await adminContext.close();
