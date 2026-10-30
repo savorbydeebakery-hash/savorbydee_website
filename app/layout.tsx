@@ -105,9 +105,11 @@ async function readShopStatus(): Promise<ShopStatus> {
       nextOpenIso: state.nextOpen?.toISOString() ?? null,
       reason: state.reason,
       note: state.note,
+      // Missing column (before migration 00054) means on.
+      preordersWhenClosed: (data as { preorders_when_closed?: boolean | null } | null)?.preorders_when_closed !== false,
     };
   } catch {
-    return { isOpen: true, dailyMenuOpen: true, nextOpenIso: null, reason: "open" };
+    return { isOpen: true, dailyMenuOpen: true, nextOpenIso: null, reason: "open", preordersWhenClosed: true };
   }
 }
 

@@ -13,7 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * push library is needed.
  */
 
-export type StaffAlertKind = "order" | "custom_cake" | "reminder" | "stock" | "test";
+export type StaffAlertKind = "order" | "custom_cake" | "reminder" | "stock" | "opening" | "test";
 
 export interface StaffAlert {
   kind: StaffAlertKind;

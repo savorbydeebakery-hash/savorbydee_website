@@ -2,6 +2,7 @@
 
 import { Clock } from "lucide-react";
 import { useShopStatus, closedMessage } from "@/components/shop/shop-status";
+import { formatIstSlot } from "@/lib/time/ist";
 
 /**
  * The "we are shut" notice, in the shape food-delivery apps use and the client
@@ -29,7 +30,16 @@ export function ClosedBanner() {
           <Clock size={12} aria-hidden="true" /> Currently closed
         </span>
         <p className="text-sm text-bk-fg">
-          Not accepting orders at the moment. {closedMessage(status)}
+          {status.preordersWhenClosed !== false ? (
+            <>
+              {status.reason === "changed-hours" && status.note?.trim() ? `${status.note.trim()} ` : null}
+              Today&rsquo;s Menu reopens{" "}
+              {status.nextOpenIso ? formatIstSlot(status.nextOpenIso) : "when we open"}.{" "}
+              <strong>Preorders are open any time</strong>; we&rsquo;ll confirm yours when we open.
+            </>
+          ) : (
+            <>Not accepting orders at the moment. {closedMessage(status)}</>
+          )}
         </p>
       </div>
     </div>

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyStaff } from "@/lib/push/send";
 import { E2E_FIXTURE_NAMES } from "@/lib/orders/ack-reminder";
+import { getOpenState } from "@/lib/shop/open-state";
+import { readOverrides } from "@/lib/shop/hours-override";
+import type { WeeklyHours } from "@/lib/cart/validation";
 import {
   STAFF_ALERTS_CHANNEL,
   CUSTOM_CAKE_EVENT,
@@ -57,6 +60,23 @@ export async function POST(request: NextRequest) {
   // staff phones. scripts/purge-e2e-rows.mjs removes the row afterwards.
   if (E2E_FIXTURE_NAMES.includes(inquiry.customer_name)) {
     return NextResponse.json({ ok: true, skipped: "test" }, { status: 202 });
+  }
+  // Not at 2 am: while closed the request waits, and the opening alert
+  // (app/api/cron/ack-watchdog) counts it in when the shop opens.
+  const { data: s } = await createAdminClient()
+    .from("site_settings")
+    .select("weekly_hours, holidays, hours_overrides")
+    .eq("id", 1)
+    .maybeSingle();
+  const open = getOpenState(
+    (s?.weekly_hours as WeeklyHours | null) ?? null,
+    (s?.holidays as string[] | null) ?? [],
+    undefined,
+    new Date(),
+    readOverrides(s?.hours_overrides)
+  );
+  if (!open.isOpen) {
+    return NextResponse.json({ ok: true, skipped: "closed" }, { status: 202 });
   }
 
   // Staff phones first, including locked ones (lib/push), so a broadcast

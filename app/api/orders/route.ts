@@ -200,18 +200,28 @@ export async function POST(request: NextRequest) {
       hoursOverrides
     );
 
-    if (!openState.isOpen) {
+    // Preorders are taken around the clock unless switched off (migration
+    // 00054; a missing column means on). Today's Menu is refused below, once
+    // the items are known, and staff phones stay quiet until opening.
+    const preordersWhenClosed =
+      (noticeSettings as { preorders_when_closed?: boolean | null } | null)?.preorders_when_closed !== false;
+    const closedResponse = () => {
       const back = openState.nextOpen
         ? ` We reopen ${formatIstSlot(openState.nextOpen)} IST.`
         : "";
       return NextResponse.json(
         {
-          error: `${openState.note ? `${openState.note} ` : ""}We are closed and not accepting orders right now.${back}`,
+          error: `${openState.note ? `${openState.note} ` : ""}${
+            preordersWhenClosed
+              ? "Today's Menu is closed right now, but you can still order from the Preorder Menu."
+              : "We are closed and not accepting orders right now."
+          }${back}`,
           reopensAt: openState.nextOpen?.toISOString() ?? null,
         },
         { status: 400 }
       );
-    }
+    };
+    if (!openState.isOpen && !preordersWhenClosed) return closedResponse();
 
     // The checkout posts a naive wall clock from a `datetime-local` input.
     // `new Date()` would resolve that against the *runtime's* zone, which is
@@ -350,6 +360,7 @@ export async function POST(request: NextRequest) {
         // Today's bakes stop being orderable before the shop shuts, so the
         // last of them can be handed over. Preorders are unaffected — they are
         // being baked another day regardless.
+        if (row.daily_menu && !openState.isOpen) return closedResponse();
         if (row.daily_menu && !openState.dailyMenuOpen) {
           return NextResponse.json(
             {
@@ -419,6 +430,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Closed, and not (only) a preorder: nothing above identified it as one.
+    if (!openState.isOpen && orderKind !== "preorder") return closedResponse();
 
     // --- Today's Menu is for today (AUTHORITATIVE) ---
     // Today's Stock counts are today's bakes; a Today's Menu order booked
@@ -655,8 +669,10 @@ export async function POST(request: NextRequest) {
     // lib/email/client.ts). notifyStaff never throws and gives up after a few
     // seconds, so a slow push service can't hold up the customer.
     // Not for the daily E2E run's fixture orders: it would buzz every staff
-    // phone at 11:00 each morning for an order deleted minutes later.
-    if (!E2E_FIXTURE_NAMES.includes(guest.name)) await notifyStaff({
+    // phone at 11:00 each morning for an order deleted minutes later. Not
+    // while closed either (a 2 am preorder): the opening alert in
+    // app/api/cron/ack-watchdog covers everything that came in overnight.
+    if (!E2E_FIXTURE_NAMES.includes(guest.name) && openState.isOpen) await notifyStaff({
       kind: "order",
       title: `🔔 New order ${humanId} · ₹${(chargedTotalCents / 100).toFixed(0)}${payByCash ? " · 💵 cash at pickup" : ""}`,
       body: `${guest.name} · ${fulfillment === "delivery" ? "Delivery" : "Pickup"} ${formatIstSlot(slot)}. Open it and press Acknowledge.`,

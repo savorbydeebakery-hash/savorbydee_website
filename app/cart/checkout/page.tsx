@@ -29,6 +29,7 @@ import {
 } from "@/lib/time/ist";
 import { readOverrides, type HoursOverrides } from "@/lib/shop/hours-override";
 import { cashAtPickupAllowed, readCashSetting, type CashAtPickup } from "@/lib/payments/cash";
+import { useShopStatus } from "@/components/shop/shop-status";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -43,6 +44,7 @@ type Step = "review" | "fulfillment" | "details" | "confirm";
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalCents, totalItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const shopStatus = useShopStatus();
   const [step, setStep] = useState<Step>("review");
   const [fulfillment, setFulfillment] = useState<"pickup" | "delivery">("pickup");
   const [requestedSlot, setRequestedSlot] = useState("");
@@ -891,6 +893,16 @@ export default function CheckoutPage() {
               {notes && <div><span className="text-ink-faint">Notes:</span> {notes}</div>}
             </div>
           </Card>
+
+          {/* A preorder placed while closed (migration 00054): said before it
+              is placed, so a 2 am order doesn't wait for an instant reply. */}
+          {!shopStatus.isOpen && (
+            <p className="rounded-xl bg-yellow-soft px-4 py-3 text-sm text-ink">
+              <strong>We&rsquo;re closed right now.</strong> You can still place this preorder.
+              We&rsquo;ll check your payment and confirm it when we open
+              {shopStatus.nextOpenIso ? <>, {formatIstSlot(shopStatus.nextOpenIso)}</> : null}.
+            </p>
+          )}
 
           {/* How to pay. Cash only where the order API allows it: pickups,
               and by default Today's Menu only (lib/payments/cash.ts). */}

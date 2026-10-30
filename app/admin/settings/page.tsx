@@ -51,6 +51,8 @@ interface SiteSettings {
   bulk_notice_hours: number;
   custom_cake_notice_days: number;
   daily_menu_cutoff: string;
+  // Migration 00054; missing means on.
+  preorders_when_closed?: boolean;
   instagram_url: string | null;
   facebook_url: string | null;
   delivery_from: string;
@@ -436,6 +438,23 @@ export default function AdminSettingsPage() {
               className="rounded-lg border border-ink/15 px-3 py-1.5 text-sm"
             />
           </div>
+
+          <label className="flex items-start gap-3 border-t border-ink/8 pt-4">
+            <input
+              type="checkbox"
+              checked={settings.preorders_when_closed !== false}
+              onChange={(e) => update("preorders_when_closed", e.target.checked)}
+              className="mt-1 h-4 w-4 accent-pink"
+            />
+            <span>
+              <span className="block font-semibold text-ink">Take preorders while closed</span>
+              <span className="block text-xs text-ink-faint">
+                Customers can order from the Preorder Menu at any hour, for a time when you&rsquo;re
+                open. Staff phones stay quiet overnight and get one alert when you open. Today&rsquo;s
+                Menu always follows the hours above. Untick to stop all orders while closed.
+              </span>
+            </span>
+          </label>
 
           {/* Holidays */}
           <div className="border-t border-ink/8 pt-4">

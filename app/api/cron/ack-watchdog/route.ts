@@ -4,6 +4,11 @@ import { sendAckWatchdog } from "@/lib/email/send";
 import { notifyStaff } from "@/lib/push/send";
 import { dayWindow, readOverrides } from "@/lib/shop/hours-override";
 import { stockReminderDue } from "@/lib/shop/stock-reminder";
+import {
+  openingAlertDue,
+  openingAlertText,
+  OPENING_ALERT_LOOKBACK_HOURS,
+} from "@/lib/shop/opening-alert";
 import { IST_OFFSET, istDateKey, istMinutesOfDay } from "@/lib/time/ist";
 import type { WeeklyHours } from "@/lib/cart/validation";
 import { formatIstSlot } from "@/lib/time/ist";
@@ -11,6 +16,7 @@ import {
   needsAckReminder,
   ACK_REMINDER_AFTER_MS,
   ACK_REMINDER_MAX_AGE_MS,
+  E2E_FIXTURE_NAMES,
 } from "@/lib/orders/ack-reminder";
 
 /**
@@ -60,7 +66,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Query failed" }, { status: 500 });
     }
 
-    const unackedOrders = (candidates ?? []).filter((o) => needsAckReminder(o, now.getTime()));
+    // Today's real opening hours: for staying quiet while closed, and for the
+    // stock and opening alerts further down.
+    const todayKey = istDateKey(now);
+    const nowMinutes = istMinutesOfDay(now);
+    const { data: s } = await supabase
+      .from("site_settings")
+      .select("weekly_hours, holidays, hours_overrides")
+      .eq("id", 1)
+      .maybeSingle();
+    const window = dayWindow(
+      todayKey,
+      (s?.weekly_hours as WeeklyHours | null) ?? null,
+      new Set((s?.holidays as string[] | null) ?? []),
+      readOverrides(s?.hours_overrides)
+    );
+    // undefined = no hours configured, treated as open (as everywhere else).
+    const openNow = window === undefined || (!!window && nowMinutes >= window.open && nowMinutes < window.close);
+
+    // No reminders while closed: a preorder placed at 2 am (migration 00054)
+    // must not buzz phones at 2:05. The opening alert below covers it.
+    const unackedOrders = openNow
+      ? (candidates ?? []).filter((o) => needsAckReminder(o, now.getTime()))
+      : [];
     let emailsSent = 0;
     let emailsFailed = 0;
 
@@ -112,19 +140,6 @@ export async function GET(request: NextRequest) {
     // Separate try: a problem here must not stop the order reminders above.
     let stockReminded = false;
     try {
-      const todayKey = istDateKey(now);
-      const { data: s } = await supabase
-        .from("site_settings")
-        .select("weekly_hours, holidays, hours_overrides")
-        .eq("id", 1)
-        .maybeSingle();
-      const window = dayWindow(
-        todayKey,
-        (s?.weekly_hours as WeeklyHours | null) ?? null,
-        new Set((s?.holidays as string[] | null) ?? []),
-        readOverrides(s?.hours_overrides)
-      );
-      const nowMinutes = istMinutesOfDay(now);
       // Only look further inside the window when it could be due.
       if (window && nowMinutes >= window.open + 30 && nowMinutes < window.close) {
         const dayStart = new Date(`${todayKey}T00:00:00${IST_OFFSET}`).toISOString();
@@ -154,6 +169,43 @@ export async function GET(request: NextRequest) {
       console.error("[cron/ack-watchdog] stock reminder failed:", e);
     }
 
+    // --- Opening alert (lib/shop/opening-alert) ---
+    // One push for everything that came in while closed. Separate try, as above.
+    let openingAlerted = false;
+    try {
+      if (window && nowMinutes >= window.open && nowMinutes < window.close) {
+        const dayStart = new Date(`${todayKey}T00:00:00${IST_OFFSET}`).toISOString();
+        const openedAt = new Date(new Date(dayStart).getTime() + window.open * 60_000);
+        const since = new Date(openedAt.getTime() - OPENING_ALERT_LOOKBACK_HOURS * 3_600_000).toISOString();
+        const [{ data: sent }, { data: waitingOrders }, { data: waitingRequests }] = await Promise.all([
+          supabase.from("staff_alerts").select("id").eq("kind", "opening").gte("created_at", dayStart).limit(1),
+          supabase
+            .from("orders")
+            .select("guest_name")
+            .eq("status", "pending")
+            .is("acknowledged_at", null)
+            .gte("created_at", since)
+            .lt("created_at", openedAt.toISOString()),
+          supabase
+            .from("custom_cake_inquiries")
+            .select("customer_name")
+            .eq("status", "submitted")
+            .gte("created_at", since)
+            .lt("created_at", openedAt.toISOString()),
+        ]);
+        const real = <T extends Record<string, unknown>>(rows: T[] | null, key: keyof T) =>
+          (rows ?? []).filter((r) => !E2E_FIXTURE_NAMES.includes(String(r[key] ?? ""))).length;
+        const orders = real(waitingOrders, "guest_name");
+        const requests = real(waitingRequests, "customer_name");
+        if (openingAlertDue({ window, nowMinutes, sentToday: (sent?.length ?? 0) > 0, waiting: orders + requests })) {
+          await notifyStaff({ kind: "opening", ...openingAlertText(orders, requests), url: "/admin/orders" });
+          openingAlerted = true;
+        }
+      }
+    } catch (e) {
+      console.error("[cron/ack-watchdog] opening alert failed:", e);
+    }
+
     // Cleanup: delete processed_webhooks older than 30 days. Hourly is
     // plenty, and keeps the every-minute run to one query when idle.
     if (now.getUTCMinutes() === 0) {
@@ -169,6 +221,7 @@ export async function GET(request: NextRequest) {
       checked: candidates?.length ?? 0,
       reminded: unackedOrders.length,
       stockReminded,
+      openingAlerted,
       emailsSent,
       emailsFailed,
     });

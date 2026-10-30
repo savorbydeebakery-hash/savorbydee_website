@@ -28,6 +28,8 @@ export interface ShopStatus {
   reason: ClosedReason;
   /** The owner's message when today's hours were changed in Admin. */
   note?: string | null;
+  /** Preorders can be placed while closed (site_settings.preorders_when_closed). */
+  preordersWhenClosed?: boolean;
 }
 
 const FALLBACK: ShopStatus = {
@@ -35,6 +37,7 @@ const FALLBACK: ShopStatus = {
   dailyMenuOpen: true,
   nextOpenIso: null,
   reason: "open",
+  preordersWhenClosed: true,
 };
 
 const ShopStatusContext = createContext<ShopStatus>(FALLBACK);
@@ -56,10 +59,11 @@ export function useShopStatus(): ShopStatus {
 /**
  * Can this specific item be ordered right now?
  *
- * Two separate gates. The shop being shut blocks everything. The daily-menu
- * cutoff blocks only items flagged `daily_menu` — those are the ready-made
- * bakes that have to be handed over before closing, whereas a preorder is
- * being baked another day anyway.
+ * Two separate gates. The shop being shut blocks Today's Menu, and preorders
+ * too unless they are taken around the clock (the default: a preorder needs
+ * 24 hours' notice, so one placed at night is confirmed in the morning). The
+ * daily-menu cutoff blocks only items flagged `daily_menu` — the ready-made
+ * bakes that have to be handed over before closing.
  */
 export function useCanOrder(item: { daily_menu?: boolean } | null | undefined): {
   canOrder: boolean;
@@ -68,6 +72,9 @@ export function useCanOrder(item: { daily_menu?: boolean } | null | undefined): 
   const status = useShopStatus();
 
   if (!status.isOpen) {
+    if (item && !item.daily_menu && status.preordersWhenClosed !== false) {
+      return { canOrder: true, message: null };
+    }
     return { canOrder: false, message: closedMessage(status) };
   }
 
