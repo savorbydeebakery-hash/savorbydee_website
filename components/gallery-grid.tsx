@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { youtubeEmbed, youtubeThumb } from "@/lib/gallery/youtube";
 
 /**
  * Gallery grid + full-size lightbox.
@@ -20,6 +21,14 @@ export interface GalleryItem {
   src: string;
   alt: string;
   caption?: string | null;
+  /** A YouTube video (gallery_photos.youtube_id): `src` is its thumbnail,
+   *  and the lightbox plays it instead of showing a photo. */
+  youtubeId?: string | null;
+}
+
+/** A gallery video: YouTube's thumbnail, with the id to play. */
+export function videoItem(youtubeId: string, caption?: string | null): GalleryItem {
+  return { src: youtubeThumb(youtubeId), alt: caption || "Video from Savor by Dee", caption, youtubeId };
 }
 
 const RENDER = "/storage/v1/render/image/public/";
@@ -72,9 +81,21 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
             key={`${item.src}-${i}`}
             type="button"
             onClick={() => setOpen(i)}
-            aria-label={`View ${item.caption || item.alt} full size`}
+            aria-label={item.youtubeId ? `Play video: ${item.caption || item.alt}` : `View ${item.caption || item.alt} full size`}
             className="group relative block w-full break-inside-avoid overflow-hidden rounded-[var(--r-md)] bg-shell focus:outline-none focus-visible:ring-2 focus-visible:ring-berry focus-visible:ring-offset-2"
           >
+            {item.youtubeId ? (
+              // 16:9 and cropped: YouTube's thumbnail carries black bars.
+              <span className="relative block aspect-video w-full">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.src} alt={item.alt} loading="lazy" className="h-full w-full object-cover" />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-cocoa/75 text-shell shadow-lg transition-transform duration-300 group-hover:scale-110">
+                    <Play size={22} fill="currentColor" className="translate-x-0.5" aria-hidden="true" />
+                  </span>
+                </span>
+              </span>
+            ) : (
             <Image
               src={item.src}
               alt={item.alt}
@@ -84,6 +105,7 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
               className="h-auto w-full transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
               style={{ height: "auto" }}
             />
+            )}
             {item.caption && (
               <span
                 data-contrast-ground="cocoa"
@@ -140,6 +162,22 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
             </>
           )}
 
+          {active.youtubeId ? (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="aspect-video w-[92vw] max-w-5xl overflow-hidden rounded-[var(--r-md)] bg-black shadow-[0_40px_120px_-30px_rgb(0_0_0_/_0.7)]"
+            >
+              <iframe
+                key={active.youtubeId}
+                src={youtubeEmbed(active.youtubeId)}
+                title={active.caption || active.alt}
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+                className="h-full w-full"
+              />
+            </div>
+          ) : (
+          <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={fullSize(active.src)}
@@ -147,6 +185,8 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
             onClick={(e) => e.stopPropagation()}
             className="max-h-[88vh] max-w-[92vw] rounded-[var(--r-md)] object-contain shadow-[0_40px_120px_-30px_rgb(0_0_0_/_0.7)]"
           />
+          </>
+          )}
 
           {active.caption && (
             <p className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-cocoa/80 px-4 py-1.5 text-sm text-shell">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,13 @@ import {
 } from "@/lib/admin/option-rows";
 import { describeWriteError } from "@/lib/admin/write-error";
 import { reorderNeighbour, swappedSortOrders } from "@/lib/admin/reorder";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, ChevronDown } from "lucide-react";
+import {
+  categoryContents,
+  inView,
+  type CategoryItem,
+  type CategoryView,
+} from "@/lib/admin/category-menus";
 
 export const dynamic = "force-dynamic";
 
@@ -47,12 +54,31 @@ export default function AdminCategoriesPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
 
+  // Which menu each category is on and what is in it (lib/admin/category-menus).
+  const [items, setItems] = useState<CategoryItem[]>([]);
+  const [view, setView] = useState<CategoryView>("all");
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+
   const fetchCategories = useCallback(async () => {
-    const { data, error } = await supabase.from("categories").select("*").order("sort_order");
+    const [{ data, error }, { data: itemRows }] = await Promise.all([
+      supabase.from("categories").select("*").order("sort_order"),
+      supabase.from("menu_items").select("id, name, category_id, daily_menu, is_active"),
+    ]);
     if (error) setListError(describeWriteError(error, "the category list"));
     setCategories((data as Category[]) ?? []);
+    setItems((itemRows as CategoryItem[]) ?? []);
     setLoading(false);
   }, [supabase]);
+
+  const contents = useMemo(
+    () => categoryContents(categories.map((c) => c.id), items),
+    [categories, items]
+  );
+  const visible = useMemo(
+    () => categories.filter((c) => inView(contents[c.id], view)),
+    [categories, contents, view]
+  );
+  const tabCount = (v: CategoryView) => categories.filter((c) => inView(contents[c.id], v)).length;
 
   useEffect(() => {
     const id = setTimeout(() => { void fetchCategories(); }, 0);
@@ -129,7 +155,9 @@ export default function AdminCategoriesPage() {
 
   const moveOrder = async (cat: Category, direction: "up" | "down") => {
     // Neighbour in sort order, not sort_order ± 1 — see lib/admin/reorder.ts.
-    const swapWith = reorderNeighbour(categories, cat, direction);
+    // Among the categories on screen, so under a tab the arrows move a
+    // category past the one you can see rather than a hidden one.
+    const swapWith = reorderNeighbour(visible, cat, direction);
     if (!swapWith) return;
     const next = swappedSortOrders(cat, swapWith, direction);
     setListError(null);
@@ -181,9 +209,39 @@ export default function AdminCategoriesPage() {
         <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{listError}</p>
       )}
 
+      <p className="mb-3 text-sm text-ink-soft">
+        A category shows on whichever menu its items are on. The order here is the order of the
+        category buttons on both menus.
+      </p>
+      <div role="tablist" aria-label="Show categories for" className="mb-4 flex flex-wrap gap-2">
+        {(
+          [
+            ["all", "All"],
+            ["daily", "Today’s Menu"],
+            ["preorder", "Preorder Menu"],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            role="tab"
+            aria-selected={view === v}
+            onClick={() => setView(v)}
+            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              view === v ? "bg-ink text-white" : "bg-ink/5 text-ink-soft hover:bg-ink/10"
+            }`}
+          >
+            {label} <span className="opacity-70">{tabCount(v)}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col gap-2">
-        {categories.map((cat) => (
-          <Card key={cat.id} className="flex items-center justify-between">
+        {visible.map((cat) => {
+          const c = contents[cat.id];
+          const isOpen = !!open[cat.id];
+          return (
+          <Card key={cat.id} className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex flex-col">
                 <button onClick={() => moveOrder(cat, "up")} aria-label={`Move ${cat.name} up`} className="text-ink-faint hover:text-ink"><ArrowUp size={14} /></button>
@@ -191,6 +249,23 @@ export default function AdminCategoriesPage() {
               </div>
               <div className="flex flex-col">
                 <span className={`font-medium ${cat.is_active ? "text-ink" : "text-ink-faint line-through"}`}>{cat.name}</span>
+                <span className="mt-1 flex flex-wrap gap-1.5">
+                  {c && c.daily.length > 0 && (
+                    <span className="rounded-full bg-pink-soft px-2 py-0.5 text-[11px] font-medium text-berry">
+                      Today&rsquo;s Menu · {c.daily.length}
+                    </span>
+                  )}
+                  {c && c.preorder.length > 0 && (
+                    <span className="rounded-full bg-lavender-soft px-2 py-0.5 text-[11px] font-medium text-ink">
+                      Preorder · {c.preorder.length}
+                    </span>
+                  )}
+                  {(!c || c.menu === "empty") && (
+                    <span className="rounded-full bg-ink/5 px-2 py-0.5 text-[11px] font-medium text-ink-faint">
+                      No items yet
+                    </span>
+                  )}
+                </span>
                 {/* What is set here, without having to open each editor. */}
                 <span className="text-xs text-ink-faint">
                   {[
@@ -228,8 +303,56 @@ export default function AdminCategoriesPage() {
                 <Trash2 size={14} className="text-red-500" />
               </Button>
             </div>
+          </div>
+
+          {c && c.menu !== "empty" && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setOpen((o) => ({ ...o, [cat.id]: !isOpen }))}
+                aria-expanded={isOpen}
+                className="flex items-center gap-1 text-xs font-medium text-ink-soft hover:text-ink"
+              >
+                <ChevronDown size={14} className={`transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                {isOpen ? "Hide items" : "Show items"}
+              </button>
+              {isOpen && (
+                <div className="mt-2 grid gap-3 rounded-xl bg-ink/[0.03] p-3 sm:grid-cols-2">
+                  {(
+                    [
+                      ["Today’s Menu", c.daily],
+                      ["Preorder Menu", c.preorder],
+                    ] as const
+                  )
+                    .filter(([, list]) => list.length > 0)
+                    .map(([title, list]) => (
+                      <div key={title}>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">{title}</p>
+                        <ul className="text-sm text-ink">
+                          {list.map((it) => (
+                            <li key={it.id} className={it.is_active === false ? "text-ink-faint line-through" : undefined}>
+                              {it.name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  <Link
+                    href={`/admin/menu-items?category=${cat.id}`}
+                    className="text-sm font-semibold text-berry hover:underline sm:col-span-2"
+                  >
+                    Edit these items →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
           </Card>
-        ))}
+          );
+        })}
+        {visible.length === 0 && (
+          <p className="py-8 text-center text-sm text-ink-faint">No categories on this menu yet.</p>
+        )}
       </div>
 
       {(editing || creating) && (

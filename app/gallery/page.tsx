@@ -1,4 +1,4 @@
-import { GalleryGrid } from "@/components/gallery-grid";
+import { GalleryGrid, videoItem, type GalleryItem } from "@/components/gallery-grid";
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ export default async function GalleryPage() {
   const [{ data: galleryPhotos }, { data: menuItems }, settings] = await Promise.all([
     supabase
       .from("gallery_photos")
-      .select("id, image_url, caption")
+      .select("*")
       .eq("is_active", true)
       .order("sort_order")
       .limit(MAX_GALLERY_IMAGES),
@@ -38,11 +38,13 @@ export default async function GalleryPage() {
     getSiteSettings(),
   ]);
 
-  const galleryImages = (galleryPhotos ?? []).map((p) => ({
-    src: p.image_url,
-    alt: p.caption ?? "SAVOR bakery",
-    caption: p.caption,
-  }));
+  // A row is a photo or a YouTube video (migration 00055); select("*") so
+  // this keeps working before that runs.
+  const galleryImages: GalleryItem[] = (galleryPhotos ?? []).flatMap((p): GalleryItem[] => {
+    const yt = (p as { youtube_id?: string | null }).youtube_id;
+    if (yt) return [videoItem(yt, p.caption)];
+    return p.image_url ? [{ src: p.image_url, alt: p.caption ?? "SAVOR bakery", caption: p.caption }] : [];
+  });
 
   const menuImages = applyPhotoRule(menuItems, showPreorderPhotos(settings))
     .filter((item) => item.image_url)

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { prepareImageUpload, UploadImageError } from "@/lib/images/prepare-upload";
 
 export type UploadBucket =
   | "menu-items"
@@ -19,10 +20,23 @@ export interface UploadResult {
  */
 export async function uploadFile(
   bucket: UploadBucket,
-  file: File,
+  original: File,
   folder = ""
 ): Promise<UploadResult> {
   const supabase = createClient();
+
+  // Photos are checked for being complete and shrunk first: see
+  // lib/images/prepare-upload.ts. Videos and other files pass straight through.
+  let file: File;
+  try {
+    file = await prepareImageUpload(original);
+  } catch (e) {
+    return {
+      url: null,
+      path: null,
+      error: e instanceof UploadImageError ? e.message : "This photo couldn’t be read. Please choose another.",
+    };
+  }
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
   const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;

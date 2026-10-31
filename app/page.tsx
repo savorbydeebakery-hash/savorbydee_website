@@ -72,6 +72,8 @@ export default async function HomePage() {
     supabase
       .from("gallery_photos")
       .select("id, image_url, caption")
+      // Photos only: a YouTube row (migration 00055) has no image_url.
+      .not("image_url", "is", null)
       .eq("is_active", true)
       .order("sort_order")
       // 14 feeds the rail; the rest are here so the menu-card fallback has

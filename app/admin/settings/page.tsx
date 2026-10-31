@@ -53,6 +53,8 @@ interface SiteSettings {
   daily_menu_cutoff: string;
   // Migration 00054; missing means on.
   preorders_when_closed?: boolean;
+  // Migration 00055; missing means off. lib/menu/photos.ts.
+  show_preorder_photos?: boolean;
   instagram_url: string | null;
   facebook_url: string | null;
   delivery_from: string;
@@ -206,10 +208,13 @@ export default function AdminSettingsPage() {
     if (!file || !settings) return;
     setHeroUploading(true);
     setSaveError(null);
-    const { url } = await uploadFile("site-assets", file, "hero");
+    const { url, error } = await uploadFile("site-assets", file, "hero");
     if (url) {
       setSettings({ ...settings, hero_image_url: url });
       setHeroStaged(true);
+    } else {
+      // Said, not swallowed: an incomplete phone photo is refused with a reason.
+      window.alert(error ?? "The photo didn’t upload. Please try again.");
     }
     setHeroUploading(false);
   };
@@ -345,6 +350,23 @@ export default function AdminSettingsPage() {
               />
             </div>
           </div>
+
+          <label className="flex items-start gap-3 border-t border-ink/8 pt-4">
+            <input
+              type="checkbox"
+              checked={settings.show_preorder_photos === true}
+              onChange={(e) => update("show_preorder_photos", e.target.checked)}
+              className="mt-1 h-4 w-4 accent-pink"
+            />
+            <span>
+              <span className="block font-semibold text-ink">Show photos on Preorder Menu items</span>
+              <span className="block text-xs text-ink-faint">
+                Off for now, because most preorder items don&rsquo;t have a photo yet and a menu
+                with only some photos looks unfinished. Once every preorder item has one, tick this
+                and Save. Today&rsquo;s Menu always shows its photos.
+              </span>
+            </span>
+          </label>
         </Card>
       )}
 

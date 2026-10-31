@@ -21,6 +21,8 @@ export default async function AboutPage() {
     supabase
       .from("gallery_photos")
       .select("image_url, caption")
+      // Photos only: a YouTube row (migration 00055) has no image_url.
+      .not("image_url", "is", null)
       .eq("is_active", true)
       .order("sort_order")
       .limit(12),

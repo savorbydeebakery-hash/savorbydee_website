@@ -110,6 +110,8 @@ export default function AdminBannersPage() {
     setUploading(true);
     const result = await uploadFile("promo-banners", file);
     setUploading(false);
+    // Said, not swallowed: an incomplete phone photo is refused with a reason.
+    if (!result.url) window.alert(result.error ?? "The image didn’t upload. Please try again.");
     return result.url;
   };
 

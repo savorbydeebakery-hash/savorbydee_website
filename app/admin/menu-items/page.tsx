@@ -97,6 +97,13 @@ export default function AdminMenuItemsPage() {
   // one packet of cookies meant scrolling past every cake on the menu.
   const [query, setQuery] = useState("");
   const [categoryScope, setCategoryScope] = useState("all");
+  // "Edit these items" on the Categories page links here with ?category=.
+  useEffect(() => {
+    const fromLink = new URLSearchParams(window.location.search).get("category");
+    if (!fromLink) return;
+    const id = setTimeout(() => setCategoryScope(fromLink), 0);
+    return () => clearTimeout(id);
+  }, []);
   const [menuScope, setMenuScope] = useState<MenuScope>("all");
 
   const fetchData = useCallback(async () => {
@@ -186,11 +193,11 @@ export default function AdminMenuItemsPage() {
     fetchData();
   };
 
-  const handleUpload = async (file: File): Promise<string | null> => {
+  const handleUpload = async (file: File) => {
     setUploading(true);
     const result = await uploadFile("menu-items", file);
     setUploading(false);
-    return result.url;
+    return result;
   };
 
   const visibleItems = useMemo(
@@ -376,7 +383,7 @@ function MenuItemForm({
   saving: boolean;
   saveError: string | null;
   uploading: boolean;
-  onUpload: (file: File) => Promise<string | null>;
+  onUpload: (file: File) => Promise<{ url: string | null; error: string | null }>;
 }) {
   const [form, setForm] = useState<Partial<MenuItem>>(
     item ?? {
@@ -455,12 +462,17 @@ function MenuItemForm({
     siteThreshold: defaults.bulk_threshold,
   });
 
+  // Said under the photo box. Failures used to vanish, leaving Dee with a
+  // half-drawn preview and no idea why (client report, 2026-10-31).
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = await onUpload(file);
-      if (url) setForm({ ...form, image_url: url });
-    }
+    e.target.value = "";
+    if (!file) return;
+    setUploadError(null);
+    const { url, error } = await onUpload(file);
+    if (url) setForm({ ...form, image_url: url });
+    else setUploadError(error ?? "The photo didn’t upload. Please try again.");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -503,6 +515,11 @@ function MenuItemForm({
               </div>
               <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={uploading} />
             </label>
+          )}
+          {uploadError && (
+            <p role="alert" className="mt-2 max-w-md rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+              {uploadError}
+            </p>
           )}
         </div>
 

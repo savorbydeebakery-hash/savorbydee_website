@@ -42,6 +42,8 @@ export function GalleryPhotoPicker({
     const { data } = await supabase
       .from("gallery_photos")
       .select("id, image_url, caption")
+      // Photos only: a YouTube row (migration 00055) has no image_url.
+      .not("image_url", "is", null)
       .eq("is_active", true)
       .order("sort_order");
     setPhotos((data as GalleryRow[]) ?? []);
