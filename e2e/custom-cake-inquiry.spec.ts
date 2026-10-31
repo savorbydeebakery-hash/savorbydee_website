@@ -9,8 +9,14 @@ test("custom cake inquiry flows from customer to admin", async ({ page }) => {
   await page.goto("/custom-cake");
   await expect(page.getByRole("heading", { name: /custom cake/i }).first()).toBeVisible();
 
-  await page.getByLabel(/name/i).fill("Cake Inquiry Test");
-  await page.getByLabel(/phone/i).fill("9836537447");
+  // Refilled until both stick: straight after a deploy the form can be
+  // redrawn and lose what was typed first (see e2e/helpers/sign-in.ts).
+  await expect(async () => {
+    await page.getByLabel(/name/i).fill("Cake Inquiry Test");
+    await page.getByLabel(/phone/i).fill("9836537447");
+    await expect(page.getByLabel(/name/i)).toHaveValue("Cake Inquiry Test", { timeout: 1000 });
+    await expect(page.getByLabel(/phone/i)).toHaveValue("9836537447", { timeout: 1000 });
+  }).toPass({ timeout: 30_000 });
   // No email field: it was removed, and the column made nullable, so an
   // enquiry goes through on a name and a phone number like an order does.
   await expect(page.getByLabel(/email/i)).toHaveCount(0);
