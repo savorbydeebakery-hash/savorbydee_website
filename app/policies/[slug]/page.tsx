@@ -100,9 +100,9 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
   const dailyPickupMinutes = (s as { daily_pickup_notice_minutes?: number | null }).daily_pickup_notice_minutes ?? 10;
   const cashSetting = readCashSetting((s as { cash_at_pickup?: unknown }).cash_at_pickup);
   const preorderNotice = s.preorder_notice_hours ?? 24;
-  // The cancellation window per menu is the same as its notice period: until
-  // then, baking has not started.
-  const dailyCancelHours = dailyNotice;
+  // A preorder can be cancelled until its notice period, when baking starts.
+  // Today's Menu cannot: those bakes are already made and set aside for you
+  // (client, 2026-10-31).
   const preorderCancelHours = preorderNotice;
   // Per item and strictly greater — "more than 12 of any one item". This page
   // used to say "12 items or more", which is neither.
@@ -403,9 +403,15 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   You can ask us for a summary of the personal data we hold about you, to
                   correct or update it, or to erase it (except where the law requires us to
                   keep a record of a sale). You can also nominate someone to exercise these
-                  rights for you. Write to our grievance officer, {grievance}. If you are not
-                  satisfied with our answer, you may complain to the Data Protection Board of
-                  India.
+                  rights for you. Write to our grievance officer, {grievance}.
+                </p>
+                <p>
+                  <strong>Deleting your account.</strong> If you made an account, you can
+                  delete it yourself at any time from <strong>My Account</strong>, using{" "}
+                  <strong>Delete my account</strong>. That removes your sign-in and the name,
+                  phone number and email saved with it straight away. Records of orders you
+                  placed are kept, without your account, for as long as the law requires us to
+                  keep records of sales. You can also order without an account at all.
                 </p>
               </Section>
 
@@ -440,15 +446,11 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   cancelled by us.
                 </p>
                 <p>
-                  <strong>Already paid?</strong> You may cancel for a full refund any time{" "}
-                  <strong>before baking has started</strong>. In practice that means:
+                  <strong>Already paid?</strong> Only <strong>Preorder Menu</strong> orders
+                  and <strong>custom cakes</strong> can be cancelled, for a full refund, and
+                  only <strong>before baking has started</strong>:
                 </p>
                 <ul className="list-disc pl-5">
-                  <li>
-                    <strong>Today&rsquo;s Menu</strong> &mdash; up to{" "}
-                    <strong>{dailyCancelHours} hours</strong> before your collection or
-                    delivery time
-                  </li>
                   <li>
                     <strong>Preorder Menu</strong> &mdash; up to{" "}
                     <strong>{preorderCancelHours} hours</strong> before your collection or
@@ -461,6 +463,11 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                 <p>
                   After that point ingredients have been bought and work has begun, and we
                   cannot offer a refund.
+                </p>
+                <p>
+                  <strong>Today&rsquo;s Menu</strong> orders cannot be cancelled once paid:
+                  those bakes are already made and set aside for you, often within minutes of
+                  your order. If something is wrong with one, see below.
                 </p>
               </Section>
 
@@ -498,9 +505,17 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
 
               <Section title="If something is wrong">
                 <p>
-                  If your order arrives damaged, incorrect, or not to the standard we promised,
-                  contact us within <strong>24 hours</strong> with a photograph. We will
-                  replace it or refund it. We mean this.
+                  If your order is damaged, incorrect, or not to the standard we promised when
+                  you collect it or when <strong>we deliver it ourselves</strong>, contact us
+                  within <strong>24 hours</strong> with a photograph. We will replace it or
+                  refund it.
+                </p>
+                <p>
+                  <strong>If you send your own rider</strong> (for example a Rapido or Porter
+                  driver you book), the order is in your hands once we pass it to them in good
+                  condition, and we check it with the rider at handover. We cannot replace or
+                  refund an order that is damaged or delayed on a journey we did not make;
+                  please take that up with the delivery service.
                 </p>
               </Section>
 
@@ -546,7 +561,10 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
               <Section title="When your order arrives">
                 <p>
                   We do not ship nationwide and we do not use courier partners — every order
-                  is delivered locally or collected in person. You choose a pickup or delivery
+                  is delivered by us locally or collected in person. You may also send your
+                  own rider to collect it; see{" "}
+                  <PolicyLink slug="refunds">Refunds &amp; Cancellations</PolicyLink> for what
+                  that means if something goes wrong on the way. You choose a pickup or delivery
                   slot at checkout, and your order is ready at that slot once it is paid,
                   subject to the notice periods: for Today&rsquo;s Menu, {dailyPickupMinutes} minutes for a
                   pickup and {dailyNotice} hours for a delivery (same day only),{" "}

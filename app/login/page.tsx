@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Cake, Eye, EyeOff, LogIn, UserPlus } from "lucide-react";
+import { Cake, LogIn, UserPlus } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,6 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
@@ -187,28 +187,19 @@ function LoginForm() {
             required
             autoFocus
           />
-          <div className="relative">
-            <Input
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={6}
-              className="w-full pr-12"
-            />
-            {/* Sits over the right end of the box, below the label. */}
-            <button
-              type="button"
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              aria-pressed={showPassword}
-              className="absolute bottom-0 right-0 flex h-[42px] w-12 items-center justify-center rounded-r-xl text-ink-soft hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-pink/40"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+          <PasswordInput
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            minLength={6}
+            autoComplete={mode === "signin" ? "current-password" : "new-password"}
+          />
+          {mode === "signin" && (
+            <Link href="/forgot-password" className="-mt-2 self-end text-sm font-medium text-berry hover:underline">
+              Forgot password?
+            </Link>
+          )}
           <Button type="submit" variant="primary" size="lg" disabled={loading}>
             {loading
               ? (mode === "signin" ? "Signing in..." : "Creating account...")

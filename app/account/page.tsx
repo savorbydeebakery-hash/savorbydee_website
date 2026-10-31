@@ -113,6 +113,25 @@ export default function AccountPage() {
     router.push("/");
   };
 
+  // Delete my account (Privacy policy, "Your rights"). Typed confirmation, so
+  // a stray tap can't do it. The server refuses staff and owner accounts.
+  const [deleteText, setDeleteText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await fetch("/api/account/delete", { method: "POST" });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) {
+      setDeleting(false);
+      setDeleteError(data.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+    await supabase.auth.signOut().catch(() => {});
+    router.push("/?account=deleted");
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
@@ -246,6 +265,39 @@ export default function AccountPage() {
           </div>
         )}
       </Card>
+
+      {profile?.role !== "admin" && profile?.role !== "staff" && (
+        <Card className="mt-6 border border-red-200 p-6">
+          <h2 className="mb-2 text-lg font-semibold text-ink">Delete my account</h2>
+          <p className="mb-4 text-sm leading-relaxed text-ink-soft">
+            This removes your sign-in and the details saved with it, straight away. It can&rsquo;t
+            be undone. Records of orders you placed are kept, without your account, as the law
+            requires for sales. See our{" "}
+            <Link href="/policies/privacy" className="font-semibold text-ink underline underline-offset-2">
+              Privacy policy
+            </Link>
+            .
+          </p>
+          <label className="mb-3 flex flex-col gap-1.5 text-sm text-ink-soft">
+            Type <strong className="text-ink">DELETE</strong> to confirm
+            <input
+              value={deleteText}
+              onChange={(e) => setDeleteText(e.target.value)}
+              autoComplete="off"
+              className="max-w-xs rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm text-ink focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200"
+            />
+          </label>
+          {deleteError && <p className="mb-3 text-sm text-red-600">{deleteError}</p>}
+          <Button
+            variant="outline"
+            onClick={handleDeleteAccount}
+            disabled={deleting || deleteText.trim().toUpperCase() !== "DELETE"}
+            className="border-red-300 text-red-700 hover:bg-red-50"
+          >
+            {deleting ? "Deleting…" : "Delete my account"}
+          </Button>
+        </Card>
+      )}
     </div>
   );
 }
