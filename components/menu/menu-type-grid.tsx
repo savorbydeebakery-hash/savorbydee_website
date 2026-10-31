@@ -7,6 +7,7 @@ import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { KITCHEN_NOTE } from "@/lib/menu/kitchen-note";
 import { ProductMiniCard } from "@/components/home/product-mini-card";
+import { REVEAL_START } from "@/components/kinetic/reveal";
 import type { MenuItemForCart } from "@/lib/cart/types";
 
 /** One category's worth of the menu. */
@@ -163,7 +164,8 @@ export function MenuTypeGrid({
             ease: "power3.out",
             immediateRender: false,
             stagger: { each: 0.05, from: "start" },
-            scrollTrigger: { trigger: section, start: "top bottom-=40", once: true },
+            // Before it is on screen, not 40px in: see REVEAL_START in reveal.tsx.
+            scrollTrigger: { trigger: section, start: REVEAL_START, once: true },
           });
         });
       });

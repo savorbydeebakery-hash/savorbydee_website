@@ -8,8 +8,6 @@ import { clsx } from "clsx";
 import { createClient } from "@/lib/supabase/client";
 import { useCart } from "@/lib/cart/store";
 import { ScrollProgress } from "@/components/layout/scroll-progress";
-import { useGSAP } from "@gsap/react";
-import { ScrollTrigger } from "@/lib/motion/gsap";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -28,19 +26,28 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const { totalItems } = useCart();
 
-  // Transparent over the hero, glass once past it.
+  // Transparent over the hero, solid once past it.
   //
-  // Was a raw window scroll listener, which fires on every scroll frame with no
-  // batching and competes with the pinned sections. ScrollTrigger batches all
-  // scroll work into one rAF pass, so this rides along with the rest.
-  useGSAP(() => {
-    const st = ScrollTrigger.create({
-      start: 80,
-      onUpdate: (self) => setScrolled(self.progress > 0 || self.scroll() > 80),
-      onToggle: (self) => setScrolled(self.isActive),
-    });
-    setScrolled(window.scrollY > 80);
-    return () => st.kill();
+  // Read from the live scroll position, at most once a frame. It used to be a
+  // ScrollTrigger whose onToggle went false past the trigger's END, and that
+  // end was measured at load, before images and the custom cake form filled
+  // the page out. Further down, the header turned transparent again and the
+  // page showed through it (client video, 2026-10-31; 9 of 11 pages).
+  useEffect(() => {
+    let frame = 0;
+    const read = () => {
+      frame = 0;
+      setScrolled(window.scrollY > 80);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(read);
+    };
+    read();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   useEffect(() => {
@@ -72,7 +79,7 @@ export function Header() {
         className={clsx(
           "sticky top-0 z-40 transition-[background-color,border-color,backdrop-filter] duration-300",
           scrolled
-            ? "border-b border-bk-border bg-bk-bg/90 backdrop-blur-md"
+            ? "border-b border-bk-border bg-bk-bg"
             : "border-b border-transparent bg-transparent"
         )}
       >

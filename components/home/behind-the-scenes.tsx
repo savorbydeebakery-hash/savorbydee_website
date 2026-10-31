@@ -1,6 +1,8 @@
 import { Utensils, Flame, Camera, ImageIcon } from "lucide-react";
 import { SmartImage } from "@/components/kinetic/smart-image";
 import { BtsClip } from "@/components/home/bts-clip";
+import { BTS_ASPECT } from "@/components/home/bts-aspect";
+
 import { SectionHead } from "@/components/home/section-head";
 
 export interface BtsItem {
@@ -83,7 +85,11 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
     <section className="mx-auto mt-10 w-full max-w-[var(--bk-page-width)] px-4 md:mt-16 md:px-6">
       <SectionHead title="Behind the Scenes" />
 
-      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-3 md:gap-6">
+      {/* Same size as the "Two ways to order" cards above (PhotoLinkCard): one
+          per row on a phone, two from md, 4:3 then 16:10. The clips were 4:5
+          and stacked three tall, a 1,500px section on a phone (client,
+          2026-10-31). An odd last tile is centred at the same width. */}
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
         {stages.map((item, i) => {
           const Icon = stageIcon(item.label);
           return (
@@ -91,7 +97,10 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
             // clip first when the tiles stack. Positional, not by label, so
             // it follows whatever Dee sets as sort_order; from sm up the
             // three sit side by side in database order.
-            <li key={item.id} className={i === 1 ? "max-sm:order-first" : undefined}>
+            <li
+              key={item.id}
+              className={`${i === 1 ? "max-md:order-first" : ""} md:last:odd:col-span-2 md:last:odd:mx-auto md:last:odd:w-[calc(50%-0.625rem)]`}
+            >
               <div className="overflow-hidden rounded-[var(--bk-r-block)] bg-bk-bg-3">
                 {item.video_url ? (
                   <BtsClip
@@ -103,8 +112,8 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
                   <SmartImage
                     src={item.image_url}
                     alt={item.label}
-                    aspect="aspect-[4/5]"
-                    sizes="(max-width: 640px) 92vw, 33vw"
+                    aspect={BTS_ASPECT}
+                    sizes="(max-width: 768px) 92vw, 50vw"
                     fit="cover"
                     className="rounded-[var(--bk-r-block)] bg-bk-bg-3"
                   />
@@ -112,7 +121,7 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
                   <div
                     // Same aspect as the real photo, so nothing reflows when
                     // one is uploaded.
-                    className="flex aspect-[4/5] flex-col items-center justify-center gap-3 bg-bk-pink-soft"
+                    className={`flex ${BTS_ASPECT} flex-col items-center justify-center gap-3 bg-bk-pink-soft`}
                   >
                     <Icon size={30} strokeWidth={1.5} className="text-bk-maroon" aria-hidden="true" />
                     {/* Full strength, not /70: at 70% this measured 4.06:1 on

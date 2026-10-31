@@ -50,6 +50,11 @@ export function ReviewsCarousel({
   const [playing, setPlaying] = useState(true);
   const [held, setHeld] = useState(false);
   const reduced = useRef(false);
+  // The box takes the height of the review on show. In a flex row every slide
+  // stretched to the tallest one, so a three-word review sat in a 617px box
+  // on a phone (client, 2026-10-31).
+  const slides = useRef<(HTMLElement | null)[]>([]);
+  const [height, setHeight] = useState<number | null>(null);
 
   const count = reviews.length;
 
@@ -90,6 +95,17 @@ export function ReviewsCarousel({
     };
   }, [playing, held, count, index]);
 
+  useEffect(() => {
+    const el = slides.current[index];
+    if (!el) return;
+    const measure = () => setHeight(el.offsetHeight);
+    measure();
+    // Rewrapping on rotate or resize changes the height.
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [index, count]);
+
   if (count === 0) return null;
 
   // mt-4 on a phone, not mt-8: this sits directly under the hero and the
@@ -119,19 +135,23 @@ export function ReviewsCarousel({
         role="group"
         aria-roledescription="carousel"
         aria-label="Customer reviews"
-        className="relative overflow-hidden rounded-[var(--bk-r-block)] border border-bk-border bg-bk-bg-3"
+        className="relative overflow-hidden rounded-[var(--bk-r-block)] border border-bk-border bg-bk-bg-3 transition-[height] duration-500 ease-[var(--ease-out)] motion-reduce:transition-none"
+        style={height != null ? { height } : undefined}
         onMouseEnter={() => setHeld(true)}
         onMouseLeave={() => setHeld(false)}
         onFocusCapture={() => setHeld(true)}
         onBlurCapture={() => setHeld(false)}
       >
         <div
-          className="flex transition-transform duration-700 ease-[var(--ease-out)] motion-reduce:transition-none"
+          className="flex items-start transition-transform duration-700 ease-[var(--ease-out)] motion-reduce:transition-none"
           style={{ transform: `translateX(-${index * 100}%)` }}
         >
           {reviews.map((r, i) => (
             <figure
               key={r.id}
+              ref={(node) => {
+                slides.current[i] = node;
+              }}
               role="group"
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${count}`}

@@ -1,8 +1,9 @@
 import { GalleryGrid } from "@/components/gallery-grid";
-import { publicSupabase } from "@/lib/site/public-data";
+import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { applyPhotoRule, showPreorderPhotos } from "@/lib/menu/photos";
 import { ArrowRight } from "lucide-react";
 
 export const metadata = {
@@ -20,7 +21,7 @@ const MAX_GALLERY_IMAGES = 100;
 export default async function GalleryPage() {
   const supabase = publicSupabase();
 
-  const [{ data: galleryPhotos }, { data: menuItems }] = await Promise.all([
+  const [{ data: galleryPhotos }, { data: menuItems }, settings] = await Promise.all([
     supabase
       .from("gallery_photos")
       .select("id, image_url, caption")
@@ -29,11 +30,12 @@ export default async function GalleryPage() {
       .limit(MAX_GALLERY_IMAGES),
     supabase
       .from("menu_items")
-      .select("id, name, image_url")
+      .select("id, name, image_url, daily_menu")
       .eq("is_active", true)
       .not("image_url", "is", null)
       .order("sort_order")
       .limit(24),
+    getSiteSettings(),
   ]);
 
   const galleryImages = (galleryPhotos ?? []).map((p) => ({
@@ -42,7 +44,7 @@ export default async function GalleryPage() {
     caption: p.caption,
   }));
 
-  const menuImages = (menuItems ?? [])
+  const menuImages = applyPhotoRule(menuItems, showPreorderPhotos(settings))
     .filter((item) => item.image_url)
     .map((item) => ({
       src: item.image_url!,

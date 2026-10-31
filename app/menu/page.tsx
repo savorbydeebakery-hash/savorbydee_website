@@ -4,6 +4,7 @@ import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { PropField } from "@/components/props/prop-field";
 import { Macaron, Cherry, Sprinkles } from "@/components/props/pastry-props";
 import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
+import { applyPhotoRule, showPreorderPhotos } from "@/lib/menu/photos";
 import { PromoBanner } from "@/components/promo-banner";
 
 export const metadata = {
@@ -92,7 +93,7 @@ export default async function MenuPage({
         <Cherry size={40} x="-1%" y="62%" depth={0.35} className="hidden xl:block" />
         <MenuClient
           categories={preorderCategories}
-          menuItems={applyDerivedWeights(menuItems)}
+          menuItems={applyDerivedWeights(applyPhotoRule(menuItems, showPreorderPhotos(settings)))}
           tag={tag}
           initialCategory={category}
         />

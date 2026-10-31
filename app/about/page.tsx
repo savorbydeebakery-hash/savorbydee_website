@@ -54,14 +54,14 @@ export default async function AboutPage() {
       <section className="mx-auto mb-16 grid max-w-4xl gap-10 md:grid-cols-3 md:gap-8">
         {ABOUT_SECTIONS.map((s) => (
           <div key={s.title}>
-            <h2 className="mb-3 text-xl font-semibold text-ink">{s.title}</h2>
+            <h2 className="text-center mb-3 text-xl font-semibold text-ink">{s.title}</h2>
             <p className="leading-relaxed text-ink-soft">{s.body}</p>
           </div>
         ))}
       </section>
 
       <section className="mx-auto mb-16 max-w-4xl">
-        <h2 className="text-h2 text-ink mb-6">Our Offerings</h2>
+        <h2 className="text-center text-h2 text-ink mb-6">Our Offerings</h2>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {OFFERINGS.map((item) => (
             <li
@@ -75,7 +75,7 @@ export default async function AboutPage() {
       </section>
 
       <section className="mx-auto mb-16 max-w-3xl rounded-3xl bg-lavender-soft px-6 py-10 text-center sm:px-12">
-        <h2 className="text-h2 text-ink mb-4">Our Philosophy</h2>
+        <h2 className="text-center text-h2 text-ink mb-4">Our Philosophy</h2>
         <p className="leading-relaxed text-ink-soft">{PHILOSOPHY}</p>
         <p className="mt-6 text-lg font-medium leading-relaxed text-ink">{CLOSING}</p>
       </section>
@@ -83,7 +83,7 @@ export default async function AboutPage() {
       {/* Gallery grid */}
       {gallery && gallery.length > 0 && (
         <section className="mb-16">
-          <h2 className="text-h2 text-ink mb-6">Gallery</h2>
+          <h2 className="text-center text-h2 text-ink mb-6">Gallery</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
             {gallery.map((photo, i) => (
               <div
@@ -120,7 +120,7 @@ export default async function AboutPage() {
           real Google Maps link, which is the part a customer actually uses. */}
       <section className="mx-auto max-w-xl">
         <Card className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold text-ink">Visit & Contact</h2>
+          <h2 className="text-center text-xl font-semibold text-ink">Visit & Contact</h2>
           <div className="flex items-start gap-3">
             <MapPin className="mt-0.5 text-berry" size={20} />
             <div>

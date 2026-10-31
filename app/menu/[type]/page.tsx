@@ -4,12 +4,13 @@ import {
   ShieldCheck,
   PackageCheck,
 } from "lucide-react";
-import { publicSupabase } from "@/lib/site/public-data";
+import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { MenuTypeGrid, type MenuGroup } from "@/components/menu/menu-type-grid";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { MenuFeatureTiles, type FeatureTile } from "@/components/home/menu-feature-tiles";
 import { MenuTypeTabs } from "@/components/home/menu-type-tabs";
 import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
+import { applyPhotoRule, showPreorderPhotos } from "@/lib/menu/photos";
 import { PromoBanner } from "@/components/promo-banner";
 
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
@@ -82,16 +83,17 @@ export default async function MenuTypePage({
     .from("menu_items")
     .select(SELECT_FIELDS)
     .eq("is_active", true);
-  const [{ data: items }, { data: categories }] = await Promise.all([
+  const [{ data: items }, { data: categories }, settings] = await Promise.all([
     (menu.column ? base.eq(menu.column, true) : base).order("sort_order"),
     supabase
       .from("categories")
       .select("id, name, sort_order")
       .eq("is_active", true)
       .order("sort_order"),
+    getSiteSettings(),
   ]);
 
-  const withWeights = applyDerivedWeights(items);
+  const withWeights = applyDerivedWeights(applyPhotoRule(items, showPreorderPhotos(settings)));
 
   // Only the daily menu groups: the preorder menu has its own page, with its
   // own category chips. An item whose category is missing or inactive still

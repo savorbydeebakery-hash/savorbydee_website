@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { BTS_ASPECT } from "@/components/home/bts-aspect";
 
 /**
  * One Behind the Scenes clip: muted, looped, autoplaying, no controls.
@@ -45,7 +46,7 @@ export function BtsClip({
       preload="auto"
       poster={posterUrl ?? undefined}
       aria-label={label}
-      className="aspect-[4/5] w-full rounded-[var(--bk-r-block)] bg-bk-bg-3 object-cover"
+      className={`${BTS_ASPECT} w-full rounded-[var(--bk-r-block)] bg-bk-bg-3 object-cover`}
     >
       <source src={videoUrl} type="video/mp4" />
     </video>

@@ -10,6 +10,7 @@ import { BehindTheScenes } from "@/components/home/behind-the-scenes";
 import { AboutUs } from "@/components/home/about-us";
 import { Reveal } from "@/components/kinetic/reveal";
 import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
+import { applyPhotoRule, showPreorderPhotos } from "@/lib/menu/photos";
 import {
   pickMenuPhoto,
   DAILY_MENU_PHOTO_KEYWORDS,
@@ -129,7 +130,8 @@ export default async function HomePage() {
     {
       href: "/menu/daily",
       title: "Today's Menu",
-      blurb: "Baked this morning. Ready in about two hours.",
+      // Pickup notice from Settings (migration 00053), not the old two hours.
+      blurb: `Baked this morning. Ready to collect from ${(settings as { daily_pickup_notice_minutes?: number | null } | null)?.daily_pickup_notice_minutes ?? 10} minutes after you order.`,
       count: dailyTotal ?? undefined,
       imageUrl:
         settings?.daily_menu_image_url?.trim() ||
@@ -182,7 +184,7 @@ export default async function HomePage() {
           because the ladder is computed from the category rather than stored
           on the item. */}
       <Reveal y={36}>
-        <BestSellers items={applyDerivedWeights(bestsellers)} />
+        <BestSellers items={applyDerivedWeights(applyPhotoRule(bestsellers, showPreorderPhotos(settings)))} />
       </Reveal>
 
       {/* 5. Custom Order */}

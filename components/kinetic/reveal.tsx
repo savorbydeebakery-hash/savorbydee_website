@@ -37,7 +37,13 @@ import { gsap, EASE } from "@/lib/motion/gsap";
  * component — those users get the final state immediately.
  */
 
-const REVEAL_START = "top 85%";
+// Just BEFORE the top edge comes into view. Content is visible until its tween
+// starts (immediateRender: false, above), so a later start like "top 85%" let
+// people see a block, watch it vanish, then fade back in: "the animation
+// loads twice" (client, 2026-10-31). Starting 80px below the screen means the
+// hidden start state is applied while the block is still off-screen, even on
+// a fast flick. Exported so the other reveals use the same point.
+export const REVEAL_START = "top bottom+=80";
 
 export function Reveal({
   children,
