@@ -29,7 +29,20 @@ export async function POST() {
   }
 
   const admin = createAdminClient();
-  const { data: profile } = await admin.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  // Fail safe: if we can't tell whether this is the owner's account, don't
+  // delete it.
+  if (profileError) {
+    console.error("[api/account/delete] role lookup failed:", profileError.message);
+    return NextResponse.json(
+      { error: "We couldn't delete your account just now. Please try again, or message us and we'll do it for you." },
+      { status: 503 }
+    );
+  }
   if (profile?.role === "admin" || profile?.role === "staff") {
     return NextResponse.json(
       { error: "Staff and owner accounts can't be deleted from here. Ask the owner to remove it in Admin → Accounts." },
