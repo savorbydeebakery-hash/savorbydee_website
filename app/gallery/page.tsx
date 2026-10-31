@@ -1,4 +1,5 @@
-import { GalleryGrid, videoItem, type GalleryItem } from "@/components/gallery-grid";
+import { GalleryGrid } from "@/components/gallery-grid";
+import { videoItem, type GalleryItem } from "@/lib/gallery/youtube";
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { X, ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { youtubeEmbed, youtubeThumb } from "@/lib/gallery/youtube";
+import { youtubeEmbed } from "@/lib/gallery/youtube";
 
 /**
  * Gallery grid + full-size lightbox.
@@ -17,19 +17,8 @@ import { youtubeEmbed, youtubeThumb } from "@/lib/gallery/youtube";
  * at a large width only when opened, so browsing the grid never pays for it.
  */
 
-export interface GalleryItem {
-  src: string;
-  alt: string;
-  caption?: string | null;
-  /** A YouTube video (gallery_photos.youtube_id): `src` is its thumbnail,
-   *  and the lightbox plays it instead of showing a photo. */
-  youtubeId?: string | null;
-}
-
-/** A gallery video: YouTube's thumbnail, with the id to play. */
-export function videoItem(youtubeId: string, caption?: string | null): GalleryItem {
-  return { src: youtubeThumb(youtubeId), alt: caption || "Video from Savor by Dee", caption, youtubeId };
-}
+export type { GalleryItem } from "@/lib/gallery/youtube";
+import type { GalleryItem } from "@/lib/gallery/youtube";
 
 const RENDER = "/storage/v1/render/image/public/";
 const OBJECT = "/storage/v1/object/public/";

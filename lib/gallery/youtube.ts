@@ -36,6 +36,25 @@ export function youtubeThumb(id: string): string {
   return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 }
 
+/** One tile in the public gallery (components/gallery-grid.tsx). */
+export interface GalleryItem {
+  src: string;
+  alt: string;
+  caption?: string | null;
+  /** A YouTube video (gallery_photos.youtube_id): `src` is its thumbnail,
+   *  and the lightbox plays it instead of showing a photo. */
+  youtubeId?: string | null;
+}
+
+/**
+ * A gallery video: YouTube's thumbnail, with the id to play. Here, not in the
+ * grid component: the gallery page is a server component, and a function
+ * exported from a "use client" file can't be called on the server.
+ */
+export function videoItem(youtubeId: string, caption?: string | null): GalleryItem {
+  return { src: youtubeThumb(youtubeId), alt: caption || "Video from Savor by Dee", caption, youtubeId };
+}
+
 /** The player, from the privacy-enhanced domain (no tracking cookies until played). */
 export function youtubeEmbed(id: string): string {
   return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`;
