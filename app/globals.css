@@ -825,6 +825,21 @@ body {
     }
   }
 
+  /* The route loader waits a third of a second before showing, so a page
+     that arrives quickly never flashes a cake on its way (it showed for
+     ~100ms on every reload, a second cake after the splash). A slow load
+     still gets it. */
+  @keyframes cake-loader-show {
+    to {
+      opacity: 1;
+    }
+  }
+
+  .cake-loader {
+    opacity: 0;
+    animation: cake-loader-show 0.3s ease-out 0.35s forwards;
+  }
+
   .cake-loader-glow {
     animation: cake-loader-breathe 2.6s ease-in-out infinite;
   }
@@ -854,6 +869,12 @@ body {
    fallback everywhere: if the transform is ignored the overlay still goes. */
 .splash-curtain {
   transition: transform 700ms cubic-bezier(0.76, 0, 0.24, 1), opacity 700ms ease;
+}
+
+/* Already seen this session (set by the script in app/layout.tsx before the
+   first paint): never draw it, rather than draw it and take it away. */
+html[data-splash-seen] .splash-curtain {
+  display: none;
 }
 
 .splash-curtain-lifting {

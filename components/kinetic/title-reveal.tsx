@@ -1,7 +1,6 @@
 "use client";
 
 import { useGSAP } from "@gsap/react";
-import { REVEAL_START } from "@/components/kinetic/reveal";
 import { gsap } from "@/lib/motion/gsap";
 
 /**
@@ -71,8 +70,7 @@ export function TitleReveal() {
             ease: "power3.out",
             immediateRender: false,
             clearProps: "clipPath,transform",
-            // Before it is on screen, not 60px in: see REVEAL_START in reveal.tsx.
-            scrollTrigger: { trigger: title, start: REVEAL_START, once: true },
+            scrollTrigger: { trigger: title, start: "top bottom-=60", once: true },
           });
         });
       };

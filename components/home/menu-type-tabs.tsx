@@ -25,7 +25,7 @@ import Link from "next/link";
  * `/menu/${slug}` would have sent people through that redirect on every click.
  */
 export const MENU_TYPE_ORDER = [
-  { slug: "daily", label: "Daily Menu", href: "/menu/daily" },
+  { slug: "daily", label: "Today's Menu", href: "/menu/daily" },
   { slug: "preorder", label: "Preorder Menu", href: "/menu" },
 ] as const;
 

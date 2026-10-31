@@ -48,7 +48,7 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 export function resolveNotice(input: NoticeInputs): ResolvedRule {
   const menuDefault = input.dailyMenu ? input.globalNoticeHours : input.preorderNoticeHours;
-  const menuName = input.dailyMenu ? "today's menu" : "the preorder menu";
+  const menuName = input.dailyMenu ? "Today's Menu" : "the Preorder Menu";
 
   let value: number;
   let source: RuleSource;
@@ -66,7 +66,7 @@ export function resolveNotice(input: NoticeInputs): ResolvedRule {
     value = menuDefault;
     source = "menu";
     from = input.dailyMenu
-      ? "the default for today's menu deliveries; pickups are ready 10 minutes after ordering"
+      ? "the default for Today's Menu deliveries; pickups are ready 10 minutes after ordering"
       : `the default for ${menuName}`;
   }
 

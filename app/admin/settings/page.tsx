@@ -446,7 +446,7 @@ export default function AdminSettingsPage() {
           {/* Daily menu cutoff */}
           <div className="border-t border-ink/8 pt-4">
             <label className="mb-1 block text-sm font-medium text-ink">
-              Daily menu closes at
+              Today&rsquo;s Menu closes at
             </label>
             <p className="mb-2 text-xs text-ink-faint">
               Today&rsquo;s bakes stop being orderable at this time, so the last of them can be

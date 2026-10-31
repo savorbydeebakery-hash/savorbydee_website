@@ -65,7 +65,11 @@ export default async function AboutPage() {
       <section className="mx-auto mb-16 max-w-4xl">
         <h2 className="text-center text-h2 text-ink mb-6">Our Offerings</h2>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {OFFERINGS.map((item) => (
+          {[
+            // Today's Menu timing from Settings (client, 2026-11-01).
+            `Today’s Menu, baked each morning: ready to collect ${(settings as { daily_pickup_notice_minutes?: number | null } | null)?.daily_pickup_notice_minutes ?? 10} minutes after you order`,
+            ...OFFERINGS,
+          ].map((item) => (
             <li
               key={item}
               className="rounded-2xl bg-pink-soft px-5 py-4 text-ink"

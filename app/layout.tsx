@@ -107,6 +107,8 @@ async function readShopStatus(): Promise<ShopStatus> {
       note: state.note,
       // Missing column (before migration 00054) means on.
       preordersWhenClosed: (data as { preorders_when_closed?: boolean | null } | null)?.preorders_when_closed !== false,
+      dailyPickupMinutes: (data as { daily_pickup_notice_minutes?: number | null } | null)?.daily_pickup_notice_minutes ?? 10,
+      dailyDeliveryHours: data?.global_notice_hours ?? 2,
     };
   } catch {
     return { isOpen: true, dailyMenuOpen: true, nextOpenIso: null, reason: "open", preordersWhenClosed: true };
@@ -120,7 +122,22 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang="en"
       className={`${dmSans.variable} h-full antialiased`}
+      // The script below may mark <html> before React arrives.
+      suppressHydrationWarning
     >
+      <head>
+        {/* Runs before the first paint. The splash is drawn by the server on
+            every page load and used to be removed only once the page's code
+            had loaded and read sessionStorage — up to a second on a phone —
+            so a visitor who had already seen it got the cake again on every
+            reload and new tab: "the starting animation loads twice" (client,
+            2026-11-01). Marking <html> here lets globals.css hide it at once. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(sessionStorage.getItem("savor-splash")==="1")document.documentElement.setAttribute("data-splash-seen","")}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="flex min-h-full flex-col bg-bk-bg">
         {/* Liquid-glass refraction filter. Defined once, referenced by
             .glass-liquid via filter: url(#liquid-glass). */}

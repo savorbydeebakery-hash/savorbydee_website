@@ -36,7 +36,7 @@ interface HomeTilesProps {
 const TILES = [
   {
     href: "/menu?tag=daily",
-    label: "Daily Menu",
+    label: "Today's Menu",
     sub: "Fresh to order",
     key: 0,
     span: "sm:col-span-2",

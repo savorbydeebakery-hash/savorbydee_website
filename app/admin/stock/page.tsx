@@ -66,7 +66,7 @@ export default function AdminStockPage() {
         .order("sort_order"),
       supabase.from("categories").select("id, name, sort_order").order("sort_order"),
     ]);
-    if (itemError) setError(describeWriteError(itemError, "today's menu"));
+    if (itemError) setError(describeWriteError(itemError, "Today's Menu"));
     const rows = (itemData as DailyItem[]) ?? [];
     setItems(rows);
     setCategories((catData as Category[]) ?? []);
@@ -146,7 +146,7 @@ export default function AdminStockPage() {
     setDrafts(Object.fromEntries(items.map((i) => [i.id, value])));
   };
 
-  if (loading) return <div className="py-20 text-center text-ink-soft">Loading today&apos;s menu...</div>;
+  if (loading) return <div className="py-20 text-center text-ink-soft">Loading Today&apos;s Menu...</div>;
 
   return (
     <div className="mx-auto max-w-3xl pb-28">
@@ -178,7 +178,7 @@ export default function AdminStockPage() {
           size="sm"
           variant="ghost"
           onClick={() => {
-            if (confirm("Set every item on today's menu to 0? Nothing is saved until you press Save.")) {
+            if (confirm("Set every item on Today's Menu to 0? Nothing is saved until you press Save.")) {
               setAll("0");
             }
           }}
@@ -201,7 +201,7 @@ export default function AdminStockPage() {
 
       {items.length === 0 ? (
         <Card className="py-12 text-center text-sm text-ink-soft">
-          Nothing is on today&apos;s menu. Mark items as &ldquo;On Today&apos;s Menu&rdquo; in Menu Items.
+          Nothing is on Today&apos;s Menu. Mark items as &ldquo;On Today&apos;s Menu&rdquo; in Menu Items.
         </Card>
       ) : groups.length === 0 ? (
         <Card className="py-12 text-center text-sm text-ink-soft">No item matches that search.</Card>

@@ -98,9 +98,9 @@ export function addToCart(
       item.bulk_threshold ?? categoryOverrides(item.categories)?.bulk_threshold ?? null,
   };
 
-  // A basket holds one menu or the other. Daily bakes are ready in about two
-  // hours and preorder items take a day or more; an order has one collection
-  // slot, so a mixed basket cannot honour either.
+  // A basket holds one menu or the other. Daily bakes are ready minutes after
+  // ordering and preorder items take a day or more; an order has one
+  // collection slot, so a mixed basket cannot honour either.
   const gate = canAddToCart(state.items, newItem);
   if (!gate.allowed) {
     return { added: false as const, error: gate.error };

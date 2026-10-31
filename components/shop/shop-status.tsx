@@ -30,6 +30,10 @@ export interface ShopStatus {
   note?: string | null;
   /** Preorders can be placed while closed (site_settings.preorders_when_closed). */
   preordersWhenClosed?: boolean;
+  /** Today's Menu: pickup ready this many minutes after ordering (migration 00053). */
+  dailyPickupMinutes?: number;
+  /** Today's Menu: deliveries take up to this many hours (global_notice_hours). */
+  dailyDeliveryHours?: number;
 }
 
 const FALLBACK: ShopStatus = {

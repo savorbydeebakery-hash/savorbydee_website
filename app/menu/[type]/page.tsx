@@ -1,9 +1,5 @@
 import { notFound, permanentRedirect } from "next/navigation";
-import {
-  Truck,
-  ShieldCheck,
-  PackageCheck,
-} from "lucide-react";
+import { Truck, ShieldCheck, Timer } from "lucide-react";
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { MenuTypeGrid, type MenuGroup } from "@/components/menu/menu-type-grid";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";
@@ -34,17 +30,19 @@ const MENUS: Record<
   { label: string; column?: string; blurb: string; empty: string; tiles: FeatureTile[] }
 > = {
   daily: {
-    label: "Daily Menu",
+    // One name for it everywhere: Today's Menu (client, 2026-11-01).
+    label: "Today's Menu",
     column: "daily_menu",
     blurb:
       "What came out of the oven today, for today only. Collect from 10 minutes after you order, or have it delivered within 2 hours. The list changes daily, so check it before you order.",
     empty: "Today's list is not up yet. Check back shortly.",
     // Two-word label over a one-word second line, which is the shape Little
     // Token's trust strip uses and the reason three fit across a phone.
+    // The first tile is filled in from Settings below: "Pickup in / 10 Min".
     tiles: [
+      { icon: Timer, label: "Pickup in", sub: "10 Min" },
       { icon: Truck, label: "Same Day", sub: "Delivery" },
       { icon: ShieldCheck, label: "Freshness", sub: "Guaranteed" },
-      { icon: PackageCheck, label: "In-Stock", sub: "Goodies" },
     ],
   },
 };
@@ -95,6 +93,17 @@ export default async function MenuTypePage({
 
   const withWeights = applyDerivedWeights(applyPhotoRule(items, showPreorderPhotos(settings)));
 
+  // Today's Menu timing from Settings, so the page never disagrees with the
+  // checkout (pickup minutes: migration 00053; delivery: global_notice_hours).
+  const pickupMin = (settings as { daily_pickup_notice_minutes?: number | null } | null)?.daily_pickup_notice_minutes ?? 10;
+  const deliveryHours = settings?.global_notice_hours ?? 2;
+  const blurb =
+    type === "daily"
+      ? `What came out of the oven today, for today only. Ready to collect ${pickupMin} minutes after you order, or delivered within ${deliveryHours} hours. The list changes daily, so check it before you order.`
+      : menu.blurb;
+  const tiles =
+    type === "daily" ? menu.tiles.map((t, i) => (i === 0 ? { ...t, sub: `${pickupMin} Min` } : t)) : menu.tiles;
+
   // Only the daily menu groups: the preorder menu has its own page, with its
   // own category chips. An item whose category is missing or inactive still
   // has to appear, so it goes to an "Everything else" section rather than
@@ -137,7 +146,7 @@ export default async function MenuTypePage({
 
         <h1 className="bk-section-title text-bk-fg">{menu.label}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-bk-muted md:text-base">
-          {menu.blurb}
+          {blurb}
         </p>
 
         {/* The tabs repeat here so switching menus never needs a trip back to
@@ -147,7 +156,7 @@ export default async function MenuTypePage({
         </div>
 
         <div className="mt-6 md:mt-8">
-          <MenuFeatureTiles tiles={menu.tiles} />
+          <MenuFeatureTiles tiles={tiles} />
         </div>
 
         <div className="mt-8 md:mt-10">

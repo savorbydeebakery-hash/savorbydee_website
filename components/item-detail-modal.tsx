@@ -10,7 +10,7 @@ import { calculateUnitPrice, calculateLineTotal, formatPrice } from "@/lib/cart/
 import { MAX_LINE_QUANTITY } from "@/lib/cart/validation";
 import { optionLabel } from "@/lib/cart/types";
 import type { MenuItemForCart, CartItemSelection } from "@/lib/cart/types";
-import { useCanOrder } from "@/components/shop/shop-status";
+import { useCanOrder, useShopStatus } from "@/components/shop/shop-status";
 import { KITCHEN_NOTE } from "@/lib/menu/kitchen-note";
 
 interface ItemDetailModalProps {
@@ -63,6 +63,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
   // Called before the `!item` bail-out: hooks cannot sit behind a conditional
   // return. The hook tolerates null and reports the shop-level answer.
   const { canOrder, message: closedMessage } = useCanOrder(item);
+  const shop = useShopStatus();
 
   if (!item) return null;
 
@@ -308,6 +309,15 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                     })}
                 </div>
               </div>
+            )}
+
+            {/* Today's Menu timing, on the item itself (client, 2026-11-01:
+                "it needs to say everywhere"). Times from Settings. */}
+            {item.daily_menu && (
+              <p className="rounded-xl bg-mint-soft px-3 py-2 text-sm text-ink">
+                ⏱️ <strong>Ready to collect {shop.dailyPickupMinutes ?? 10} minutes after you order</strong>,
+                or delivered within {shop.dailyDeliveryHours ?? 2} hours. Today only.
+              </p>
             )}
 
             {/* Custom notice warning */}

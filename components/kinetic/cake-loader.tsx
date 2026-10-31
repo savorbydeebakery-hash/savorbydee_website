@@ -38,7 +38,9 @@ export function CakeLoader({
     <div
       role="status"
       aria-live="polite"
-      className={`flex min-h-[50vh] flex-col items-center justify-center ${className}`}
+      // cake-loader: shown after a short delay (globals.css), so fast loads
+      // never flash it.
+      className={`cake-loader flex min-h-[50vh] flex-col items-center justify-center ${className}`}
     >
       <div className="relative flex items-center justify-center">
         {/* Warm glow. Sits behind the cake and breathes. */}

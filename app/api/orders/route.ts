@@ -310,7 +310,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error:
-                "This order mixes today's menu with preorder items, which are ready on " +
+                "This order mixes Today's Menu with preorder items, which are ready on " +
                 "different schedules. Please place them as two separate orders.",
             },
             { status: 400 }
@@ -364,7 +364,7 @@ export async function POST(request: NextRequest) {
         if (row.daily_menu && !openState.dailyMenuOpen) {
           return NextResponse.json(
             {
-              error: `${row.name} is on today's menu, which has closed for the evening. It reopens in the morning.`,
+              error: `${row.name} is on Today's Menu, which has closed for the evening. It reopens in the morning.`,
             },
             { status: 400 }
           );
