@@ -59,6 +59,24 @@ jobs:
             exit 1
           fi
 
+          # Pasting into `gh secret set` can bring spaces, a line break or
+          # quote marks along; tidy those, and check the shape of what is
+          # left. Only facts about it are printed, never the value, which
+          # pg_dump otherwise reports as a baffling "socket" error.
+          clean=$(printf '%s' "$DB_URL" | tr -d '\r\n' | sed -e 's/^[[:space:]"'"'"']*//' -e 's/[[:space:]"'"'"']*$//')
+          echo "::add-mask::$clean"
+          problems=""
+          case "$clean" in postgres://*|postgresql://*) ;; *) problems="$problems; it must start with postgresql://" ;; esac
+          case "$clean" in *pooler.supabase.com*) ;; *) problems="$problems; it must be the Session pooler address (with pooler.supabase.com in it)" ;; esac
+          case "$clean" in *YOUR-PASSWORD*|*'['*|*']'*) problems="$problems; [YOUR-PASSWORD] is still in it: replace it, brackets included, with the database password" ;; esac
+          case "$clean" in *' '*) problems="$problems; it has a space in it" ;; esac
+          echo "SUPABASE_DB_URL is ${#clean} characters (a pooler address is about 100)."
+          if [ -n "$problems" ]; then
+            echo "::error::SUPABASE_DB_URL looks wrong${problems}. Set it again with: gh secret set SUPABASE_DB_URL (see docs/backups.md)."
+            exit 1
+          fi
+          echo "DB_URL=$clean" >> "$GITHUB_ENV"
+
       - name: Install the Postgres 17 client
         run: |
           sudo apt-get update -qq
