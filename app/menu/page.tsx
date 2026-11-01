@@ -50,7 +50,14 @@ export default async function MenuPage({
   // show as chips that filter down to nothing.
   // Here every item is a preorder, including one also on Today's Menu: the
   // cart, notice, dates, photos and weights all go by daily_menu.
-  const preorderItems = (menuItems ?? []).map((i) => ({ ...i, daily_menu: false }));
+  // Today's Stock and Sold Out are today's bakes, so they don't follow an item
+  // here from Today's Menu; the order API applies the same rule.
+  const preorderItems = (menuItems ?? []).map((i) => ({
+    ...i,
+    daily_menu: false,
+    is_sold_out: i.daily_menu ? false : i.is_sold_out,
+    stock_count: i.daily_menu ? null : i.stock_count,
+  }));
   const usedCategoryIds = new Set(preorderItems.map((i) => i.category_id));
   const preorderCategories = (categories ?? []).filter((c) => usedCategoryIds.has(c.id));
 
