@@ -521,14 +521,18 @@ function MenuItemForm({
     else setUploadError(error ?? "The photo didn’t upload. Please try again.");
   };
 
+  // The client's rule: Today's Menu alone is Today's Menu; 5 days' notice or
+  // Preorder Menu is the Preorder Menu; both is both (2026-11-01).
+  const onPreorder = Boolean(form.preorder_menu || form.requires_custom_notice);
   // Active but on neither menu: saved, it would be on sale nowhere.
-  const onNoMenu = (form.is_active ?? true) && !form.daily_menu && !form.preorder_menu;
+  const onNoMenu = (form.is_active ?? true) && !form.daily_menu && !onPreorder;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onNoMenu) return;
     onSave({
       ...form,
+      preorder_menu: onPreorder,
       base_price_cents: rupeeInputToPaise(priceText) ?? 0,
       price_options: fromOptionDrafts(priceRows, "price"),
       size_options: fromOptionDrafts(sizeRows, "price_delta"),
@@ -694,12 +698,16 @@ function MenuItemForm({
             On Today&apos;s Menu
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-soft">
-            <input type="checkbox" checked={form.preorder_menu ?? false} onChange={(e) => setForm({ ...form, preorder_menu: e.target.checked })} />
+            {/* Stays ticked while 5 days' notice is: only a preorder can wait. */}
+            <input
+              type="checkbox"
+              checked={onPreorder}
+              disabled={form.requires_custom_notice ?? false}
+              onChange={(e) => setForm({ ...form, preorder_menu: e.target.checked })}
+            />
             On Preorder Menu
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-soft">
-            {/* Only preorders can wait 5 days, so ticking this puts the item
-                on the Preorder Menu too (client, 2026-11-01). */}
             <input
               type="checkbox"
               checked={form.requires_custom_notice ?? false}
@@ -707,11 +715,12 @@ function MenuItemForm({
                 setForm({
                   ...form,
                   requires_custom_notice: e.target.checked,
+                  // Stays on the Preorder Menu if this is unticked later.
                   preorder_menu: e.target.checked ? true : form.preorder_menu,
                 })
               }
             />
-            Preorders need up to 5 days&apos; notice
+            Requires Custom Notice (up to 5 days)
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input type="checkbox" checked={form.is_special ?? false} onChange={(e) => setForm({ ...form, is_special: e.target.checked })} />
@@ -726,11 +735,13 @@ function MenuItemForm({
             Bestseller
           </label>
         </div>
-        {/* What the two menu boxes mean, said where they are ticked. */}
+        {/* The result of the boxes, in words, as they are ticked. */}
         <p className={`-mt-2 text-xs ${onNoMenu ? "font-medium text-red-700" : "text-ink-faint"}`}>
           {onNoMenu
             ? "Tick Today’s Menu, Preorder Menu or both, or untick Active to hide this item."
-            : "Tick both to sell it on both menus. In Stock and Sold Out are for Today’s Menu only; preorders are baked another day."}
+            : `Shows on: ${[form.daily_menu && "Today’s Menu", onPreorder && "Preorder Menu"].filter(Boolean).join(" and ") || "nothing (hidden)"}.${
+                form.daily_menu && onPreorder ? " In Stock and Sold Out count for Today’s Menu only." : ""
+              }`}
         </p>
 
         {/* The choices a customer sees on the item. These were five JSON

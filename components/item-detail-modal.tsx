@@ -320,8 +320,9 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
               </p>
             )}
 
-            {/* Custom notice warning */}
-            {item.requires_custom_notice && (
+            {/* Custom notice warning. Preorders only: from Today's Menu an item
+                on both menus is ready today. */}
+            {item.requires_custom_notice && !item.daily_menu && (
               <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
                 <p className="text-sm text-ink-soft">
                   ⏰ This item needs up to 5 days&rsquo; notice. We will be in touch if it can be ready sooner.

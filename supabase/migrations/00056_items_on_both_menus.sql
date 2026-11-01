@@ -9,8 +9,9 @@ alter table public.menu_items
   add column if not exists preorder_menu boolean not null default false;
 
 -- Everything stays where it is: what wasn't on Today's Menu was on the
--- Preorder Menu.
-update public.menu_items set preorder_menu = not daily_menu;
+-- Preorder Menu. An item needing 5 days' notice is always a preorder, so one
+-- with Today's Menu ticked as well goes on both (the client's rule).
+update public.menu_items set preorder_menu = (not daily_menu) or requires_custom_notice;
 
 comment on column public.menu_items.preorder_menu is
   'Shown on the Preorder Menu. Independent of daily_menu (Today''s Menu): an item can be on both.';
