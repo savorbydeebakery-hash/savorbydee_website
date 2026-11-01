@@ -1,4 +1,3 @@
-import { Utensils, Flame, Camera, ImageIcon } from "lucide-react";
 import { SmartImage } from "@/components/kinetic/smart-image";
 import { BtsClip } from "@/components/home/bts-clip";
 import { BTS_ASPECT } from "@/components/home/bts-aspect";
@@ -18,11 +17,10 @@ export interface BtsItem {
 /**
  * Behind the Scenes — the work rather than the product.
  *
- * Every active stage renders whether or not it has a photograph yet. A stage
- * without one gets a placeholder tile at the same aspect ratio, so the section
- * is visible and correctly proportioned now and each slot simply swaps to the
- * real image as Dee uploads it in Admin -> Behind the Scenes. Nothing about
- * the layout shifts when that happens.
+ * Only stages with a photograph or clip are shown. One without is left out
+ * until Dee uploads to it in Admin -> Behind the Scenes, and with none the
+ * section is hidden. It used to show a "Photo coming soon" tile, which the
+ * client asked to remove (2026-11-01).
  *
  * A stage can hold a short clip instead of a photograph, which is what the
  * client asked for in the first place: the work here is icing a bun and
@@ -39,46 +37,10 @@ export interface BtsItem {
  * tells the three slots apart when uploading, and it is still what the image
  * carries as alt text, which is the only description a screen reader gets now
  * that nothing is printed beneath it.
- *
- * The placeholder is deliberately an icon on a tint that says "photo coming
- * soon" — not a stock kitchen shot and not a borrowed gallery photo. Either of
- * those would be showing customers a picture that is not this bakery's work
- * and captioning it as if it were.
- *
- * FALLBACK_STAGES covers the window before migration 00019 is applied, when
- * the query errors and no rows come back at all. Once the migration runs, the
- * table is the only source and these are never used.
  */
 
-const FALLBACK_STAGES: BtsItem[] = [
-  {
-    id: "fallback-prep",
-    label: "Prep work",
-    caption: "Weighing, mixing and getting everything ready before the oven goes on.",
-  },
-  {
-    id: "fallback-baking",
-    label: "Baking",
-    caption: "Nothing goes in until the order is placed. This is where it happens.",
-  },
-  {
-    id: "fallback-photos",
-    label: "Taking pictures",
-    caption: "Every bake photographed before it leaves, so you see the real thing.",
-  },
-];
-
-/** Matched on the seeded labels; falls back to a generic mark. */
-function stageIcon(label: string) {
-  const key = label.toLowerCase();
-  if (key.includes("prep")) return Utensils;
-  if (key.includes("bak")) return Flame;
-  if (key.includes("pictur") || key.includes("photo")) return Camera;
-  return ImageIcon;
-}
-
 export function BehindTheScenes({ items }: { items: BtsItem[] }) {
-  const stages = items && items.length > 0 ? items : FALLBACK_STAGES;
+  const stages = (items ?? []).filter((item) => item.image_url || item.video_url);
   if (stages.length === 0) return null;
 
   return (
@@ -91,7 +53,6 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
           2026-10-31). An odd last tile is centred at the same width. */}
       <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
         {stages.map((item, i) => {
-          const Icon = stageIcon(item.label);
           return (
             // On a phone the second stage leads: the client wants the oven
             // clip first when the tiles stack. Positional, not by label, so
@@ -108,7 +69,7 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
                     posterUrl={item.image_url}
                     label={item.label}
                   />
-                ) : item.image_url ? (
+                ) : (
                   <SmartImage
                     src={item.image_url}
                     alt={item.label}
@@ -117,20 +78,6 @@ export function BehindTheScenes({ items }: { items: BtsItem[] }) {
                     fit="cover"
                     className="rounded-[var(--bk-r-block)] bg-bk-bg-3"
                   />
-                ) : (
-                  <div
-                    // Same aspect as the real photo, so nothing reflows when
-                    // one is uploaded.
-                    className={`flex ${BTS_ASPECT} flex-col items-center justify-center gap-3 bg-bk-pink-soft`}
-                  >
-                    <Icon size={30} strokeWidth={1.5} className="text-bk-maroon" aria-hidden="true" />
-                    {/* Full strength, not /70: at 70% this measured 4.06:1 on
-                        the pink tint and 12px body text needs 4.5. Solid
-                        --bk-maroon on --bk-pink-soft is 8.73:1. */}
-                    <span className="text-xs font-medium uppercase tracking-wide text-bk-maroon">
-                      Photo coming soon
-                    </span>
-                  </div>
                 )}
               </div>
 
