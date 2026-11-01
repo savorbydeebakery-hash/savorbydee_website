@@ -410,6 +410,9 @@ export default function CheckoutPage() {
             quantity: item.quantity,
             selections: item.selections,
             lineTotalCents: item.lineTotalCents,
+            // Which menu it came from: an item can be on both (migration 00056),
+            // and the order API can't tell a preorder without this.
+            dailyMenu: item.dailyMenu,
           })),
           totalCents,
           fulfillment: effectiveFulfillment,
