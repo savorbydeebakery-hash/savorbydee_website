@@ -149,7 +149,9 @@ export function getRequiredNoticeHours(
     const threshold = item.bulkThreshold ?? rules.bulkThreshold;
     if (item.quantity > threshold) notices.push(rules.bulkNoticeHours);
 
-    if (item.requiresCustomNotice) notices.push(rules.customCakeNoticeDays * 24);
+    // Preorders only: Today's Menu is baked already, and an item on both
+    // menus can be collected today from Today's Menu (migration 00056).
+    if (item.requiresCustomNotice && isPreorder) notices.push(rules.customCakeNoticeDays * 24);
   }
 
   return Math.max(...notices);
@@ -202,7 +204,7 @@ export function explainRequiredNotice(
     const threshold = item.bulkThreshold ?? rules.bulkThreshold;
     if (item.quantity > threshold) consider(rules.bulkNoticeHours, "bulk", item.name);
 
-    if (item.requiresCustomNotice) {
+    if (item.requiresCustomNotice && isPreorder) {
       consider(rules.customCakeNoticeDays * 24, "custom", item.name);
     }
   }

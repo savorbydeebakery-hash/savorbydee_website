@@ -181,3 +181,32 @@ export function cakeRequestReply(r: CakeRequest, formatDate: (d: string) => stri
   }
   return lines.join("\n");
 }
+
+/**
+ * A new custom cake request, as the customer's WhatsApp message to the shop.
+ *
+ * The form saves the request and alerts the admin as before; the customer
+ * then sends this too, so it reaches Dee's phone in full and the conversation
+ * starts in WhatsApp, the way an order's payment message does (client,
+ * 2026-11-01). The reference photo is private on the site, so they are asked
+ * to attach it here.
+ */
+export function cakeRequestMessage(
+  r: CakeRequest & { customer_phone?: string | null; description?: string | null; has_photo?: boolean },
+  formatDate: (d: string) => string
+): string {
+  const lines = ["Hi Savor by Dee! I've sent a custom cake request on your website 🎂", ""];
+  const add = (label: string, value?: string | null) => {
+    if (value?.trim()) lines.push(`*${label}:* ${value.trim()}`);
+  };
+  add("Name", r.customer_name);
+  add("Phone", r.customer_phone);
+  add("Flavour", r.flavor);
+  add("Size", r.weight);
+  add("Design", r.decoration);
+  add("Message on cake", r.message_on_cake && `"${r.message_on_cake.trim()}"`);
+  add("For", r.requested_date && formatDate(r.requested_date));
+  add("Details", r.description);
+  if (r.has_photo) lines.push("", "I'll attach my reference photo here.");
+  return lines.join("\n");
+}

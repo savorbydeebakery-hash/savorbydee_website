@@ -16,6 +16,8 @@ export interface FilterableItem {
   description?: string | null;
   category_id: string | null;
   daily_menu: boolean;
+  /** Migration 00056; before it, the Preorder Menu is everything not on Today's. */
+  preorder_menu?: boolean | null;
 }
 
 export function filterMenuItems<T extends FilterableItem>(
@@ -28,7 +30,7 @@ export function filterMenuItems<T extends FilterableItem>(
 
   return items.filter((item) => {
     if (menu === "daily" && !item.daily_menu) return false;
-    if (menu === "preorder" && item.daily_menu) return false;
+    if (menu === "preorder" && !(item.preorder_menu ?? !item.daily_menu)) return false;
 
     if (category === "none" && item.category_id !== null) return false;
     if (category !== "all" && category !== "none" && item.category_id !== category) return false;

@@ -109,8 +109,8 @@ export default async function HomePage() {
       .eq("is_active", true)
       .order("sort_order"),
     // Counts only — the menu cards say how many items each menu holds, and
-    // nothing on this page lists them any more. An item belongs to exactly one
-    // menu, so these two partition the catalogue rather than overlapping.
+    // nothing on this page lists them any more. An item on both menus counts
+    // on both (migration 00056).
     supabase
       .from("menu_items")
       .select("id", { count: "exact", head: true })
@@ -120,7 +120,7 @@ export default async function HomePage() {
       .from("menu_items")
       .select("id", { count: "exact", head: true })
       .eq("is_active", true)
-      .eq("daily_menu", false),
+      .eq("preorder_menu", true),
   ]);
 
   const photos = galleryPhotos ?? [];

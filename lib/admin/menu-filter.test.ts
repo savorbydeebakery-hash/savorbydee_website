@@ -58,3 +58,11 @@ describe("filterMenuItems", () => {
     expect(filterMenuItems(items, { ...all, query: "   " })).toHaveLength(4);
   });
 });
+
+describe("an item on both menus (migration 00056)", () => {
+  const both = [{ name: "Linzer", description: null, category_id: "cookies", daily_menu: true, preorder_menu: true }];
+  it("shows under Today's Menu and under Preorder Menu", () => {
+    expect(filterMenuItems(both, { query: "", category: "all", menu: "daily" })).toHaveLength(1);
+    expect(filterMenuItems(both, { query: "", category: "all", menu: "preorder" })).toHaveLength(1);
+  });
+});

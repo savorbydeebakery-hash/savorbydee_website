@@ -52,6 +52,8 @@ interface MenuItem {
   sort_order: number;
   requires_custom_notice: boolean;
   daily_menu: boolean;
+  /** Migration 00056. An item can be on both menus. */
+  preorder_menu: boolean;
   is_preorder: boolean;
   is_special: boolean;
   is_chefs_choice: boolean;
@@ -86,6 +88,10 @@ export default function AdminMenuItemsPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [defaults, setDefaults] = useState<RuleDefaults>(FALLBACK_DEFAULTS);
+  // Settings -> "Show photos on Preorder Menu items", also switchable here,
+  // where the photos are added (client, 2026-11-01). Null until loaded.
+  const [preorderPhotos, setPreorderPhotos] = useState<boolean | null>(null);
+  const [photoSaving, setPhotoSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<MenuItem | null>(null);
   const [creating, setCreating] = useState(false);
@@ -116,7 +122,7 @@ export default function AdminMenuItemsPage() {
         .order("sort_order"),
       supabase
         .from("site_settings")
-        .select("global_notice_hours, preorder_notice_hours, bulk_threshold, custom_cake_notice_days")
+        .select("global_notice_hours, preorder_notice_hours, bulk_threshold, custom_cake_notice_days, show_preorder_photos")
         .eq("id", 1)
         .maybeSingle(),
     ]);
@@ -126,6 +132,7 @@ export default function AdminMenuItemsPage() {
     // what a blank box inherits, and a settings hiccup should not stop the
     // client editing a price.
     if (settingsData) setDefaults({ ...FALLBACK_DEFAULTS, ...(settingsData as Partial<RuleDefaults>) });
+    setPreorderPhotos((settingsData as { show_preorder_photos?: boolean } | null)?.show_preorder_photos === true);
     setLoading(false);
   }, [supabase]);
 
@@ -219,6 +226,43 @@ export default function AdminMenuItemsPage() {
       {listError && (
         <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{listError}</p>
       )}
+
+      {/* One switch for every Preorder Menu photo. Today's Menu always shows
+          its photos. Hidden photos are kept, so switching on brings them all
+          back; the count says how many items would still show none. */}
+      {preorderPhotos !== null && (() => {
+        const onPreorder = items.filter((i) => i.is_active && i.preorder_menu);
+        const withPhoto = onPreorder.filter((i) => i.image_url).length;
+        return (
+          <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-ink/10 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm">
+              <p className="font-medium text-ink">
+                Photos on the Preorder Menu: {preorderPhotos ? "shown" : "hidden"}
+              </p>
+              <p className="mt-0.5 text-ink-soft">
+                {withPhoto} of {onPreorder.length} Preorder Menu items have a photo.
+                {preorderPhotos ? "" : " Add photos below whenever you like; customers see them once you switch this on."}
+              </p>
+            </div>
+            <Button
+              variant={preorderPhotos ? "outline" : "primary"}
+              disabled={photoSaving}
+              onClick={async () => {
+                setPhotoSaving(true);
+                const { error } = await supabase
+                  .from("site_settings")
+                  .update({ show_preorder_photos: !preorderPhotos })
+                  .eq("id", 1);
+                setPhotoSaving(false);
+                if (error) setListError("Couldn’t change the photo setting. Please try again.");
+                else setPreorderPhotos(!preorderPhotos);
+              }}
+            >
+              {photoSaving ? "Saving…" : preorderPhotos ? "Hide photos" : "Show photos"}
+            </Button>
+          </div>
+        );
+      })()}
 
       <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-ink/10 bg-white p-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
@@ -323,10 +367,11 @@ export default function AdminMenuItemsPage() {
                 )}
                 {!item.is_active && <Badge color="neutral">Hidden</Badge>}
                 {item.daily_menu && <Badge color="pink">Today&apos;s Menu</Badge>}
+                {item.preorder_menu && <Badge color="lavender">Preorder Menu</Badge>}
                 {item.is_special && <Badge color="yellow">Special</Badge>}
                 {item.is_chefs_choice && <Badge color="lavender">Chef&apos;s Choice</Badge>}
                 {item.is_bestseller && <Badge color="mint">Bestseller</Badge>}
-                {item.requires_custom_notice && <Badge color="neutral">Custom Notice</Badge>}
+                {item.requires_custom_notice && <Badge color="neutral">5 days&apos; notice</Badge>}
                 {item.dietary_tags?.map((tag) => (
                   <Badge key={tag} color="mint">{tag}</Badge>
                 ))}
@@ -407,6 +452,7 @@ function MenuItemForm({
       sort_order: 0,
       requires_custom_notice: false,
       daily_menu: false,
+      preorder_menu: true,
       is_preorder: false,
       is_special: false,
       is_chefs_choice: false,
@@ -449,7 +495,7 @@ function MenuItemForm({
     itemHours: form.notice_hours,
     categoryHours: category?.notice_hours,
     categoryName: category?.name,
-    dailyMenu: form.daily_menu ?? false,
+    dailyMenu: !(form.preorder_menu ?? !form.daily_menu),
     globalNoticeHours: defaults.global_notice_hours,
     preorderNoticeHours: defaults.preorder_notice_hours,
     requiresCustomNotice: form.requires_custom_notice,
@@ -475,8 +521,12 @@ function MenuItemForm({
     else setUploadError(error ?? "The photo didn’t upload. Please try again.");
   };
 
+  // Active but on neither menu: saved, it would be on sale nowhere.
+  const onNoMenu = (form.is_active ?? true) && !form.daily_menu && !form.preorder_menu;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (onNoMenu) return;
     onSave({
       ...form,
       base_price_cents: rupeeInputToPaise(priceText) ?? 0,
@@ -630,7 +680,7 @@ function MenuItemForm({
           onChange={(e) => setTagsText(e.target.value)}
         />
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
           <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input type="checkbox" checked={form.is_active ?? true} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
             Active
@@ -640,12 +690,28 @@ function MenuItemForm({
             Sold Out
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-soft">
-            <input type="checkbox" checked={form.requires_custom_notice ?? false} onChange={(e) => setForm({ ...form, requires_custom_notice: e.target.checked })} />
-            Requires Custom Notice (up to 5 days)
-          </label>
-          <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input type="checkbox" checked={form.daily_menu ?? false} onChange={(e) => setForm({ ...form, daily_menu: e.target.checked })} />
             On Today&apos;s Menu
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            <input type="checkbox" checked={form.preorder_menu ?? false} onChange={(e) => setForm({ ...form, preorder_menu: e.target.checked })} />
+            On Preorder Menu
+          </label>
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            {/* Only preorders can wait 5 days, so ticking this puts the item
+                on the Preorder Menu too (client, 2026-11-01). */}
+            <input
+              type="checkbox"
+              checked={form.requires_custom_notice ?? false}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  requires_custom_notice: e.target.checked,
+                  preorder_menu: e.target.checked ? true : form.preorder_menu,
+                })
+              }
+            />
+            Preorders need up to 5 days&apos; notice
           </label>
           <label className="flex items-center gap-2 text-sm text-ink-soft">
             <input type="checkbox" checked={form.is_special ?? false} onChange={(e) => setForm({ ...form, is_special: e.target.checked })} />
@@ -660,6 +726,12 @@ function MenuItemForm({
             Bestseller
           </label>
         </div>
+        {/* What the two menu boxes mean, said where they are ticked. */}
+        <p className={`-mt-2 text-xs ${onNoMenu ? "font-medium text-red-700" : "text-ink-faint"}`}>
+          {onNoMenu
+            ? "Tick Today’s Menu, Preorder Menu or both, or untick Active to hide this item."
+            : "Tick both to sell it on both menus. In Stock and Sold Out are for Today’s Menu only; preorders are baked another day."}
+        </p>
 
         {/* The choices a customer sees on the item. These were five JSON
             textareas that could not be typed into, so every weight tier and

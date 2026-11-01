@@ -62,7 +62,7 @@ export default function AdminCategoriesPage() {
   const fetchCategories = useCallback(async () => {
     const [{ data, error }, { data: itemRows }] = await Promise.all([
       supabase.from("categories").select("*").order("sort_order"),
-      supabase.from("menu_items").select("id, name, category_id, daily_menu, is_active"),
+      supabase.from("menu_items").select("id, name, category_id, daily_menu, preorder_menu, is_active"),
     ]);
     if (error) setListError(describeWriteError(error, "the category list"));
     setCategories((data as Category[]) ?? []);

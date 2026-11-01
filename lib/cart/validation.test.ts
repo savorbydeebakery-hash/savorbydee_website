@@ -77,12 +77,17 @@ describe("getRequiredNoticeHours", () => {
   });
 
   it("returns custom notice (120h = 5 days) when item requires custom notice", () => {
-    const items = [makeItem({ requiresCustomNotice: true })];
+    const items = [makeItem({ requiresCustomNotice: true, dailyMenu: false })];
     expect(getRequiredNoticeHours(items, DEFAULT_NOTICE_RULES)).toBe(120);
   });
 
+  it("ignores custom notice on a Today's Menu line (item on both menus)", () => {
+    const items = [makeItem({ requiresCustomNotice: true, dailyMenu: true })];
+    expect(getRequiredNoticeHours(items, DEFAULT_NOTICE_RULES)).toBe(2);
+  });
+
   it("stacks by MAX: bulk + custom → 120h", () => {
-    const items = [makeItem({ quantity: 15, requiresCustomNotice: true })];
+    const items = [makeItem({ quantity: 15, requiresCustomNotice: true, dailyMenu: false })];
     expect(getRequiredNoticeHours(items, DEFAULT_NOTICE_RULES)).toBe(120);
   });
 

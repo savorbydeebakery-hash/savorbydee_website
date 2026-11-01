@@ -282,22 +282,48 @@ export async function POST(request: NextRequest) {
         // categories.weight_multipliers, without which a sponge cake's "2 kg"
         // would match no tier and the server would price it at the half-kilo.
         .select(
-          "id, name, stock_count, is_sold_out, daily_menu, notice_hours, bulk_threshold, requires_custom_notice, is_active, base_price_cents, price_model, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, categories(notice_hours, bulk_threshold, weight_multipliers)"
+          "id, name, stock_count, is_sold_out, daily_menu, preorder_menu, notice_hours, bulk_threshold, requires_custom_notice, is_active, base_price_cents, price_model, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, categories(notice_hours, bulk_threshold, weight_multipliers)"
         )
         .in("id", [...orderedByItem.keys()]);
+
+      // Which menu each item was ordered from. An item can be on both
+      // (migration 00056), so the line says which; the item must really be on
+      // that menu. A line saved before lines said (no dailyMenu) takes the
+      // item's own menu, Today's Menu first.
+      const kindById = new Map<string, Set<"daily" | "preorder">>();
+      const rowById = new Map((stockRows ?? []).map((row) => [row.id, row]));
+      for (const line of items as CartItem[]) {
+        const row = line.menuItemId ? rowById.get(line.menuItemId) : undefined;
+        if (!row) continue;
+        const kind =
+          line.dailyMenu === true ? "daily"
+          : line.dailyMenu === false ? "preorder"
+          : row.daily_menu ? "daily" : "preorder";
+        const onIt = kind === "daily" ? row.daily_menu : row.preorder_menu;
+        if (!onIt) {
+          return NextResponse.json(
+            {
+              error: `${row.name} is no longer on the ${kind === "daily" ? "Today's Menu" : "Preorder Menu"}. Please remove it from your cart.`,
+            },
+            { status: 400 }
+          );
+        }
+        kindById.set(row.id, (kindById.get(row.id) ?? new Set()).add(kind));
+      }
+      const isDaily = (id: string) => kindById.get(id)?.has("daily") ?? false;
 
       // Rebuild the cart from what the database says these items are, then
       // take the notice window from that. Same shape as a CartItem so the one
       // resolver covers both sides.
-      const trustedLines = (stockRows ?? []).map((row) => {
+      const trustedLines = (stockRows ?? []).flatMap((row) => {
         const cat = Array.isArray(row.categories) ? row.categories[0] : row.categories;
-        return {
+        return [...(kindById.get(row.id) ?? [])].map((kind) => ({
           quantity: orderedByItem.get(row.id) ?? 0,
-          dailyMenu: row.daily_menu,
+          dailyMenu: kind === "daily",
           noticeHours: row.notice_hours ?? cat?.notice_hours ?? null,
           bulkThreshold: row.bulk_threshold ?? cat?.bulk_threshold ?? null,
           requiresCustomNotice: row.requires_custom_notice,
-        } as unknown as CartItem;
+        } as unknown as CartItem));
       });
 
       if (trustedLines.length > 0) {
@@ -324,7 +350,12 @@ export async function POST(request: NextRequest) {
       // straight from the request body, so a ₹3,600 cake could be ordered for
       // ₹1 and nothing downstream would know. Recomputed here from these rows,
       // with the same function the checkout uses so the two cannot drift.
-      pricing = repriceCart(items as CartItem[], (stockRows ?? []) as unknown as MenuItemForCart[]);
+      // Priced as the menu it was ordered from showed it: a sponge cake on
+      // both menus has its weights on the Preorder Menu only.
+      pricing = repriceCart(
+        items as CartItem[],
+        (stockRows ?? []).map((row) => ({ ...row, daily_menu: isDaily(row.id) })) as unknown as MenuItemForCart[]
+      );
       if (pricing.errors.length > 0) {
         return NextResponse.json({ error: pricing.errors.join(" ") }, { status: 400 });
       }
@@ -360,8 +391,9 @@ export async function POST(request: NextRequest) {
         // Today's bakes stop being orderable before the shop shuts, so the
         // last of them can be handed over. Preorders are unaffected — they are
         // being baked another day regardless.
-        if (row.daily_menu && !openState.isOpen) return closedResponse();
-        if (row.daily_menu && !openState.dailyMenuOpen) {
+        const daily = isDaily(row.id);
+        if (daily && !openState.isOpen) return closedResponse();
+        if (daily && !openState.dailyMenuOpen) {
           return NextResponse.json(
             {
               error: `${row.name} is on Today's Menu, which has closed for the evening. It reopens in the morning.`,
@@ -369,6 +401,11 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
+
+        // Today's Stock and "sold out" are today's bakes. A preorder of an
+        // item that is also on Today's Menu is baked another day, so neither
+        // applies to it.
+        if (!daily && row.daily_menu) continue;
 
         if (row.is_sold_out) {
           return NextResponse.json(
@@ -412,7 +449,8 @@ export async function POST(request: NextRequest) {
     // requiredHours was computed above from the DATABASE rows, not from the
     // posted cart. dailyMenu, noticeHours and bulkThreshold all ride on the
     // cart line, so a caller could otherwise post a preorder cake claiming to
-    // be a 2-hour daily bake. The fallback below only applies when the item
+    // be a 2-hour daily bake. (The line may name its menu, but only one the
+    // item is really on; checked above.) The fallback below only applies when the item
     // lookup found nothing at all.
     // 60s of slack. Someone who picks the earliest valid slot and submits a few
     // seconds later would otherwise be rejected for being marginally too early,
@@ -534,6 +572,9 @@ export async function POST(request: NextRequest) {
         human_id: humanId,
         kind: "standard",
         status: "pending",
+        // Only Today's Menu orders take stock, so only they give it back
+        // when cancelled (migration 00056).
+        takes_stock: orderKind !== "preorder",
         fulfillment,
         guest_name: guest.name,
         // No email is collected any more; the column stays for older orders.
@@ -608,7 +649,8 @@ export async function POST(request: NextRequest) {
     // and through an RPC so the subtraction happens inside the database: two
     // checkouts in the same second would otherwise both read the old value.
     // Untracked items (stock_count null) are skipped by the function itself.
-    try {
+    // Preorders take none (see the stock check above).
+    if (orderKind !== "preorder") try {
       const { error: stockError } = await supabase.rpc("decrement_stock", {
         lines: [...orderedByItem.entries()].map(([id, qty]) => ({ id, qty })),
       });

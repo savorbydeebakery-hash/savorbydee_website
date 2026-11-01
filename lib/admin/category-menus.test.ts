@@ -39,3 +39,15 @@ describe("inView", () => {
     expect(["desserts", "cookies", "tea", "empty"].filter((id) => inView(c[id], "all"))).toHaveLength(4);
   });
 });
+
+describe("an item on both menus (migration 00056)", () => {
+  it("is listed under both, and makes its category show on both tabs", () => {
+    const c = categoryContents(["cookies"], [
+      { id: "a", name: "Linzer", category_id: "cookies", daily_menu: true, preorder_menu: true },
+      { id: "b", name: "Plain", category_id: "cookies", daily_menu: true, preorder_menu: false },
+    ]);
+    expect(c.cookies.daily.map((i) => i.name)).toEqual(["Linzer", "Plain"]);
+    expect(c.cookies.preorder.map((i) => i.name)).toEqual(["Linzer"]);
+    expect(c.cookies.menu).toBe("both");
+  });
+});

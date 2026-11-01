@@ -10,6 +10,8 @@ export interface CategoryItem {
   name: string;
   category_id: string | null;
   daily_menu: boolean | null;
+  /** Migration 00056; before it, the Preorder Menu is everything not on Today's. */
+  preorder_menu?: boolean | null;
   is_active?: boolean | null;
 }
 
@@ -28,7 +30,9 @@ export function categoryContents(categoryIds: string[], items: CategoryItem[]): 
   for (const item of items) {
     const c = item.category_id ? out[item.category_id] : undefined;
     if (!c) continue;
-    (item.daily_menu ? c.daily : c.preorder).push(item);
+    // An item on both menus is listed under both.
+    if (item.daily_menu) c.daily.push(item);
+    if (item.preorder_menu ?? !item.daily_menu) c.preorder.push(item);
   }
   for (const c of Object.values(out)) {
     const byName = (a: CategoryItem, b: CategoryItem) => a.name.localeCompare(b.name);

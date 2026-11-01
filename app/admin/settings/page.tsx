@@ -70,6 +70,8 @@ interface SiteSettings {
   // Manual UPI payments and legal details — migration 00045.
   upi_payee_name: string | null;
   payment_whatsapp_number: string | null;
+  // Custom cake requests on WhatsApp — migration 00056.
+  cake_whatsapp_number?: string | null;
   payment_window_minutes: number;
   // Cash at pickup and Today's Menu pickup notice — migration 00053.
   cash_at_pickup?: "off" | "daily" | "all";
@@ -258,6 +260,15 @@ export default function AdminSettingsPage() {
             <Input label="Emergency Phone (optional)" value={settings.emergency_phone ?? ""} onChange={(e) => update("emergency_phone", e.target.value)} />
           </div>
           <Input label="WhatsApp Number (with country code, no +)" value={settings.whatsapp_number} onChange={(e) => update("whatsapp_number", e.target.value)} />
+          <Input
+            label="WhatsApp for custom cake requests"
+            value={settings.cake_whatsapp_number ?? ""}
+            onChange={(e) => update("cake_whatsapp_number", e.target.value || null)}
+            placeholder={settings.whatsapp_number || "91XXXXXXXXXX"}
+          />
+          <p className="-mt-2 text-xs text-ink-faint">
+            Customers send their custom cake request here on WhatsApp after filling in the form. With country code, e.g. 919876543210. Blank uses the WhatsApp number above.
+          </p>
           <div className="grid grid-cols-2 gap-4">
             <Input label="Instagram URL" value={settings.instagram_url ?? ""} onChange={(e) => update("instagram_url", e.target.value)} placeholder="https://www.instagram.com/savorbydee" />
             <Input label="Facebook URL" value={settings.facebook_url ?? ""} onChange={(e) => update("facebook_url", e.target.value)} placeholder="https://www.facebook.com/savorbydee" />

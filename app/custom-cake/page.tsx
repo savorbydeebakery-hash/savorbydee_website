@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -8,8 +8,10 @@ import Link from "next/link";
 import { categorySlug } from "@/lib/menu/category-slug";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Cake, Upload, Check, X, ArrowRight } from "lucide-react";
+import { Cake, Upload, Check, X, ArrowRight, MessageCircle } from "lucide-react";
 import { uploadFile } from "@/lib/storage/upload-helper";
+import { cakeRequestMessage, waLink, waNumber } from "@/lib/payments/whatsapp";
+import { formatIstDate } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +25,23 @@ export default function CustomCakePage() {
   // admins can open it), so its link shows a broken image here.
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Where the request is sent on WhatsApp: Settings -> "WhatsApp for custom
+  // cake requests", else the shop's WhatsApp. Null hides the button.
+  const [cakeWhatsapp, setCakeWhatsapp] = useState<string | null>(null);
+  // The filled-in message, set once the request is saved.
+  const [waHref, setWaHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    void supabase
+      .from("site_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const row = data as { cake_whatsapp_number?: string | null; whatsapp_number?: string | null } | null;
+        setCakeWhatsapp(waNumber(row?.cake_whatsapp_number) ?? waNumber(row?.whatsapp_number));
+      });
+  }, [supabase]);
 
   const [form, setForm] = useState({
     customer_name: "",
@@ -87,6 +106,18 @@ export default function CustomCakePage() {
         keepalive: true,
       }).catch(() => {});
 
+      // Then the customer sends it on WhatsApp, already written, like an
+      // order's payment message (client, 2026-11-01). Opened straight away
+      // where the browser allows; the button on the next screen otherwise.
+      if (cakeWhatsapp) {
+        const href = waLink(
+          cakeWhatsapp,
+          cakeRequestMessage({ ...form, has_photo: Boolean(referenceUrl) }, (d) => formatIstDate(d))
+        );
+        setWaHref(href);
+        window.open(href, "_blank", "noopener");
+      }
+
       setSubmitted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -106,7 +137,23 @@ export default function CustomCakePage() {
           Thank you for your interest! Our team will review your request and contact you
           within 24 hours with a quote.
         </p>
-        <Button onClick={() => { setSubmitted(false); setForm({ customer_name: "", customer_phone: "", cake_type: "fully_custom", flavor: "", weight: "", decoration: "", message_on_cake: "", description: "", requested_date: "" }); setReferenceUrl(null); setPreview(null); }} variant="outline">
+        {waHref && (
+          <div className="mb-6 rounded-2xl border border-ink/10 bg-porcelain p-4">
+            <p className="mb-3 text-sm text-ink-soft">
+              Send it to us on WhatsApp too, so we can reply there. Everything is already written
+              {referenceUrl ? "; attach your reference photo before sending" : ""}.
+            </p>
+            <a
+              href={waHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1f7a4d] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1a6942]"
+            >
+              <MessageCircle size={18} aria-hidden="true" /> Send on WhatsApp
+            </a>
+          </div>
+        )}
+        <Button onClick={() => { setWaHref(null); setSubmitted(false); setForm({ customer_name: "", customer_phone: "", cake_type: "fully_custom", flavor: "", weight: "", decoration: "", message_on_cake: "", description: "", requested_date: "" }); setReferenceUrl(null); setPreview(null); }} variant="outline">
           Submit Another Inquiry
         </Button>
       </div>

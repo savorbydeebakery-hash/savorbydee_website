@@ -35,13 +35,10 @@ export default async function MenuPage({
         "id, name, description, base_price_cents, price_model, dietary_tags, image_url, is_sold_out, category_id, price_options, addons, variants, decoration_tiers, size_options, min_order_qty, stock_count, notice_hours, bulk_threshold, categories(notice_hours, bulk_threshold, weight_multipliers), requires_custom_notice, daily_menu, is_special, is_chefs_choice, is_bestseller"
       )
       .eq("is_active", true)
-      // The preorder menu is everything NOT on today's list. An item belongs
-      // to exactly one menu — the client's rule — so daily items are excluded
-      // here rather than appearing in both. This is also what removes the four
-      // daily-only categories (All Day Breakfast Bakes, Shortbread Cookies,
-      // Snacks, Mini pizzas) without naming them: every item in them is daily,
-      // so the category ends up empty and is dropped below.
-      .eq("daily_menu", false)
+      // Items ticked "On Preorder Menu". An item can be on both menus
+      // (client, 2026-11-01: cookies are baked for the day and preordered in
+      // boxes); categories with nothing on this menu are dropped below.
+      .eq("preorder_menu", true)
       .order("sort_order"),
     // So the stated wait tracks the admin setting instead of going stale.
     getSiteSettings().then((data) => ({ data })),
@@ -51,7 +48,10 @@ export default async function MenuPage({
   // MenuClient hides empty SECTIONS on its own, but renders a chip for every
   // category handed to it, so without this the daily-only categories would
   // show as chips that filter down to nothing.
-  const usedCategoryIds = new Set((menuItems ?? []).map((i) => i.category_id));
+  // Here every item is a preorder, including one also on Today's Menu: the
+  // cart, notice, dates, photos and weights all go by daily_menu.
+  const preorderItems = (menuItems ?? []).map((i) => ({ ...i, daily_menu: false }));
+  const usedCategoryIds = new Set(preorderItems.map((i) => i.category_id));
   const preorderCategories = (categories ?? []).filter((c) => usedCategoryIds.has(c.id));
 
   return (
@@ -93,7 +93,7 @@ export default async function MenuPage({
         <Cherry size={40} x="-1%" y="62%" depth={0.35} className="hidden xl:block" />
         <MenuClient
           categories={preorderCategories}
-          menuItems={applyDerivedWeights(applyPhotoRule(menuItems, showPreorderPhotos(settings)))}
+          menuItems={applyDerivedWeights(applyPhotoRule(preorderItems, showPreorderPhotos(settings)))}
           tag={tag}
           initialCategory={category}
         />
