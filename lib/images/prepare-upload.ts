@@ -22,24 +22,28 @@ const SMALL_BYTES = 1_500_000;
 export class UploadImageError extends Error {}
 
 /**
- * Is this file complete? Looks for each format's end marker. Only JPEG, PNG
- * and WebP are checked; anything else is decoded below, and a failed decode
- * is caught there.
+ * Is this file complete? Walks each format's structure to its end marker.
+ * Only JPEG, PNG and WebP are checked; anything else is decoded below, and a
+ * failed decode is caught there.
+ *
+ * The end marker is found by walking, not by looking at the last bytes:
+ * Samsung phones put their own data AFTER the photo's end (a "SEFT" trailer,
+ * or a whole video for motion photos), so every Samsung photo looked cut off
+ * (client report, 2026-11-01).
  */
 export function imageLooksComplete(bytes: Uint8Array): boolean {
   const n = bytes.length;
   if (n < 12) return false;
-  // JPEG: starts FF D8, must end with FF D9 (a few padding bytes are allowed).
-  if (bytes[0] === 0xff && bytes[1] === 0xd8) {
-    for (let i = n - 2; i >= Math.max(0, n - 64); i--) {
-      if (bytes[i] === 0xff && bytes[i + 1] === 0xd9) return true;
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return jpegHasEnd(bytes);
+  // PNG: chunks (length, type, data, CRC) until IEND.
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    let i = 8;
+    while (i + 8 <= n) {
+      const len = ((bytes[i] << 24) | (bytes[i + 1] << 16) | (bytes[i + 2] << 8) | bytes[i + 3]) >>> 0;
+      if (String.fromCharCode(...bytes.subarray(i + 4, i + 8)) === "IEND") return true;
+      i += 12 + len;
     }
     return false;
-  }
-  // PNG: the last chunk is IEND.
-  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
-    const tail = String.fromCharCode(...bytes.subarray(Math.max(0, n - 16)));
-    return tail.includes("IEND");
   }
   // WebP: RIFF header carries the file length.
   if (String.fromCharCode(...bytes.subarray(0, 4)) === "RIFF" && String.fromCharCode(...bytes.subarray(8, 12)) === "WEBP") {
@@ -47,6 +51,32 @@ export function imageLooksComplete(bytes: Uint8Array): boolean {
     return declared + 8 <= n;
   }
   return true;
+}
+
+/**
+ * JPEG: header segments carry their own length (so the small preview copy
+ * inside the camera data, with its own end marker, is stepped over); after
+ * each image scan, the next FF not followed by 00 or a restart code is the
+ * next marker. Complete when the marker is the end (FF D9). A layout this
+ * doesn't recognise is left to the decoder rather than refused.
+ */
+function jpegHasEnd(b: Uint8Array): boolean {
+  const n = b.length;
+  let i = 2;
+  while (i + 1 < n) {
+    if (b[i] !== 0xff) return true;
+    const m = b[i + 1];
+    if (m === 0xff) { i++; continue; } // fill byte
+    if (m === 0xd9) return true;
+    if (m === 0x01 || (m >= 0xd0 && m <= 0xd7)) { i += 2; continue; }
+    if (i + 3 >= n) return false;
+    i += 2 + ((b[i + 2] << 8) | b[i + 3]);
+    if (m === 0xda) {
+      // Image data: runs until a real marker.
+      while (i + 1 < n && !(b[i] === 0xff && b[i + 1] !== 0 && (b[i + 1] < 0xd0 || b[i + 1] > 0xd7))) i++;
+    }
+  }
+  return false;
 }
 
 const INCOMPLETE =
