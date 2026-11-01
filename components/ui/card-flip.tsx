@@ -17,7 +17,16 @@ import type { ReactNode } from "react";
  *
  * With reduced motion the faces swap without the rotation. The information is
  * the point; the spin is decoration.
+ *
+ * SAFARI: the face turned away is also made `invisible`, switched at the
+ * half-way point of the turn (250ms of 500ms), when the card is edge-on and
+ * neither face shows. WebKit ignores `backface-visibility` for anything
+ * inside a face that gets its own compositing layer (the photo, the zoom
+ * lens, rounded clipping), so on a Mac "View description" turned the card
+ * but the photo side kept painting over the description. Cards without a
+ * photo worked, which is how it was reported (2026-11-01).
  */
+const SWAP = "[transition:visibility_0s_linear_250ms] motion-reduce:[transition:none]";
 export function CardFlip({
   flipped,
   front,
@@ -38,7 +47,7 @@ export function CardFlip({
       >
         <div
           data-card-face="front"
-          className="col-start-1 row-start-1 backface-hidden"
+          className={`col-start-1 row-start-1 backface-hidden ${SWAP} ${flipped ? "invisible" : "visible"}`}
           inert={flipped}
           aria-hidden={flipped}
         >
@@ -46,7 +55,7 @@ export function CardFlip({
         </div>
         <div
           data-card-face="back"
-          className="col-start-1 row-start-1 rotate-y-180 backface-hidden"
+          className={`col-start-1 row-start-1 rotate-y-180 backface-hidden ${SWAP} ${flipped ? "visible" : "invisible"}`}
           inert={!flipped}
           aria-hidden={!flipped}
         >

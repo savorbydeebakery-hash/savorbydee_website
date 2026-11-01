@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea, Select } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { formatPrice } from "@/lib/cart/math";
-import { Cake, Phone, Mail, Calendar, Pencil, Plus, Lock } from "lucide-react";
+import { Cake, Phone, Mail, Calendar, Pencil, Plus, Lock, MessageCircle } from "lucide-react";
+import { cakeRequestReply, waLink, waNumber } from "@/lib/payments/whatsapp";
 import { formatIst, formatIstDate } from "@/lib/time/ist";
 
 export const dynamic = "force-dynamic";
@@ -211,6 +212,16 @@ export default function AdminCustomCakesPage() {
         </Button>
       </div>
 
+      <p className="mb-4 rounded-xl bg-yellow-soft px-4 py-3 text-sm leading-relaxed text-ink">
+
+        <strong>How replies work:</strong> customers aren&rsquo;t sent anything from here. Save your quote with
+
+        <strong>Edit &amp; Quote</strong>, then press <strong>Send quote on WhatsApp</strong> (it&rsquo;s written for
+
+        you) or <strong>Call</strong>. When they agree, set the status to <strong>Confirmed</strong>.
+
+      </p>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {inquiries.map((inquiry) => (
           <Card key={inquiry.id} className="flex flex-col gap-3">
@@ -262,6 +273,36 @@ export default function AdminCustomCakesPage() {
             <Button size="sm" variant="outline" onClick={() => openEdit(inquiry)}>
               <Pencil size={14} /> Edit & Quote
             </Button>
+
+            {/* The website doesn't tell the customer anything: a saved quote
+                reaches nobody. Reply on WhatsApp (pre-written, with the
+                quote if there is one) or call (client question, 2026-11-01). */}
+            {(() => {
+              const wa = waNumber(inquiry.customer_phone);
+              const digits = inquiry.customer_phone.replace(/[^\d+]/g, "");
+              return (
+                <div className="flex flex-wrap gap-2">
+                  {wa && (
+                    <a
+                      href={waLink(wa, cakeRequestReply(inquiry, (d) => formatIstDate(d)))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#1f7a4d] px-3 py-2 text-sm font-semibold text-white hover:opacity-90"
+                    >
+                      <MessageCircle size={14} /> {inquiry.quote_cents != null ? "Send quote on WhatsApp" : "Reply on WhatsApp"}
+                    </a>
+                  )}
+                  {digits && (
+                    <a
+                      href={`tel:${digits}`}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-ink/15 px-3 py-2 text-sm font-semibold text-ink hover:bg-ink/5"
+                    >
+                      <Phone size={14} /> Call
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
           </Card>
         ))}
         {inquiries.length === 0 && (

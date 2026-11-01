@@ -137,3 +137,47 @@ export function orderQuestionMessage(
     ...orderSummaryLines(order, amountCents, { freeDeliveryOverCents }),
   ].join("\n");
 }
+
+/** What the owner needs from a custom cake request to write back about it. */
+export interface CakeRequest {
+  customer_name: string;
+  flavor?: string | null;
+  weight?: string | null;
+  decoration?: string | null;
+  message_on_cake?: string | null;
+  requested_date?: string | null;
+  quote_cents?: number | null;
+}
+
+/**
+ * The owner's reply to a custom cake request, as WhatsApp text.
+ *
+ * Saving a quote in Admin → Custom Cakes reaches nobody: the site sends no
+ * email and customers have no page for their request (client question,
+ * 2026-11-01: "I replied but it didn't go to her"). The admin opens this in
+ * WhatsApp instead, already filled in, and the conversation carries on there.
+ * With a quote it asks them to confirm; without one it opens the chat for
+ * questions.
+ */
+export function cakeRequestReply(r: CakeRequest, formatDate: (d: string) => string): string {
+  const first = r.customer_name.trim().split(/\s+/)[0] || "there";
+  const details = [
+    r.flavor?.trim() && `• Flavour: ${r.flavor.trim()}`,
+    r.weight?.trim() && `• Size: ${r.weight.trim()}`,
+    r.decoration?.trim() && `• Design: ${r.decoration.trim()}`,
+    r.message_on_cake?.trim() && `• Message: "${r.message_on_cake.trim()}"`,
+    r.requested_date && `• For: ${formatDate(r.requested_date)}`,
+  ].filter(Boolean) as string[];
+  const lines = [`Hi ${first}! This is Savor by Dee, about your custom cake request 🎂`];
+  if (details.length) lines.push("", ...details);
+  lines.push("");
+  if (r.quote_cents != null) {
+    lines.push(
+      `We can make this for *${formatPrice(r.quote_cents)}*.`,
+      "Would you like to go ahead? Reply here to confirm and we'll send the payment details."
+    );
+  } else {
+    lines.push("Thank you for your request! Just a few questions before we quote:");
+  }
+  return lines.join("\n");
+}
