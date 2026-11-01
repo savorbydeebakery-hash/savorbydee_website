@@ -500,6 +500,7 @@ function MenuItemForm({
     preorderNoticeHours: defaults.preorder_notice_hours,
     requiresCustomNotice: form.requires_custom_notice,
     customCakeNoticeDays: defaults.custom_cake_notice_days,
+    hasBasicDecoration: decorationRows.some((r) => r.label.trim() && r.label.trim() !== "Custom"),
   });
   const bulk = resolveBulk({
     itemThreshold: form.bulk_threshold,
@@ -535,6 +536,12 @@ function MenuItemForm({
       preorder_menu: onPreorder,
       base_price_cents: rupeeInputToPaise(priceText) ?? 0,
       price_options: fromOptionDrafts(priceRows, "price"),
+      // Weights only reach customers under this price model; "Flat" with
+      // weights typed in hid them with no warning (client, 2026-11-01).
+      price_model:
+        form.price_model === "flat" && fromOptionDrafts(priceRows, "price").length > 0
+          ? "weight_tiers"
+          : form.price_model,
       size_options: fromOptionDrafts(sizeRows, "price_delta"),
       variants: fromOptionDrafts(variantRows, "price_delta"),
       decoration_tiers: fromOptionDrafts(decorationRows, "price_delta"),
@@ -754,7 +761,7 @@ function MenuItemForm({
             labelPlaceholder="1 kg"
             rows={priceRows}
             onChange={setPriceRows}
-            hint="A full price for each weight, not an extra. Used when Price Model is Weight Tiers. Frosted Sponge Cakes leave this empty — their weights are worked out from the base price by the category's multipliers."
+            hint="A full price for each weight, not an extra; customers choose one. Frosted Sponge Cakes leave this empty — their weights are worked out from the base price by the category's multipliers."
           />
           <OptionRowsEditor
             label="Decoration"

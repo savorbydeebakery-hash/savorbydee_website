@@ -34,6 +34,8 @@ export interface ShopStatus {
   dailyPickupMinutes?: number;
   /** Today's Menu: deliveries take up to this many hours (global_notice_hours). */
   dailyDeliveryHours?: number;
+  /** Preorder Menu notice in hours (preorder_notice_hours). */
+  preorderNoticeHours?: number;
 }
 
 const FALLBACK: ShopStatus = {

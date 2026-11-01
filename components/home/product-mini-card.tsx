@@ -62,9 +62,11 @@ export function ProductMiniCard({
   // item (null) is never mistaken for an empty one.
   const unavailable = item.is_sold_out || item.stock_count === 0;
 
-  // Outside business hours the card stays readable but goes flat and stops
-  // responding — the delivery-app pattern the client asked for. Kept separate
-  // from `unavailable` so the reasons do not blur: sold out is about the item,
+  // Outside business hours the card goes flat, but still opens: the pop-up is
+  // the only place the weights, toppings and description can be read, and it
+  // offers no Add to Cart while the item can't be ordered (client, 2026-11-01:
+  // "shown in the admin panel but not on the site"). Kept separate from
+  // `unavailable` so the reasons do not blur: sold out is about the item,
   // closed is about the shop.
   const { canOrder } = useCanOrder(item);
   const blocked = unavailable || !canOrder;
@@ -96,11 +98,10 @@ export function ProductMiniCard({
       {hasPhoto && (
         <button
           type="button"
-          disabled={blocked}
           onClick={() => onSelect(item)}
           tabIndex={-1}
           aria-hidden="true"
-          className="block w-full cursor-pointer rounded-[var(--bk-r-inner)] focus:outline-none disabled:cursor-not-allowed"
+          className="block w-full cursor-pointer rounded-[var(--bk-r-inner)] focus:outline-none"
         >
           {photo}
         </button>
@@ -131,15 +132,14 @@ export function ProductMiniCard({
 
       <button
         type="button"
-        disabled={blocked}
         onClick={() => onSelect(item)}
         data-item-id={item.id}
         data-item-name={item.name}
         data-item-price={item.base_price_cents}
         aria-label={`${item.name}, ${rupees} onwards. ${
-          blocked ? "Unavailable" : "Add to Cart"
+          blocked ? "Unavailable, see details" : "Add to Cart"
         }`}
-        className="block w-full rounded-[var(--bk-r-sm)] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+        className="block w-full rounded-[var(--bk-r-sm)] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2"
       >
         <h3 className="mt-1.5 text-sm font-medium leading-snug text-bk-fg">{item.name}</h3>
         <p className="mt-0.5 text-sm text-bk-fg">
@@ -149,7 +149,7 @@ export function ProductMiniCard({
         {/* The E2E suite asserts on this label. It is also the honest
             description of what activating the tile does — it opens the
             options sheet, which is where the item is actually added. */}
-        <span className="sr-only">{blocked ? "Unavailable" : "Add to Cart"}</span>
+        <span className="sr-only">{blocked ? "Unavailable, see details" : "Add to Cart"}</span>
       </button>
 
       {/* Only when there is something to read. */}

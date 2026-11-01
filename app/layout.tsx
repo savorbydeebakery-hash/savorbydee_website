@@ -109,6 +109,7 @@ async function readShopStatus(): Promise<ShopStatus> {
       preordersWhenClosed: (data as { preorders_when_closed?: boolean | null } | null)?.preorders_when_closed !== false,
       dailyPickupMinutes: (data as { daily_pickup_notice_minutes?: number | null } | null)?.daily_pickup_notice_minutes ?? 10,
       dailyDeliveryHours: data?.global_notice_hours ?? 2,
+      preorderNoticeHours: data?.preorder_notice_hours ?? 24,
     };
   } catch {
     return { isOpen: true, dailyMenuOpen: true, nextOpenIso: null, reason: "open", preordersWhenClosed: true };

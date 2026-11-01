@@ -174,6 +174,10 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                     <strong>{bulkNotice} hours</strong>
                   </li>
                   <li>
+                    <strong>Basic cakes on the Preorder Menu</strong> &mdash;{" "}
+                    <strong>{preorderNotice} hours</strong>, not counting Sundays
+                  </li>
+                  <li>
                     <strong>Custom cakes</strong> &mdash; up to <strong>{customDays} days</strong>;
                     we will tell you if yours can be ready sooner
                   </li>
@@ -568,7 +572,8 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   slot at checkout, and your order is ready at that slot once it is paid,
                   subject to the notice periods: for Today&rsquo;s Menu, {dailyPickupMinutes} minutes for a
                   pickup and {dailyNotice} hours for a delivery (same day only),{" "}
-                  {preorderNotice} hours for the Preorder Menu, {bulkNotice} hours for more than{" "}
+                  {preorderNotice} hours for the Preorder Menu (for basic cakes, not counting
+                  Sundays), {bulkNotice} hours for more than{" "}
                   {bulkQty} of any one item, and up to {customDays} days for custom cakes.
                 </p>
               </Section>

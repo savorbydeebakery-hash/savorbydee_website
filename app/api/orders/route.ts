@@ -8,6 +8,7 @@ import {
   validateGuestInfo,
   validateDeliveryAddress,
   getRequiredNoticeHours,
+  waitHoursFor,
   formatNotice,
   validateSlotAgainstHours,
   validateDeliveryWindow,
@@ -242,6 +243,8 @@ export async function POST(request: NextRequest) {
     let requiredHours = getRequiredNoticeHours(items as CartItem[], noticeRules, fulfillment);
     // Which menu the order is from, once the items are found in the database.
     let orderKind: "daily" | "preorder" | null = null;
+    // The same notice as hours to wait from now (Sundays pause a Basic cake).
+    let waitHours = requiredHours;
 
     // --- Stock (AUTHORITATIVE) ---
     // Same reasoning as the notice window: the modal caps the quantity picker,
@@ -291,6 +294,9 @@ export async function POST(request: NextRequest) {
       // that menu. A line saved before lines said (no dailyMenu) takes the
       // item's own menu, Today's Menu first.
       const kindById = new Map<string, Set<"daily" | "preorder">>();
+      // The plain decoration chosen on all of an item's lines, or null. Must be
+      // one of the item's own choices, so a made-up one can't dodge the notice.
+      const decorationById = new Map<string, string | null>();
       const rowById = new Map((stockRows ?? []).map((row) => [row.id, row]));
       for (const line of items as CartItem[]) {
         const row = line.menuItemId ? rowById.get(line.menuItemId) : undefined;
@@ -309,6 +315,10 @@ export async function POST(request: NextRequest) {
           );
         }
         kindById.set(row.id, (kindById.get(row.id) ?? new Set()).add(kind));
+        const chosen = line.selections?.decoration;
+        const tiers = (row.decoration_tiers ?? []) as { label?: string }[];
+        const plain = chosen && chosen !== "Custom" && tiers.some((t) => t.label === chosen) ? chosen : null;
+        decorationById.set(row.id, decorationById.get(row.id) === null ? null : plain);
       }
       const isDaily = (id: string) => kindById.get(id)?.has("daily") ?? false;
 
@@ -323,11 +333,13 @@ export async function POST(request: NextRequest) {
           noticeHours: row.notice_hours ?? cat?.notice_hours ?? null,
           bulkThreshold: row.bulk_threshold ?? cat?.bulk_threshold ?? null,
           requiresCustomNotice: row.requires_custom_notice,
+          selections: { decoration: decorationById.get(row.id) ?? undefined },
         } as unknown as CartItem));
       });
 
       if (trustedLines.length > 0) {
         requiredHours = getRequiredNoticeHours(trustedLines, noticeRules, fulfillment);
+        waitHours = waitHoursFor(trustedLines, requiredHours);
 
         // One order, one collection slot. A basket spanning both menus cannot
         // honour either window.
@@ -455,13 +467,13 @@ export async function POST(request: NextRequest) {
     // 60s of slack. Someone who picks the earliest valid slot and submits a few
     // seconds later would otherwise be rejected for being marginally too early,
     // which is a false failure rather than an attempt to dodge the rule.
-    const earliestMs = Date.now() + requiredHours * 3_600_000 - 60_000;
+    const earliestMs = Date.now() + waitHours * 3_600_000 - 60_000;
 
     if (slotMs < earliestMs) {
       return NextResponse.json(
         {
-          error: `This order needs at least ${formatNotice(requiredHours)} notice. Please choose a later slot.`,
-          requiredNoticeHours: requiredHours,
+          error: `This order needs at least ${formatNotice(requiredHours)} notice${waitHours > requiredHours ? ", not counting Sundays" : ""}. Please choose a later slot.`,
+          requiredNoticeHours: waitHours,
           // Tells checkout to offer "Change date & time" on this error.
           field: "slot",
         },

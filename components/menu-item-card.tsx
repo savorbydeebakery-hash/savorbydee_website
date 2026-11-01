@@ -36,17 +36,14 @@ import { useCanOrder } from "@/components/shop/shop-status";
  * Add to Cart button below is the same action, already announced.
  */
 function OpenItem({
-  blocked,
   onOpen,
   className = "",
   children,
 }: {
-  blocked: boolean;
   onOpen: () => void;
   className?: string;
   children: React.ReactNode;
 }) {
-  if (blocked) return <>{children}</>;
   return (
     <button
       type="button"
@@ -121,7 +118,7 @@ export function MenuItemCard({
               cake menu is the thing they actually want to inspect. */}
           {/* The photo opens the item. Lens still works inside it: a
               press-and-hold zooms, a click opens. */}
-          <OpenItem blocked={blocked} onOpen={() => onSelect(item)}>
+          <OpenItem onOpen={() => onSelect(item)}>
             <Lens zoomFactor={1.7} lensSize={130} ariaLabel="Zoom into the photo">
               <SmartImage
                 src={item.image_url}
@@ -156,7 +153,7 @@ export function MenuItemCard({
           <p className="text-xs text-ink-soft">{categoryName}</p>
         )}
         <div className="flex items-start justify-between gap-3">
-          <OpenItem blocked={blocked} onOpen={() => onSelect(item)} className="min-w-0 flex-1">
+          <OpenItem onOpen={() => onSelect(item)} className="min-w-0 flex-1">
             <h3 className="font-display text-lg font-semibold leading-snug text-ink">
               {item.name}
             </h3>
@@ -202,14 +199,15 @@ export function MenuItemCard({
           <Button
             size="sm"
             variant={blocked ? "ghost" : "cocoa"}
-            disabled={blocked}
             className="w-full"
             data-item-id={item.id}
             data-item-name={item.name}
             data-item-price={item.base_price_cents}
             onClick={() => onSelect(item)}
           >
-            {blocked ? "Unavailable" : "Add to Cart"}
+            {/* Opens the pop-up either way; it has no Add to Cart while the
+                item can't be ordered, but its options can still be read. */}
+            {blocked ? "See details" : "Add to Cart"}
           </Button>
         </div>
       </div>

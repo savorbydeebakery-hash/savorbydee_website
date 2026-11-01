@@ -82,7 +82,18 @@ begin
 end;
 $$;
 
--- 4. Custom cake requests are sent on WhatsApp by the customer, like an
+-- 4. Weights typed in under the "Flat" price model never reached customers.
+--    The Bento's own 250gms price becomes a choice, or its only weight would
+--    be ½ kg at double the price.
+update public.menu_items
+set price_options = jsonb_build_array(jsonb_build_object('label', '250gms', 'price', base_price_cents)) || price_options
+where name = 'Butterscotch Bento 250gms' and price_model = 'flat';
+
+update public.menu_items
+set price_model = 'weight_tiers'
+where price_model = 'flat' and jsonb_array_length(price_options) > 0;
+
+-- 5. Custom cake requests are sent on WhatsApp by the customer, like an
 --    order's payment message. Their own number, so they can go to Dee rather
 --    than the shop; empty means the shop's WhatsApp number.
 alter table public.site_settings

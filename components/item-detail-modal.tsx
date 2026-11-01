@@ -85,6 +85,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
   // quoted individually, so pretending a flat delta covers it would either
   // undercharge the bakery or overcharge the customer.
   const wantsCustomDecoration = selections.decoration === "Custom";
+  const hasBasicChoice = (item?.decoration_tiers ?? []).some((d) => d.label !== "Custom");
 
   const maxQuantity = tracked
     ? Math.min(MAX_LINE_QUANTITY, Math.max(item.min_order_qty, stock))
@@ -219,8 +220,10 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
           </div>
         )}
 
-        {!unavailable && canOrder && (
-          <>
+        {/* The choices show even when it can't be ordered right now (closed,
+            sold out): hiding them made it look as if the weights and toppings
+            set in the admin were missing (client, 2026-11-01). */}
+        <>
             {/* Weight tiers (for weight_tiers price model) */}
             {item.price_model === "weight_tiers" && item.price_options.length > 0 && (
               <SelectionGroup
@@ -320,9 +323,20 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
               </p>
             )}
 
+            {/* A cake with a choice of decoration: Basic and Custom take different
+                notice (client, 2026-11-01). Custom has its own box below. */}
+            {!item.daily_menu && hasBasicChoice && !wantsCustomDecoration && (
+              <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
+                <p className="text-sm text-ink-soft">
+                  ⏰ <strong>Basic cake:</strong> {shop.preorderNoticeHours ?? 24} hours&rsquo; notice, not
+                  counting Sundays. <strong>Custom cake:</strong> up to 5 days&rsquo; notice.
+                </p>
+              </div>
+            )}
+
             {/* Custom notice warning. Preorders only: from Today's Menu an item
                 on both menus is ready today. */}
-            {item.requires_custom_notice && !item.daily_menu && (
+            {item.requires_custom_notice && !item.daily_menu && !hasBasicChoice && (
               <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
                 <p className="text-sm text-ink-soft">
                   ⏰ This item needs up to 5 days&rsquo; notice. We will be in touch if it can be ready sooner.
@@ -349,6 +363,10 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
               </div>
             )}
 
+        </>
+
+        {!unavailable && canOrder && (
+          <>
             {addError && (
               <div
                 role="alert"

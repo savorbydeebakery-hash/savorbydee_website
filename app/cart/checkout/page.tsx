@@ -9,6 +9,7 @@ import {
   validateGuestInfo,
   validateDeliveryAddress,
   getRequiredNoticeHours,
+  waitHoursFor,
   explainRequiredNotice,
   getEarliestValidSlot,
   cartMenuKind,
@@ -206,7 +207,10 @@ export default function CheckoutPage() {
   const effectiveFulfillment = deliveryEnabled ? fulfillment : "pickup";
 
   // Today's Menu: 10 minutes to collect, 2 hours to deliver (settings).
-  const noticeHours = getRequiredNoticeHours(items, noticeRules, effectiveFulfillment);
+  const statedNoticeHours = getRequiredNoticeHours(items, noticeRules, effectiveFulfillment);
+  // The same notice as hours to wait from now: Sundays pause a Basic cake.
+  const noticeHours = waitHoursFor(items, statedNoticeHours);
+  const sundayPause = noticeHours > statedNoticeHours;
   const isDailyCart = cartMenuKind(items) === "daily";
   const todayKey = istDateKey(new Date());
   // Cash at pickup: offered only where the order API will accept it.
@@ -290,7 +294,7 @@ export default function CheckoutPage() {
 
     if (slot.getTime() < Date.now() + noticeHours * 3_600_000 - 60_000) {
       slotError(
-        `This order needs at least ${formatNotice(noticeHours)} notice. Please choose a later slot.`,
+        `This order needs at least ${formatNotice(statedNoticeHours)} notice${sundayPause ? ", not counting Sundays" : ""}. Please choose a later slot.`,
         noticeHours
       );
       return;
@@ -585,7 +589,8 @@ export default function CheckoutPage() {
                   </>
                 ) : (
                   <>
-                    These are made fresh to order, so this one needs {notice.hours}h notice.
+                    These are made fresh to order, so this one needs {notice.hours}h notice
+                    {sundayPause ? ", not counting Sundays" : ""}.
                   </>
                 )}
               </p>

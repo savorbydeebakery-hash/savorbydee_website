@@ -7,6 +7,7 @@ import type { CartItem } from "./types";
 import { isValidPhone } from "@/lib/customers/phone";
 import {
   IST_OFFSET,
+  IST_OFFSET_MINUTES,
   istDateKey,
   istDayName,
   istMinutesOfDay,
@@ -127,6 +128,46 @@ export function formatNotice(hours: number): string {
   return `${h} hour${h === 1 ? "" : "s"}${m ? ` ${m} minutes` : ""}`;
 }
 
+/**
+ * A preorder cake with a plain decoration chosen. The client's rule
+ * (2026-11-01): a Basic cake takes the Preorder Menu's 24 hours, not counting
+ * Sundays; only a Custom one needs the 5 days, and choosing Custom goes to the
+ * custom cake enquiry rather than the cart.
+ */
+export function isBasicCakeLine(item: Pick<CartItem, "dailyMenu" | "selections">): boolean {
+  const decoration = item.selections?.decoration;
+  return item.dailyMenu === false && Boolean(decoration) && decoration !== "Custom";
+}
+
+/**
+ * How long from `from` until `hours` of notice have passed, when the clock
+ * stops for every Sunday (IST). Ordered Saturday 11am, 24 hours is Monday 11am;
+ * ordered Sunday 11am, it starts on Monday and ends as Tuesday begins.
+ */
+export function hoursPausingSundays(hours: number, from: Date = new Date()): number {
+  const DAY_MS = 86_400_000;
+  const offsetMs = IST_OFFSET_MINUTES * 60_000;
+  const start = from.getTime() + offsetMs; // IST wall clock, as if UTC
+  let at = start;
+  let left = hours * 3_600_000;
+  while (left > 0) {
+    const nextMidnight = (Math.floor(at / DAY_MS) + 1) * DAY_MS;
+    if (new Date(at).getUTCDay() !== 0) {
+      const used = Math.min(left, nextMidnight - at);
+      left -= used;
+      at += used;
+    } else {
+      at = nextMidnight;
+    }
+  }
+  return (at - start) / 3_600_000;
+}
+
+/** The wait this basket really needs from now, Sundays included. */
+export function waitHoursFor(items: CartItem[], hours: number, from: Date = new Date()): number {
+  return items.some(isBasicCakeLine) ? hoursPausingSundays(hours, from) : hours;
+}
+
 export function getRequiredNoticeHours(
   items: CartItem[],
   rules: SiteNoticeRules = DEFAULT_NOTICE_RULES,
@@ -151,7 +192,9 @@ export function getRequiredNoticeHours(
 
     // Preorders only: Today's Menu is baked already, and an item on both
     // menus can be collected today from Today's Menu (migration 00056).
-    if (item.requiresCustomNotice && isPreorder) notices.push(rules.customCakeNoticeDays * 24);
+    if (item.requiresCustomNotice && isPreorder && !isBasicCakeLine(item)) {
+      notices.push(rules.customCakeNoticeDays * 24);
+    }
   }
 
   return Math.max(...notices);
@@ -204,7 +247,7 @@ export function explainRequiredNotice(
     const threshold = item.bulkThreshold ?? rules.bulkThreshold;
     if (item.quantity > threshold) consider(rules.bulkNoticeHours, "bulk", item.name);
 
-    if (item.requiresCustomNotice && isPreorder) {
+    if (item.requiresCustomNotice && isPreorder && !isBasicCakeLine(item)) {
       consider(rules.customCakeNoticeDays * 24, "custom", item.name);
     }
   }

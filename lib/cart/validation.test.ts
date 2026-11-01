@@ -14,6 +14,8 @@ import {
   cartMenuKind,
   cartIsMixed,
   explainRequiredNotice,
+  hoursPausingSundays,
+  waitHoursFor,
 } from "./validation";
 import type { CartItem } from "./types";
 import { istInputToInstant, istDayName, instantToIstInput } from "@/lib/time/ist";
@@ -500,5 +502,31 @@ describe("explainRequiredNotice", () => {
         getRequiredNoticeHours(cart, rules)
       );
     }
+  });
+});
+
+describe("Basic and Custom cakes on the Preorder Menu (client, 2026-11-01)", () => {
+  const cake = (decoration?: string, over: Partial<CartItem> = {}) =>
+    makeItem({ dailyMenu: false, requiresCustomNotice: true, selections: { decoration }, ...over });
+  const at = (iso: string) => new Date(iso + "+05:30");
+
+  it("Basic takes the Preorder Menu's 24 hours, Custom or none the 5 days", () => {
+    expect(getRequiredNoticeHours([cake("Basic")], DEFAULT_NOTICE_RULES)).toBe(24);
+    expect(getRequiredNoticeHours([cake("Custom")], DEFAULT_NOTICE_RULES)).toBe(120);
+    expect(getRequiredNoticeHours([cake()], DEFAULT_NOTICE_RULES)).toBe(120);
+    expect(explainRequiredNotice([cake("Basic")], DEFAULT_NOTICE_RULES).cause).toBe("menu");
+  });
+
+  it("the 24 hours stop for Sunday", () => {
+    expect(hoursPausingSundays(24, at("2026-11-06T15:00:00"))).toBe(24); // Fri 3pm -> Sat 3pm
+    expect(hoursPausingSundays(24, at("2026-11-07T11:00:00"))).toBe(48); // Sat 11am -> Mon 11am
+    expect(hoursPausingSundays(24, at("2026-11-08T11:00:00"))).toBe(37); // Sun 11am -> Tue 00:00
+  });
+
+  it("the pause is for Basic cakes only", () => {
+    const sat = at("2026-11-07T11:00:00");
+    expect(waitHoursFor([cake("Basic")], 24, sat)).toBe(48);
+    expect(waitHoursFor([makeItem({ dailyMenu: false })], 24, sat)).toBe(24);
+    expect(waitHoursFor([makeItem({ dailyMenu: true, selections: { decoration: "Basic" } })], 2, sat)).toBe(2);
   });
 });

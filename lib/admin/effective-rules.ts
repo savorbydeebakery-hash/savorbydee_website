@@ -26,6 +26,8 @@ export interface NoticeInputs {
   /** Custom cakes are quoted, and their window is a floor under everything. */
   requiresCustomNotice?: boolean;
   customCakeNoticeDays: number;
+  /** Offers a Basic decoration: Basic takes the menu's notice, Custom the days. */
+  hasBasicDecoration?: boolean;
 }
 
 export interface BulkInputs {
@@ -68,6 +70,14 @@ export function resolveNotice(input: NoticeInputs): ResolvedRule {
     from = input.dailyMenu
       ? "the default for Today's Menu deliveries; pickups are ready 10 minutes after ordering"
       : `the default for ${menuName}`;
+  }
+
+  if (input.hasBasicDecoration && !input.dailyMenu) {
+    return {
+      value,
+      source,
+      explanation: `Basic: ${plural(value, "hour", "hours")}, not counting Sundays. Custom: up to ${plural(input.customCakeNoticeDays, "day", "days")}, by enquiry`,
+    };
   }
 
   // A custom cake's window is a floor, not an override: it applies only when
