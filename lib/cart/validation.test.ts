@@ -523,10 +523,18 @@ describe("Basic and Custom cakes on the Preorder Menu (client, 2026-11-01)", () 
     expect(hoursPausingSundays(24, at("2026-11-08T11:00:00"))).toBe(37); // Sun 11am -> Tue 00:00
   });
 
-  it("the pause is for Basic cakes only", () => {
+  it("the pause is for every preorder, and never Today's Menu", () => {
     const sat = at("2026-11-07T11:00:00");
     expect(waitHoursFor([cake("Basic")], 24, sat)).toBe(48);
-    expect(waitHoursFor([makeItem({ dailyMenu: false })], 24, sat)).toBe(24);
+    expect(waitHoursFor([makeItem({ dailyMenu: false })], 24, sat)).toBe(48);
     expect(waitHoursFor([makeItem({ dailyMenu: true, selections: { decoration: "Basic" } })], 2, sat)).toBe(2);
+  });
+
+  it("an order placed any time on a Sunday waits until Tuesday begins", () => {
+    const tuesdayMidnight = Date.parse("2026-11-10T00:00:00+05:30");
+    for (const placed of ["2026-11-08T00:30:00", "2026-11-08T11:00:00", "2026-11-08T23:30:00"]) {
+      const from = at(placed);
+      expect(from.getTime() + hoursPausingSundays(24, from) * 3_600_000).toBe(tuesdayMidnight);
+    }
   });
 });

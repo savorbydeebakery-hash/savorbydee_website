@@ -329,7 +329,8 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
               <div className="rounded-xl bg-yellow-soft border border-yellow/20 p-3">
                 <p className="text-sm text-ink-soft">
                   ⏰ <strong>Basic cake:</strong> {shop.preorderNoticeHours ?? 24} hours&rsquo; notice, not
-                  counting Sundays. <strong>Custom cake:</strong> up to 5 days&rsquo; notice.
+                  counting Sundays (ordered on a Sunday, it&rsquo;s ready from Tuesday).{" "}
+                  <strong>Custom cake:</strong> up to 5 days&rsquo; notice.
                 </p>
               </div>
             )}

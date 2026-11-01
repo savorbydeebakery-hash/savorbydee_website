@@ -82,8 +82,9 @@ export default async function MenuPage({
           <h1 className="text-h1 text-shell">Preorder Menu</h1>
           <p className="mx-auto mt-4 max-w-xl text-[#D8CCC0]">
             Every item is made fresh when you order. Please allow at least{" "}
-            {settings?.preorder_notice_hours ?? 24} hours (for a basic cake, Sundays don&rsquo;t
-            count). Custom cakes need up to {settings?.custom_cake_notice_days ?? 5} days.
+            {settings?.preorder_notice_hours ?? 24} hours. Sundays don&rsquo;t count, so an order placed
+            on a Sunday is ready from Tuesday. Custom cakes need up to{" "}
+            {settings?.custom_cake_notice_days ?? 5} days.
           </p>
         </div>
       </section>

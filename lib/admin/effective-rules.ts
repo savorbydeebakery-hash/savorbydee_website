@@ -69,7 +69,7 @@ export function resolveNotice(input: NoticeInputs): ResolvedRule {
     source = "menu";
     from = input.dailyMenu
       ? "the default for Today's Menu deliveries; pickups are ready 10 minutes after ordering"
-      : `the default for ${menuName}`;
+      : `the default for ${menuName}, not counting Sundays`;
   }
 
   if (input.hasBasicDecoration && !input.dailyMenu) {

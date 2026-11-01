@@ -208,7 +208,7 @@ export default function CheckoutPage() {
 
   // Today's Menu: 10 minutes to collect, 2 hours to deliver (settings).
   const statedNoticeHours = getRequiredNoticeHours(items, noticeRules, effectiveFulfillment);
-  // The same notice as hours to wait from now: Sundays pause a Basic cake.
+  // The same notice as hours to wait from now: Sundays pause preorders.
   const noticeHours = waitHoursFor(items, statedNoticeHours);
   const sundayPause = noticeHours > statedNoticeHours;
   const isDailyCart = cartMenuKind(items) === "daily";

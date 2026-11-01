@@ -166,16 +166,13 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                     order (traffic and the unexpected can take that long)
                   </li>
                   <li>
-                    <strong>Preorder Menu</strong> &mdash; at least{" "}
-                    <strong>{preorderNotice} hours</strong>
+                    <strong>Preorder Menu, including basic cakes</strong> &mdash; at least{" "}
+                    <strong>{preorderNotice} hours</strong>, not counting Sundays. An order placed on
+                    a Sunday is ready from Tuesday
                   </li>
                   <li>
                     <strong>More than {bulkQty} of any one item</strong> &mdash; at least{" "}
                     <strong>{bulkNotice} hours</strong>
-                  </li>
-                  <li>
-                    <strong>Basic cakes on the Preorder Menu</strong> &mdash;{" "}
-                    <strong>{preorderNotice} hours</strong>, not counting Sundays
                   </li>
                   <li>
                     <strong>Custom cakes</strong> &mdash; up to <strong>{customDays} days</strong>;
@@ -572,8 +569,8 @@ export default async function PolicyPage({ params }: { params: Promise<{ slug: s
                   slot at checkout, and your order is ready at that slot once it is paid,
                   subject to the notice periods: for Today&rsquo;s Menu, {dailyPickupMinutes} minutes for a
                   pickup and {dailyNotice} hours for a delivery (same day only),{" "}
-                  {preorderNotice} hours for the Preorder Menu (for basic cakes, not counting
-                  Sundays), {bulkNotice} hours for more than{" "}
+                  {preorderNotice} hours for the Preorder Menu (not counting Sundays, so an order
+                  placed on a Sunday is ready from Tuesday), {bulkNotice} hours for more than{" "}
                   {bulkQty} of any one item, and up to {customDays} days for custom cakes.
                 </p>
               </Section>

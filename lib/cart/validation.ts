@@ -130,9 +130,9 @@ export function formatNotice(hours: number): string {
 
 /**
  * A preorder cake with a plain decoration chosen. The client's rule
- * (2026-11-01): a Basic cake takes the Preorder Menu's 24 hours, not counting
- * Sundays; only a Custom one needs the 5 days, and choosing Custom goes to the
- * custom cake enquiry rather than the cart.
+ * (2026-11-01): a Basic cake takes the Preorder Menu's 24 hours; only a Custom
+ * one needs the 5 days, and choosing Custom goes to the custom cake enquiry
+ * rather than the cart.
  */
 export function isBasicCakeLine(item: Pick<CartItem, "dailyMenu" | "selections">): boolean {
   const decoration = item.selections?.decoration;
@@ -141,8 +141,9 @@ export function isBasicCakeLine(item: Pick<CartItem, "dailyMenu" | "selections">
 
 /**
  * How long from `from` until `hours` of notice have passed, when the clock
- * stops for every Sunday (IST). Ordered Saturday 11am, 24 hours is Monday 11am;
- * ordered Sunday 11am, it starts on Monday and ends as Tuesday begins.
+ * stops for every Sunday (IST): it isn't a working day (client, 2026-11-01).
+ * Ordered Saturday 11am, 24 hours is Monday 11am; ordered on a Sunday, it starts
+ * on Monday and ends as Tuesday begins, so the order is ready from Tuesday.
  */
 export function hoursPausingSundays(hours: number, from: Date = new Date()): number {
   const DAY_MS = 86_400_000;
@@ -163,9 +164,9 @@ export function hoursPausingSundays(hours: number, from: Date = new Date()): num
   return (at - start) / 3_600_000;
 }
 
-/** The wait this basket really needs from now, Sundays included. */
+/** The wait this basket really needs from now. Sundays pause preorders only. */
 export function waitHoursFor(items: CartItem[], hours: number, from: Date = new Date()): number {
-  return items.some(isBasicCakeLine) ? hoursPausingSundays(hours, from) : hours;
+  return items.some((i) => menuKindOf(i) === "preorder") ? hoursPausingSundays(hours, from) : hours;
 }
 
 export function getRequiredNoticeHours(

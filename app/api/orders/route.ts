@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
     let requiredHours = getRequiredNoticeHours(items as CartItem[], noticeRules, fulfillment);
     // Which menu the order is from, once the items are found in the database.
     let orderKind: "daily" | "preorder" | null = null;
-    // The same notice as hours to wait from now (Sundays pause a Basic cake).
+    // The same notice as hours to wait from now (Sundays pause preorders).
     let waitHours = requiredHours;
 
     // --- Stock (AUTHORITATIVE) ---
