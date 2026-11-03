@@ -5,7 +5,19 @@ import dynamic from "next/dynamic";
 
 // Only for a first visit: the player's engine is a 462 KB download, half of
 // everything on the homepage, and it used to load on every page for everyone.
-const CakeLottie = dynamic(() => import("@/components/kinetic/cake-lottie").then((m) => m.CakeLottie), { ssr: false });
+const loadCake = () => import("@/components/kinetic/cake-lottie").then((m) => m.CakeLottie);
+const CakeLottie = dynamic(loadCake, { ssr: false });
+
+// A first visit starts on the cake's code the moment this file runs, before the
+// page has finished starting up. Waiting for that could leave the curtain up its
+// whole 1.4s with no cake on it, even on Wi-Fi (measured 2026-11-03).
+if (typeof window !== "undefined") {
+  try {
+    if (sessionStorage.getItem("savor-splash") !== "1") void loadCake();
+  } catch {
+    /* blocked storage: the effect below still loads it */
+  }
+}
 
 /**
  * The first thing anyone sees: the cake, and then the page behind it.

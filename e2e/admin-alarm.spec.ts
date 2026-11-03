@@ -9,8 +9,8 @@ import { fillSignIn } from "./helpers/sign-in";
  * NOTE: Requires seeded admin credentials via env ADMIN_EMAIL / ADMIN_PASSWORD.
  */
 test("admin dashboard alarm fires on new order", async ({ browser }) => {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "";
 
   // Admin context
   const adminContext = await browser.newContext();

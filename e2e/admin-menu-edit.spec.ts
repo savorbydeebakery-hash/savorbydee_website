@@ -16,8 +16,8 @@ import { fillSignIn } from "./helpers/sign-in";
  * writes to production has to clean up after itself.
  */
 test("admin price edit reflects on storefront", async ({ page }) => {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "";
 
   await page.goto("/login");
   await fillSignIn(page, adminEmail, adminPassword);

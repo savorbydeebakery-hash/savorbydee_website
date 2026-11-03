@@ -23,8 +23,8 @@ import { fillSignIn } from "./helpers/sign-in";
  * changes.
  */
 test("menu item option rows accept typing", async ({ page }) => {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
+  const adminEmail = process.env.ADMIN_EMAIL ?? "";
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "";
 
   await page.goto("/login");
   await fillSignIn(page, adminEmail, adminPassword);
