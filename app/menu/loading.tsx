@@ -9,7 +9,8 @@ import { FlippingBook } from "@/components/flipping-book";
  */
 export default function Loading() {
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
+    // A full screen tall, so the footer isn't in view until the page pushes it off.
+    <div className="flex min-h-[100svh] items-center justify-center">
       <FlippingBook />
     </div>
   );

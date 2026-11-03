@@ -1,6 +1,11 @@
 "use client";
 
-import { CakeLottie } from "@/components/kinetic/cake-lottie";
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
+// Loaded only if the wait lasts long enough to show it (see the effect below).
+// The player's engine is a 462 KB download, half of everything on the homepage.
+const CakeLottie = dynamic(() => import("@/components/kinetic/cake-lottie").then((m) => m.CakeLottie), { ssr: false });
 
 /**
  * The cake loader, with the room around it moving too.
@@ -34,13 +39,23 @@ export function CakeLoader({
   message?: string;
   className?: string;
 }) {
+  // The same delay as the fade-in in globals.css: a page that arrives quickly
+  // never shows the cake, so it shouldn't download it either.
+  const [showCake, setShowCake] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setShowCake(true), 350);
+    return () => clearTimeout(id);
+  }, []);
+
   return (
     <div
       role="status"
       aria-live="polite"
       // cake-loader: shown after a short delay (globals.css), so fast loads
-      // never flash it.
-      className={`cake-loader flex min-h-[50vh] flex-col items-center justify-center ${className}`}
+      // never flash it. A full screen tall, because the footer is drawn below
+      // this: at half a screen it sat in view until the page arrived and pushed
+      // it off, the biggest jump on the site (layout shift 0.35, 2026-11-03).
+      className={`cake-loader flex min-h-[100svh] flex-col items-center justify-center ${className}`}
     >
       <div className="relative flex items-center justify-center">
         {/* Warm glow. Sits behind the cake and breathes. */}
@@ -58,7 +73,8 @@ export function CakeLoader({
           />
         ))}
 
-        <CakeLottie className={`relative ${size}`} />
+        {/* The box keeps its size until the cake arrives. */}
+        <div className={`relative ${size}`}>{showCake && <CakeLottie className="h-full w-full" />}</div>
       </div>
 
       {/* No opacity-0 here: the delayed fade-in is applied by the stylesheet

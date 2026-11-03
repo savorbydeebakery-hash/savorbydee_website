@@ -43,7 +43,11 @@ export function SmartImage({
    */
   fit?: "cover" | "contain";
 }) {
-  const [loaded, setLoaded] = useState(false);
+  // Priority photos are the first thing on screen, and they usually finish
+  // before the page's code runs: holding them hidden until then is what made
+  // the largest photo on Today's Menu take seconds longer to appear. No fade for
+  // them; everything further down still fades in.
+  const [loaded, setLoaded] = useState(priority);
 
   if (!src) {
     return (

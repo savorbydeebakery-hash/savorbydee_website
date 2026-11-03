@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CakeLottie } from "@/components/kinetic/cake-lottie";
+import dynamic from "next/dynamic";
+
+// Only for a first visit: the player's engine is a 462 KB download, half of
+// everything on the homepage, and it used to load on every page for everyone.
+const CakeLottie = dynamic(() => import("@/components/kinetic/cake-lottie").then((m) => m.CakeLottie), { ssr: false });
 
 /**
  * The first thing anyone sees: the cake, and then the page behind it.
@@ -41,6 +45,7 @@ export function SplashLoader() {
   // client first would mean either a hydration mismatch or a frame of page
   // with no curtain over it.
   const [state, setState] = useState<"hidden" | "holding" | "lifting">("holding");
+  const [showCake, setShowCake] = useState(false);
 
   useEffect(() => {
     let seen = false;
@@ -63,9 +68,11 @@ export function SplashLoader() {
       /* not worth failing the splash over */
     }
 
+    const cake = setTimeout(() => setShowCake(true), 0);
     const lift = setTimeout(() => setState("lifting"), HOLD_MS);
     const done = setTimeout(() => setState("hidden"), HOLD_MS + LIFT_MS);
     return () => {
+      clearTimeout(cake);
       clearTimeout(lift);
       clearTimeout(done);
     };
@@ -85,7 +92,7 @@ export function SplashLoader() {
           aria-hidden="true"
           className="cake-loader-glow absolute size-48 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bk-pink)_75%,transparent),transparent_70%)] opacity-70 blur-xl"
         />
-        <CakeLottie className="relative h-40 w-40" />
+        <div className="relative h-40 w-40">{showCake && <CakeLottie className="h-full w-full" />}</div>
       </div>
 
       <p className="splash-wordmark mt-2 text-sm font-medium uppercase tracking-[0.3em] text-bk-fg">

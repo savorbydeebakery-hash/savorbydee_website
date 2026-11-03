@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BTS_ASPECT } from "@/components/home/bts-aspect";
 
 /**
@@ -20,6 +20,12 @@ import { BTS_ASPECT } from "@/components/home/bts-aspect";
  * never start. The explicit play() covers browsers that decline the autoPlay
  * attribute on first paint (iOS in Low Power Mode, some Android WebViews); if
  * that is refused too, the poster stays up, which is the same as before.
+ *
+ * WHY THEY WAIT UNTIL THEY'RE NEAR THE SCREEN
+ * With autoPlay and preload="auto" every visitor downloaded every clip the moment
+ * the homepage opened, whether or not they ever scrolled that far: the biggest
+ * cost on the page on a phone connection. The file is now attached a little
+ * before the clip scrolls into view and it plays while it is on screen.
  */
 export function BtsClip({
   videoUrl,
@@ -31,24 +37,53 @@ export function BtsClip({
   label: string;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    ref.current?.play().catch(() => {});
-  }, []);
+    const video = ref.current;
+    if (!video) return;
+    if (typeof IntersectionObserver === "undefined") {
+      const id = setTimeout(() => setSrc(videoUrl), 0);
+      return () => clearTimeout(id);
+    }
+    const near = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setSrc(videoUrl);
+      },
+      { rootMargin: "400px" }
+    );
+    const onScreen = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) video.play().catch(() => {});
+      else video.pause();
+    });
+    near.observe(video);
+    onScreen.observe(video);
+    return () => {
+      near.disconnect();
+      onScreen.disconnect();
+    };
+  }, [videoUrl]);
+
+  // A source added after the element exists needs an explicit load and play.
+  useEffect(() => {
+    const video = ref.current;
+    if (!src || !video) return;
+    video.load();
+    video.play().catch(() => {});
+  }, [src]);
 
   return (
     <video
       ref={ref}
-      autoPlay
       loop
       muted
       playsInline
-      preload="auto"
+      preload="none"
       poster={posterUrl ?? undefined}
       aria-label={label}
       className={`${BTS_ASPECT} w-full rounded-[var(--bk-r-block)] bg-bk-bg-3 object-cover`}
     >
-      <source src={videoUrl} type="video/mp4" />
+      {src && <source src={src} type="video/mp4" />}
     </video>
   );
 }
