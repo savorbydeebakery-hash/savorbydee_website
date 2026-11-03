@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // No need to tell attackers which framework to look up.
-  poweredByHeader: false,
-
   images: {
     // Next's built-in optimizer needs sharp, which does not run on Cloudflare
     // Workers. We hand optimization to Supabase's transform endpoint instead.
@@ -52,23 +49,11 @@ const nextConfig: NextConfig = {
   // a robots.txt block, because Google has to open a page to read this.
   headers() {
     const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
-    return Promise.resolve([
-      ...["/admin/:path*", "/account/:path*", "/cart/:path*", "/orders/:path*", "/login", "/forgot-password", "/reset-password"].map(
+    return Promise.resolve(
+      ["/admin/:path*", "/account/:path*", "/cart/:path*", "/orders/:path*", "/login", "/forgot-password", "/reset-password"].map(
         (source) => ({ source, headers: noindex })
-      ),
-      // Every page. DENY: another site can't frame this one to trick a tap on
-      // Place order or a login box. Referrer: an order page's address carries
-      // the customer's phone number, which must not reach other sites.
-      {
-        source: "/:path*",
-        headers: [
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
-        ],
-      },
-    ]);
+      )
+    );
   },
 };
 

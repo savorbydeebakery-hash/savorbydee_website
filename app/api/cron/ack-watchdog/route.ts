@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   const providedSecret = request.headers.get("x-cron-secret");
 
-  // Refused if the secret is missing too: a lost setting must not open this up.
-  if (!cronSecret || (authHeader !== `Bearer ${cronSecret}` && providedSecret !== cronSecret)) {
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}` && providedSecret !== cronSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

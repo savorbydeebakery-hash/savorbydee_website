@@ -12,14 +12,14 @@
 The test fallbacks use `admin@savorbakery.in` / `Savor@2026` (then I changed to `L2lir5kVjYCadOWm`). Neither is correct.
 
 **Correct credentials (confirmed by user):**
-- Email: `[admin email removed]` (primary admin)
-- Alt: `[admin email removed]`
-- Password: `[removed]` for both
+- Email: `cloudlyconfusing@gmail.com` (primary admin)
+- Alt: `savorbydeebakery@gmail.com`
+- Password: `admin123` for both
 
 **Fix:** Update both test files:
 ```ts
-const adminEmail = process.env.ADMIN_EMAIL ?? "[admin email removed]";
-const adminPassword = process.env.ADMIN_PASSWORD ?? "[removed]";
+const adminEmail = process.env.ADMIN_EMAIL ?? "cloudlyconfusing@gmail.com";
+const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123";
 ```
 
 Also update the login wait pattern. Current code uses `Promise.all([waitForURL, click])` which is correct, but ensure the `waitForURL` pattern matches `/\/admin/` (the login form redirects to `/admin` by default, middleware then allows access).
@@ -93,8 +93,8 @@ If token found: deploy. If not: user must provide it or run `wrangler login`.
 5. **Run 9 E2E tests** with:
    ```
    $env:E2E_BASE_URL="http://127.0.0.1:8787"
-   $env:ADMIN_EMAIL="[admin email removed]"
-   $env:ADMIN_PASSWORD="[removed]"
+   $env:ADMIN_EMAIL="cloudlyconfusing@gmail.com"
+   $env:ADMIN_PASSWORD="admin123"
    npx playwright test
    ```
 6. **Iterate** until 9/9 pass (check traces/screenshots for remaining failures)
