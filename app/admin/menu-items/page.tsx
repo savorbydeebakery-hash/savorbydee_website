@@ -489,6 +489,10 @@ function MenuItemForm({
   // Base price is edited in rupees. It was labelled "(paise)" and holding
   // 90000 for a ₹900 cake, so typing the number you meant priced it at ₹9.
   const [priceText, setPriceText] = useState(() => paiseToRupeeInput(item?.base_price_cents ?? 0));
+  // Text while typing, a number on save. It was `parseInt(...) || 1` on every
+  // keystroke, so emptying the box put the 1 straight back and typing 4 gave 14
+  // or 41: on a phone a minimum couldn't be set at all (client, 2026-11-02).
+  const [minQtyText, setMinQtyText] = useState(() => String(item?.min_order_qty ?? 1));
 
   const category = categories.find((c) => c.id === form.category_id) ?? null;
   const notice = resolveNotice({
@@ -535,6 +539,7 @@ function MenuItemForm({
       ...form,
       preorder_menu: onPreorder,
       base_price_cents: rupeeInputToPaise(priceText) ?? 0,
+      min_order_qty: Math.max(1, Number.parseInt(minQtyText, 10) || 1),
       price_options: fromOptionDrafts(priceRows, "price"),
       // Weights only reach customers under this price model; "Flat" with
       // weights typed in hid them with no warning (client, 2026-11-01).
@@ -613,7 +618,7 @@ function MenuItemForm({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Input label="Min Order Qty" type="number" value={form.min_order_qty ?? 1} onChange={(e) => setForm({ ...form, min_order_qty: parseInt(e.target.value) || 1 })} />
+          <Input label="Min Order Qty" type="number" min={1} inputMode="numeric" value={minQtyText} onChange={(e) => setMinQtyText(e.target.value)} />
           <Input label="Sort Order" type="number" value={form.sort_order ?? 0} onChange={(e) => setForm({ ...form, sort_order: parseInt(e.target.value) || 0 })} />
         </div>
 
