@@ -172,7 +172,7 @@ export function HeroCard({
                       : "A cheese-topped savoury bun, a chocolate-glazed doughnut and a red velvet cupcake, photographed mid-air with their ingredients scattered around them"
                   }
                   fill
-                  priority
+                  preload
                   sizes="(max-width: 1024px) 100vw, 720px"
                   // This is a /public asset, and the custom Supabase loader
                   // hands anything that is not a Supabase object URL straight

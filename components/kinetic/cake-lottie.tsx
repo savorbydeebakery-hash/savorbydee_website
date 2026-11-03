@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { DotLottieReact, setWasmUrl } from "@lottiefiles/dotlottie-react";
+
+// From this site rather than a CDN: no extra connection, and app/layout.tsx can
+// start downloading it early for a first visit. A test keeps it in step with the
+// installed player (lib/site/cake-assets.test.ts).
+setWasmUrl("/dotlottie-player.wasm");
 
 /**
  * The cake animation, downloaded once per visit and shared by every loader.

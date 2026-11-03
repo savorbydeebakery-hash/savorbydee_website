@@ -149,10 +149,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             had loaded and read sessionStorage — up to a second on a phone —
             so a visitor who had already seen it got the cake again on every
             reload and new tab: "the starting animation loads twice" (client,
-            2026-11-01). Marking <html> here lets globals.css hide it at once. */}
+            2026-11-01). Marking <html> here lets globals.css hide it at once.
+
+            A first visit starts downloading the cake here instead. The splash
+            is only up for 1.4s after the page's code has run, so waiting until
+            then meant a 4G visitor never saw the cake (measured 2026-11-03).
+            Low priority, so it doesn't hold up the page behind the curtain. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(sessionStorage.getItem("savor-splash")==="1")document.documentElement.setAttribute("data-splash-seen","")}catch(e){}`,
+            __html: `try{if(sessionStorage.getItem("savor-splash")==="1")document.documentElement.setAttribute("data-splash-seen","");else["/Cake.lottie","/dotlottie-player.wasm"].forEach(function(h){var l=document.createElement("link");l.rel="preload";l.as="fetch";l.crossOrigin="anonymous";l.fetchPriority="low";l.href=h;document.head.appendChild(l)})}catch(e){}`,
           }}
         />
       </head>

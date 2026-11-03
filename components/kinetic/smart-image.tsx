@@ -78,7 +78,7 @@ export function SmartImage({
         alt={alt}
         fill
         sizes={sizes}
-        priority={priority}
+        preload={priority}
         onLoad={() => setLoaded(true)}
         className={cn(
           fit === "contain" ? "object-contain" : "object-cover",
