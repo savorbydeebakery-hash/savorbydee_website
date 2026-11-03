@@ -52,6 +52,15 @@ test.describe("search engines", () => {
     }
   });
 
+  test("www goes to the same page on the main address", async ({ request, baseURL }) => {
+    test.skip(!baseURL?.includes("savorbydee.in"), "Only the live site has a www address.");
+    for (const [path, target] of [["/", "https://savorbydee.in/"], ["/about", "https://savorbydee.in/about"], ["/menu/cookies", "https://savorbydee.in/menu/cookies"]]) {
+      const res = await request.get(`https://www.savorbydee.in${path}`, { maxRedirects: 0 });
+      expect(res.status(), path).toBe(308);
+      expect(res.headers().location, path).toBe(target);
+    }
+  });
+
   test("the homepage describes the bakery", async ({ request }) => {
     const html = await (await request.get("/")).text();
     expect(html).toContain('"@type":"Bakery"');

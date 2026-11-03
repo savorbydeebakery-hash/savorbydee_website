@@ -26,11 +26,19 @@ const nextConfig: NextConfig = {
   redirects() {
     return Promise.resolve([
       { source: "/menu/preorder", destination: "/menu", permanent: true },
-      // One address for the site, so Google doesn't split it across two.
+      // One address for the site, so Google doesn't split it across two. The
+      // homepage needs its own rule: on this host "/:path*" with nothing to fill
+      // it redirected to the literal address /:path*.
       {
-        source: "/:path*",
+        source: "/",
         has: [{ type: "host" as const, value: "www.savorbydee.in" }],
-        destination: "https://savorbydee.in/:path*",
+        destination: "https://savorbydee.in/",
+        permanent: true,
+      },
+      {
+        source: "/:path+",
+        has: [{ type: "host" as const, value: "www.savorbydee.in" }],
+        destination: "https://savorbydee.in/:path+",
         permanent: true,
       },
     ]);
