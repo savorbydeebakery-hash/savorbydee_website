@@ -26,7 +26,26 @@ const nextConfig: NextConfig = {
   redirects() {
     return Promise.resolve([
       { source: "/menu/preorder", destination: "/menu", permanent: true },
+      // One address for the site, so Google doesn't split it across two.
+      {
+        source: "/:path*",
+        has: [{ type: "host" as const, value: "www.savorbydee.in" }],
+        destination: "https://savorbydee.in/:path*",
+        permanent: true,
+      },
     ]);
+  },
+
+  // Private and one-person pages stay out of search results. A header rather
+  // than page metadata, because most of these are client components, and not
+  // a robots.txt block, because Google has to open a page to read this.
+  headers() {
+    const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
+    return Promise.resolve(
+      ["/admin/:path*", "/account/:path*", "/cart/:path*", "/orders/:path*", "/login", "/forgot-password", "/reset-password"].map(
+        (source) => ({ source, headers: noindex })
+      )
+    );
   },
 };
 

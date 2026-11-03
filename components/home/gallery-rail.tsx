@@ -147,7 +147,7 @@ export function GalleryRail({
               >
                 <Image
                   src={photo.image_url}
-                  alt={i < source.length ? (photo.caption ?? "") : ""}
+                  alt={i < source.length ? photo.caption || "Bakes from Savor by Dee in Shillong" : ""}
                   fill
                   // Sized off the tallest row (224px) at 2x DPR, across the
                   // plausible ratio range. A single value is right here because

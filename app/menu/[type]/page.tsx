@@ -1,4 +1,7 @@
-import { notFound, permanentRedirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
+import { JsonLd } from "@/components/site/json-ld";
+import { breadcrumbSchema, menuSchema, pageMeta } from "@/lib/site/seo";
+import { CategoryPage, categoryMetadata } from "./category-page";
 import { Truck, ShieldCheck, Timer } from "lucide-react";
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { MenuTypeGrid, type MenuGroup } from "@/components/menu/menu-type-grid";
@@ -53,10 +56,15 @@ export async function generateMetadata({
   params: Promise<{ type: string }>;
 }) {
   const { type } = await params;
-  if (type === "preorder") return { title: "Preorder Menu – Savor by Dee" };
-  const menu = MENUS[type];
-  if (!menu) return { title: "Menu – Savor by Dee" };
-  return { title: `${menu.label} – Savor by Dee`, description: menu.blurb };
+  if (type === "preorder") return { title: { absolute: "Preorder Menu | Savor by Dee" } };
+  if (!MENUS[type]) return categoryMetadata(type);
+  const settings = await getSiteSettings();
+  const pickup = (settings as { daily_pickup_notice_minutes?: number | null } | null)?.daily_pickup_notice_minutes ?? 10;
+  return pageMeta({
+    title: "Today's Menu: Fresh Bakes in Shillong",
+    description: `Today's fresh bakes from Savor by Dee in Shillong. Ready to collect ${pickup} minutes after you order, or delivered within ${settings?.global_notice_hours ?? 2} hours.`,
+    path: `/menu/${type}`,
+  });
 }
 
 export default async function MenuTypePage({
@@ -72,7 +80,7 @@ export default async function MenuTypePage({
   if (type === "preorder") permanentRedirect("/menu");
 
   const menu = MENUS[type];
-  if (!menu) notFound();
+  if (!menu) return <CategoryPage slug={type} />;
 
   const supabase = publicSupabase();
   // A menu with no `column` is the full catalogue, so the flag filter is
@@ -134,6 +142,8 @@ export default async function MenuTypePage({
 
   return (
     <div className="bg-bk-bg">
+      <JsonLd data={breadcrumbSchema([{ name: "Home", path: "/" }, { name: menu.label, path: `/menu/${type}` }])} />
+      <JsonLd data={menuSchema(menu.label, `/menu/${type}`, categories ?? [], withWeights)} />
       <div className="mx-auto w-full max-w-[var(--bk-page-width)] px-4 pb-16 pt-8 md:px-6 md:pt-12">
         <div className="mb-6">
           <MenuPageNav current={type} />

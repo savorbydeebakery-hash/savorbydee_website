@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { pageMeta } from "@/lib/site/seo";
 import Link from "next/link";
 import { getSiteSettings } from "@/lib/site/public-data";
 import { formatIst } from "@/lib/time/ist";
@@ -69,10 +70,19 @@ const TITLES: Record<Slug, string> = {
   contact: "Contact Us",
 };
 
+const DESCRIPTIONS: Record<Slug, string> = {
+  terms: "The terms for ordering from Savor by Dee in Shillong: notice periods, payment, order confirmation and what to expect from a handmade bake.",
+  privacy: "How Savor by Dee handles your details when you order: what we collect, why, how long we keep it, and how to delete your account.",
+  refunds: "Savor by Dee's refund and cancellation policy: which orders can be cancelled, payment problems, and what happens if something is wrong.",
+  shipping: "Delivery and pickup from Savor by Dee in Shillong: notice periods, delivery charges and hours, and how to send your own rider.",
+  contact: "Contact Savor by Dee in Shillong: phone, WhatsApp, email and our address near Police Bazaar.",
+};
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const title = TITLES[slug as Slug];
-  return title ? { title: `${title} – Savor by Dee` } : { title: "Savor by Dee" };
+  if (!title) return { title: { absolute: "Savor by Dee" }, robots: { index: false } };
+  return pageMeta({ title, description: DESCRIPTIONS[slug as Slug], path: `/policies/${slug}` });
 }
 
 /** Renders a value, or a visible gap if the business has not supplied it. */

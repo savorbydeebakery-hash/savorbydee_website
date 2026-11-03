@@ -1,4 +1,8 @@
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
+import Link from "next/link";
+import { JsonLd } from "@/components/site/json-ld";
+import { toPreorderListing } from "@/lib/menu/preorder-listing";
+import { categoryPath, menuSchema, pageMeta } from "@/lib/site/seo";
 import { MenuClient } from "@/components/menu-client";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";
 import { PropField } from "@/components/props/prop-field";
@@ -7,11 +11,12 @@ import { applyDerivedWeights } from "@/lib/menu/weight-tiers";
 import { applyPhotoRule, showPreorderPhotos } from "@/lib/menu/photos";
 import { PromoBanner } from "@/components/promo-banner";
 
-export const metadata = {
-  title: "Preorder Menu – Savor by Dee",
+export const metadata = pageMeta({
+  title: "Preorder Menu: Cakes & Bakes in Shillong",
   description:
-    "Browse the preorder menu: cakes, cheesecakes, desserts, cupcakes and high tea nibbles, all made fresh to order.",
-};
+    "Preorder cakes, cheesecakes, cupcakes, cookies, desserts and high tea nibbles from Savor by Dee in Shillong. Made fresh to order, for pickup or delivery.",
+  path: "/menu",
+});
 
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
 
@@ -48,21 +53,14 @@ export default async function MenuPage({
   // MenuClient hides empty SECTIONS on its own, but renders a chip for every
   // category handed to it, so without this the daily-only categories would
   // show as chips that filter down to nothing.
-  // Here every item is a preorder, including one also on Today's Menu: the
-  // cart, notice, dates, photos and weights all go by daily_menu.
-  // Today's Stock and Sold Out are today's bakes, so they don't follow an item
-  // here from Today's Menu; the order API applies the same rule.
-  const preorderItems = (menuItems ?? []).map((i) => ({
-    ...i,
-    daily_menu: false,
-    is_sold_out: i.daily_menu ? false : i.is_sold_out,
-    stock_count: i.daily_menu ? null : i.stock_count,
-  }));
+  const preorderItems = toPreorderListing(menuItems);
   const usedCategoryIds = new Set(preorderItems.map((i) => i.category_id));
   const preorderCategories = (categories ?? []).filter((c) => usedCategoryIds.has(c.id));
+  const listed = applyDerivedWeights(applyPhotoRule(preorderItems, showPreorderPhotos(settings)));
 
   return (
     <div>
+      <JsonLd data={menuSchema("Preorder Menu", "/menu", preorderCategories, listed)} />
       {/* Compact dark hero band — gives the menu page a top edge instead of
           starting cold on cream, and matches the homepage rhythm. */}
       <section data-contrast-ground="cocoa" className="relative overflow-hidden bg-cocoa px-4 py-16 sm:px-6 sm:py-20">
@@ -102,11 +100,26 @@ export default async function MenuPage({
         <Cherry size={40} x="-1%" y="62%" depth={0.35} className="hidden xl:block" />
         <MenuClient
           categories={preorderCategories}
-          menuItems={applyDerivedWeights(applyPhotoRule(preorderItems, showPreorderPhotos(settings)))}
+          menuItems={listed}
           tag={tag}
           initialCategory={category}
         />
       </PropField>
+
+      {/* Real links, because the chips above are buttons and Google follows
+          only links: each category has its own page to be found by. */}
+      <nav aria-label="Browse by category" className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
+        <h2 className="text-sm font-semibold text-ink">Browse by category</h2>
+        <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-soft">
+          {preorderCategories.map((c) => (
+            <li key={c.id}>
+              <Link href={categoryPath(c.name)} prefetch={false} className="underline underline-offset-4 hover:text-ink">
+                {c.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </div>
   );
 }

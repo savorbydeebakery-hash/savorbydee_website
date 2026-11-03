@@ -1,4 +1,6 @@
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
+import { JsonLd } from "@/components/site/json-ld";
+import { bakerySchema, pageMeta, websiteSchema } from "@/lib/site/seo";
 import { PromoBanner } from "@/components/promo-banner";
 import { HeroCard } from "@/components/ui/hero-card";
 import { GalleryRail } from "@/components/home/gallery-rail";
@@ -17,6 +19,14 @@ import {
   PREORDER_MENU_PHOTO_KEYWORDS,
   CUSTOM_ORDER_PHOTO_KEYWORDS,
 } from "@/lib/menu/menu-photo";
+
+export const metadata = pageMeta({
+  title: "Savor by Dee | Bakery in Shillong: Cakes & Desserts",
+  description:
+    "Order handcrafted cakes, custom cakes, cheesecakes, cookies and savoury bakes from Savor by Dee, a bakery in Shillong, Meghalaya. Pickup and delivery.",
+  path: "/",
+  absoluteTitle: true,
+});
 
 // NOTE: this was briefly `export const revalidate = 60` to avoid Supabase
 // round-trips to Tokyo per request. That engages OpenNext's ISR path, which
@@ -152,6 +162,8 @@ export default async function HomePage() {
 
   return (
     <div className="bg-bk-bg">
+      <JsonLd data={bakerySchema(settings)} />
+      <JsonLd data={websiteSchema()} />
       <PromoBanner position="homepage_hero" />
 
       {/* 1. Hero — unchanged from the existing build, minus the proof badges. */}

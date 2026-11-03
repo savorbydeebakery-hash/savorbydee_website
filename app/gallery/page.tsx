@@ -1,4 +1,5 @@
 import { GalleryGrid } from "@/components/gallery-grid";
+import { pageMeta } from "@/lib/site/seo";
 import { videoItem, type GalleryItem } from "@/lib/gallery/youtube";
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
@@ -7,11 +8,12 @@ import Link from "next/link";
 import { applyPhotoRule, showPreorderPhotos } from "@/lib/menu/photos";
 import { ArrowRight } from "lucide-react";
 
-export const metadata = {
-  title: "Gallery - Savor by Dee",
+export const metadata = pageMeta({
+  title: "Gallery: Cakes and Bakes from Shillong",
   description:
-    "Explore the visual story of Savor by Dee - handcrafted cakes, desserts, and savoury bakes from Shillong.",
-};
+    "Photos and videos of handcrafted cakes, desserts and savoury bakes from Savor by Dee, a bakery in Shillong. See what we make before you order.",
+  path: "/gallery",
+});
 
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
 

@@ -51,11 +51,14 @@ test("a daily item locks the basket out of the preorder menu", async ({ page }) 
   await page.reload();
 
   const dailyName = await orderable.getAttribute("data-item-name");
-  await orderable.locator("button[data-item-price]").click();
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: /add to cart/i })
-    .click();
+  // Tapped until it opens: a tap in the first moment after a load lands before
+  // the page's code is ready, and on a slow run that failed this spec.
+  const dialog = page.getByRole("dialog");
+  await expect(async () => {
+    await orderable.locator("button[data-item-price]").click();
+    await expect(dialog).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+  await dialog.getByRole("button", { name: /add to cart/i }).click();
 
   // The daily item is in, and knows which menu it came from.
   const afterDaily = await readCart(page);
@@ -64,9 +67,10 @@ test("a daily item locks the basket out of the preorder menu", async ({ page }) 
 
   // Now try a preorder item.
   await page.goto("/menu");
-  await page.getByRole("button", { name: /add to cart/i }).first().click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
+  await expect(async () => {
+    await page.getByRole("button", { name: /add to cart/i }).first().click();
+    await expect(dialog).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
   await dialog.getByRole("button", { name: /add to cart/i }).click();
 
   // Refused, with a reason that says what to do about it.

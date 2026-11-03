@@ -261,12 +261,15 @@ export function MenuTypeGrid({
                   </span>
                 </h2>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
-                  {g.items.map((item) => (
+                  {g.items.map((item, i) => (
                     <ProductMiniCard
                       key={item.id}
                       item={item}
                       onSelect={setSelected}
                       sizes="(max-width: 768px) 45vw, 300px"
+                      // The first row is what a visitor sees first, and what
+                      // Google times: load it ahead of everything else.
+                      priority={i < 4 && g === sections[0]}
                     />
                   ))}
                 </div>

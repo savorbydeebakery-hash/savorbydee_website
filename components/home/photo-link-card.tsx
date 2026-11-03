@@ -42,7 +42,7 @@ export function PhotoLinkCard({
     >
       <SmartImage
         src={imageUrl}
-        alt=""
+        alt={title}
         aspect={aspect}
         sizes={sizes}
         priority={priority}

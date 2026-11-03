@@ -1,15 +1,18 @@
 import Image from "next/image";
+import { JsonLd } from "@/components/site/json-ld";
+import { bakerySchema, pageMeta } from "@/lib/site/seo";
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, MessageCircle } from "lucide-react";
 import { ABOUT_INTRO, ABOUT_SECTIONS, OFFERINGS, PHILOSOPHY, CLOSING } from "@/lib/site/about-copy";
 
-export const metadata = {
-  title: "About Savor by Dee",
+export const metadata = pageMeta({
+  title: "About Us: A Bakery in Shillong",
   description:
-    "Handcrafted cakes, desserts and savoury bakes, made fresh to order in Shillong.",
-};
+    "Meet Savor by Dee, a bakery near Police Bazaar in Shillong making handcrafted cakes, desserts and savoury bakes, fresh to order. Find our address and hours.",
+  path: "/about",
+});
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +44,7 @@ export default async function AboutPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+      <JsonLd data={bakerySchema(settings)} />
       {/* Hero */}
       <section className="text-center mb-16">
         <Badge color="pink" className="mb-4">Our Story</Badge>

@@ -75,7 +75,7 @@ export function ProductMiniCard({
     <div className="relative overflow-hidden rounded-[var(--bk-r-inner)] bg-bk-bg-3">
       <SmartImage
         src={item.image_url}
-        alt=""
+        alt={item.name.trim()}
         aspect="aspect-[3/4]"
         sizes={sizes}
         priority={priority}

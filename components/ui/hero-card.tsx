@@ -7,7 +7,7 @@ import { gsap } from "@/lib/motion/gsap";
 import { HeroBackdrop } from "@/components/three/hero-backdrop";
 
 /** Shipped fallback, used when nothing has been uploaded in admin. */
-const DEFAULT_HERO_IMAGE = "/hero/celebration-cakes-v3.jpg";
+const DEFAULT_HERO_IMAGE = "/hero/celebration-cakes-v3.webp";
 
 /**
  * Hero, following the client's reference composition:

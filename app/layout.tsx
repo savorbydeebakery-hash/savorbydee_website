@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SITE_NAME, SITE_URL } from "@/lib/site/seo";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
@@ -49,15 +50,31 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Savor by Dee | Handcrafted Cakes & Desserts in Shillong",
-  description:
-    "Pre-order handcrafted cakes, desserts, cookies and savoury bakes from Savor by Dee, the artisanal bakery in Shillong. Custom cakes, bulk orders, and delivery available.",
-  keywords: ["bakery", "cakes", "Shillong", "custom cakes", "desserts", "pre-order", "Meghalaya"],
-  openGraph: {
-    title: "Savor by Dee | Handcrafted Cakes & Desserts in Shillong",
-    description: "Pre-order handcrafted cakes, desserts, and savoury bakes. Made fresh to order in Shillong.",
-    type: "website",
+  // Makes every address below absolute, and each page's canonical (pageMeta).
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Savor by Dee | Bakery in Shillong: Cakes & Desserts",
+    template: `%s | ${SITE_NAME}`,
   },
+  description:
+    "Order handcrafted cakes, custom cakes, cheesecakes, cookies and savoury bakes from Savor by Dee, a bakery in Shillong, Meghalaya. Pickup and delivery.",
+  applicationName: SITE_NAME,
+  // Large photo previews and full snippets in results. Private pages opt out
+  // with a header (next.config.ts).
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
+  },
+  openGraph: {
+    title: "Savor by Dee | Bakery in Shillong: Cakes & Desserts",
+    description: "Handcrafted cakes, desserts and savoury bakes, made fresh to order in Shillong.",
+    siteName: SITE_NAME,
+    locale: "en_IN",
+    type: "website",
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "Cakes and bakes from Savor by Dee, a bakery in Shillong" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/og-image.jpg"] },
 };
 
 /**
