@@ -53,9 +53,9 @@ await customerPage.getByRole("button", { name: /place order/i }).click();
 9. `open-next.config.ts` — `buildCommand: "next build --webpack"` (Windows symlink EPERM fix)
 
 ### Test fixes (no rebuild needed):
-10. `e2e/admin-alarm.spec.ts` — credentials → `cloudlyconfusing@gmail.com` / `admin123` + `waitForURL` after login + modal confirm step ✅
+10. `e2e/admin-alarm.spec.ts` — credentials → `[admin email removed]` / `[removed]` + `waitForURL` after login + modal confirm step ✅
 11. `e2e/admin-alarm.spec.ts` — **STILL NEEDS** customer context checkout step navigation (see above)
-12. `e2e/admin-menu-edit.spec.ts` — credentials → `cloudlyconfusing@gmail.com` / `admin123` + `waitForURL` after login ✅
+12. `e2e/admin-menu-edit.spec.ts` — credentials → `[admin email removed]` / `[removed]` + `waitForURL` after login ✅
 13. `e2e/order-placement.spec.ts` — modal confirm + 4-step checkout navigation (Continue→/datetime/Continue→/Review Order→/Place Order) ✅
 14. `e2e/razorpay-test-checkout.spec.ts` — modal confirm + 4-step checkout navigation ✅
 15. `e2e/bulk-rule.spec.ts` — modal quantity flow (Increase quantity ×14, dialog confirm) ✅
@@ -97,8 +97,8 @@ Invoke-WebRequest -Uri "http://127.0.0.1:8787/menu" -UseBasicParsing -TimeoutSec
 ### Step 5: Run E2E tests
 ```powershell
 $env:E2E_BASE_URL="http://127.0.0.1:8787"
-$env:ADMIN_EMAIL="cloudlyconfusing@gmail.com"
-$env:ADMIN_PASSWORD="admin123"
+$env:ADMIN_EMAIL="[admin email removed]"
+$env:ADMIN_PASSWORD="[removed]"
 npx playwright test
 ```
 
@@ -171,8 +171,8 @@ Document: Tokyo region deviation, credential status, build gotchas (Windows EPER
 ---
 
 ## Credentials
-- Admin: `cloudlyconfusing@gmail.com` / `admin123` (user-confirmed)
-- Alt admin: `savorbydeebakery@gmail.com` / `admin123`
+- Admin: `[admin email removed]` / `[removed]` (user-confirmed)
+- Alt admin: `[admin email removed]` / `[removed]`
 - Supabase project: `tkzbroymiyvnigqxcpze` (Tokyo region — deviation from planned Mumbai)
 - Seed creds in .dev.vars: `admin@savorbakery.in` / `L2lir5kVjYCadOWm` (may not match actual auth users)
 

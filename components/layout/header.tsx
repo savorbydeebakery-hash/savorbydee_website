@@ -116,31 +116,43 @@ export function Header() {
               Savor by Dee
             </Link>
 
-            {/* Right rail — account + cart */}
+            {/* Right rail — account + cart. On a phone just the profile button: the
+                cart is in the bottom bar, which shows at the same widths. */}
             <div className="flex items-center justify-end gap-1">
             {loaded && user ? (
               <Link
                 href="/account"
                 className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-soft hover:bg-pink-soft hover:text-ink transition-colors"
               >
-                <User size={20} />
+                <User size={20} aria-hidden="true" />
+                <span className="sr-only">My profile</span>
                 <span className="hidden max-w-[90px] truncate text-sm sm:inline">
                   {user.email?.split("@")[0]}
                 </span>
               </Link>
             ) : (
-              <Link
-                href={loginHref}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-soft hover:bg-pink-soft hover:text-ink transition-colors"
-              >
-                <LogIn size={20} />
-                <span className="text-sm">Log In</span>
-              </Link>
+              <>
+                {/* /account sends someone signed out to the login, and back. */}
+                <Link
+                  href="/account"
+                  aria-label="My profile"
+                  className="rounded-lg p-2 text-ink-soft transition-colors hover:bg-pink-soft hover:text-ink md:hidden"
+                >
+                  <User size={22} aria-hidden="true" />
+                </Link>
+                <Link
+                  href={loginHref}
+                  className="hidden items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-soft hover:bg-pink-soft hover:text-ink transition-colors md:flex"
+                >
+                  <LogIn size={20} aria-hidden="true" />
+                  <span className="text-sm">Log In</span>
+                </Link>
+              </>
             )}
 
             <Link
               href="/cart"
-              className="relative rounded-lg p-2 text-ink-soft hover:bg-pink-soft hover:text-ink transition-colors"
+              className="relative hidden rounded-lg p-2 text-ink-soft hover:bg-pink-soft hover:text-ink transition-colors md:block"
               aria-label="Cart"
             >
               <ShoppingBag size={22} />

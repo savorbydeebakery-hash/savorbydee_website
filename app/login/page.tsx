@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { safeNext } from "@/lib/site/safe-next";
 import { Cake, LogIn, UserPlus } from "lucide-react";
 import { PasswordInput } from "@/components/ui/password-input";
 
@@ -23,7 +24,7 @@ export default function LoginPage() {
 function LoginForm() {
   const supabase = createClient();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next");
+  const next = safeNext(searchParams.get("next"));
   const errorParam = searchParams.get("error");
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
