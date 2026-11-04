@@ -40,17 +40,23 @@ test.describe("phone header", () => {
     test.skip(!email || !password, "Needs the admin login from CI's secrets.");
     await page.goto("/login?next=/account");
     await fillSignIn(page, email!, password!);
+    // By path, not the glob "**/account": that also matches the login page's own
+    // /login?next=/account, so it finishes at once and abandons the sign-in.
+    const onProfile = (url: URL) => url.pathname === "/account";
     await Promise.all([
-      page.waitForURL("**/account"),
+      page.waitForURL(onProfile),
       page.locator("form").getByRole("button", { name: /sign in/i }).click(),
     ]);
     await page.goto("/");
     const profile = page.locator("header").getByRole("link", { name: "My profile" });
     await expect(profile).toBeVisible();
+    // Only the signed-out button has this label, so this waits for the header to
+    // know who is here. Without it the rest also passes for a signed-out visitor.
+    await expect(profile).not.toHaveAttribute("aria-label", "My profile");
     await expect(page.locator("header").getByRole("link", { name: "Cart" })).toBeHidden();
     await expect(async () => {
       await profile.click();
-      await expect(page).toHaveURL("**/account", { timeout: 3_000 });
+      await expect(page).toHaveURL(onProfile, { timeout: 3_000 });
     }).toPass({ timeout: 30_000 });
     await expect(page.getByRole("heading", { name: "My Account" })).toBeVisible();
   });
