@@ -26,6 +26,12 @@ test("save waits for the photo to finish uploading", async ({ page }) => {
 
   await page.goto("/admin/menu-items");
   await page.locator("button", { hasText: /edit/i }).first().click();
+  await expect(page.getByRole("heading", { name: "Edit Menu Item" })).toBeVisible();
+
+  // The upload box only shows on an item with no photo. Clearing it in the form
+  // changes nothing until Save, which this never reaches.
+  const removePhoto = page.locator('img[alt="Preview"] + button');
+  if (await removePhoto.isVisible()) await removePhoto.click();
 
   // A one-pixel PNG.
   const buffer = Buffer.from(
