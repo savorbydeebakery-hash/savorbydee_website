@@ -63,7 +63,7 @@ export default async function MenuPage({
       <JsonLd data={menuSchema("Preorder Menu", "/menu", preorderCategories, listed)} />
       {/* Compact dark hero band — gives the menu page a top edge instead of
           starting cold on cream, and matches the homepage rhythm. */}
-      <section data-contrast-ground="cocoa" className="relative overflow-hidden bg-cocoa px-4 py-16 sm:px-6 sm:py-20">
+      <section data-contrast-ground="cocoa" className="relative overflow-hidden bg-cocoa px-4 py-10 sm:px-6 sm:py-20">
         <div
           aria-hidden="true"
           className="hero-mesh pointer-events-none absolute inset-0 opacity-80"
@@ -87,14 +87,14 @@ export default async function MenuPage({
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-6 sm:pt-8">
         <MenuPageNav />
       </div>
 
       {/* Admin -> Promo Banners -> "Menu Top". Rendered nowhere until now. */}
       <PromoBanner position="menu_top" />
 
-      <PropField className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <PropField className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-12">
         <Macaron size={68} x="-2%" y="6%" depth={0.5} className="hidden xl:block" />
         <Sprinkles size={120} x="94%" y="22%" depth={0.7} className="hidden xl:block" />
         <Cherry size={40} x="-1%" y="62%" depth={0.35} className="hidden xl:block" />
@@ -106,8 +106,8 @@ export default async function MenuPage({
         />
       </PropField>
 
-      {/* Real links, because the chips above are buttons and Google follows
-          only links: each category has its own page to be found by. */}
+      {/* The chips above only move around this page. These go to each category's
+          own page, which is what Google can find for a search. */}
       <nav aria-label="Browse by category" className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
         <h2 className="text-sm font-semibold text-ink">Browse by category</h2>
         <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-soft">

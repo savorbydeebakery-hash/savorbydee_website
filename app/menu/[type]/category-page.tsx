@@ -9,7 +9,7 @@ import { breadcrumbSchema, categoryPath, menuSchema, pageMeta } from "@/lib/site
 /**
  * A Preorder Menu category at its own address, e.g. /menu/cheesecakes.
  *
- * /menu lists everything behind filter chips, which gives Google one page to
+ * /menu lists everything on one long page, which gives Google one page to
  * rank for every kind of cake. A page per category can be found by someone
  * searching for exactly that in Shillong, with the real items and prices on it.
  */

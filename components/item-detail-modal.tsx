@@ -179,7 +179,11 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
           <div>
             <ul className="flex flex-wrap gap-1.5" aria-label="Dietary information">
               {item.dietary_tags.map((tag) => (
-                <li key={tag} className="rounded-full bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink">
+                <li
+                  key={tag}
+                  // A long tag wraps, and wrapped text spills out of a pill's ends.
+                  className={`bg-ink/5 px-2.5 py-1 text-xs font-medium text-ink ${tag.length > 24 ? "rounded-xl" : "rounded-full"}`}
+                >
                   {tag}
                 </li>
               ))}
@@ -388,7 +392,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
             )}
 
             {/* Quantity + Price + Add button */}
-            <div className="flex items-center justify-between gap-4 border-t border-ink/8 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-ink/8 pt-4">
               {/* Quantity */}
               <div className="flex items-center gap-3">
                 <button
@@ -415,8 +419,9 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                 )}
               </div>
 
-              {/* Total + Add */}
-              <div className="flex items-center gap-4">
+              {/* Total + Add. On a phone the button gets its own row: it doesn't
+                  fit beside the quantity and total, and wrapped onto two lines. */}
+              <div className="flex items-center gap-4 max-sm:contents">
                 <div className="text-right">
                   <p className="text-xs text-ink-faint">Total</p>
                   <p className="text-lg font-bold text-gold-deep">{formatPrice(lineTotal)}</p>
@@ -426,6 +431,7 @@ export function ItemDetailModal({ item, open, onClose }: ItemDetailModalProps) {
                   size="md"
                   variant="primary"
                   disabled={wantsCustomDecoration}
+                  className="whitespace-nowrap max-sm:w-full"
                 >
                   <ShoppingBag size={16} /> Add to Cart
                 </Button>

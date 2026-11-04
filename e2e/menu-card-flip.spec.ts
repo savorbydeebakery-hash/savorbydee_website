@@ -48,19 +48,19 @@ test("a menu card turns over to show its description", async ({ page }) => {
   await expect(front).not.toHaveAttribute("inert", /.*/);
   await expect(back).toHaveAttribute("inert", /.*/);
 
-  // The card must not change size as it turns, or every card below it jumps
-  // down the page. Both faces share one grid cell, so the guarantee is that
-  // they are the same height — asserted on the two faces at one moment rather
-  // than on the card before and after the click, which measured across a
-  // layout settle and a 500ms transition and was flaky on CI for that reason.
-  const frontBox = await front.boundingBox();
-  const backBox = await back.boundingBox();
-  expect(backBox?.height).toBeCloseTo(frontBox?.height ?? 0, 0);
+  // The hidden back takes up no room: a long description used to stretch the
+  // card and its row, leaving big gaps in the menu (client, 2026-11-04).
+  await expect(back).toHaveCSS("position", "absolute");
 
   await card.getByRole("button", { name: "View description" }).click();
 
   await expect(front).toHaveAttribute("inert", /.*/);
   await expect(back).not.toHaveAttribute("inert", /.*/);
+
+  // Turned, it takes the room it needs, so the whole description can be read.
+  await expect(back).toHaveCSS("position", "static");
+  const fits = await back.locator("p").last().evaluate((p) => p.scrollHeight <= p.clientHeight + 1);
+  expect(fits, "the description is cut off on the back of the card").toBe(true);
 
   await card.getByRole("button", { name: "Back", exact: true }).click();
   await expect(front).not.toHaveAttribute("inert", /.*/);

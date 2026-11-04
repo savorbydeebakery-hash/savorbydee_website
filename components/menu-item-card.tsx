@@ -71,7 +71,7 @@ export function MenuItemCard({
   categoryName,
   onSelect,
   showDietaryTags = false,
-  sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 368px",
+  sizes = "(max-width: 1024px) 50vw, 368px",
 }: {
   item: MenuItemForCart;
   categoryName?: string;
@@ -123,38 +123,42 @@ export function MenuItemCard({
               <SmartImage
                 src={item.image_url}
                 alt={item.name}
-                aspect="aspect-[4/3]"
+                // Square on a phone: two across, a 4:3 box leaves an upright
+                // photo very small.
+                aspect="aspect-square sm:aspect-[4/3]"
                 sizes={sizes}
                 fit="contain"
                 className="rounded-none bg-shell"
               />
             </Lens>
           </OpenItem>
-          {/* Price as a glass chip over the image — glass over imagery is the
-              placement rule's happy path. */}
+          {/* Price over the image. z-30 to clear the zoom lens (z-20), which hid
+              it, and solid because the photos are often pale. Not tappable, so a
+              tap on that corner still opens the item. */}
           {!unavailable && (
             <span
-              data-contrast-ground="cocoa"
-              className="glass absolute bottom-3 right-3 rounded-full px-3 py-1 text-sm font-semibold text-white"
+              data-card-price
+              className="pointer-events-none absolute bottom-2 right-2 z-30 rounded-full bg-cocoa/90 px-2.5 py-0.5 text-xs font-semibold text-shell sm:bottom-3 sm:right-3 sm:px-3 sm:py-1 sm:text-sm"
             >
               {price}
             </span>
           )}
           {unavailable && (
-            <span className="absolute bottom-3 right-3 rounded-full bg-cocoa/90 px-3 py-1 text-xs font-semibold text-shell">
+            <span className="pointer-events-none absolute bottom-2 right-2 z-30 rounded-full bg-cocoa/90 px-2.5 py-0.5 text-xs font-semibold text-shell sm:bottom-3 sm:right-3 sm:px-3 sm:py-1">
               Sold Out
             </span>
           )}
         </div>
       )}
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-3 sm:gap-2 sm:p-4">
         {categoryName && (
           <p className="text-xs text-ink-soft">{categoryName}</p>
         )}
-        <div className="flex items-start justify-between gap-3">
-          <OpenItem onOpen={() => onSelect(item)} className="min-w-0 flex-1">
-            <h3 className="font-display text-lg font-semibold leading-snug text-ink">
+        {/* Stacked on a phone, where the name needs the card's whole width. */}
+        <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <OpenItem onOpen={() => onSelect(item)} className="min-w-0 sm:flex-1">
+            <h3 className="font-display text-[15px] font-semibold leading-snug text-ink sm:text-lg">
               {item.name}
             </h3>
           </OpenItem>
@@ -163,7 +167,7 @@ export function MenuItemCard({
             <span
               className={
                 unavailable
-                  ? "whitespace-nowrap rounded-full bg-ink/8 px-2.5 py-0.5 text-xs font-semibold text-ink-soft"
+                  ? "self-start whitespace-nowrap rounded-full bg-ink/8 px-2.5 py-0.5 text-xs font-semibold text-ink-soft"
                   : "whitespace-nowrap text-sm font-semibold text-berry"
               }
             >
@@ -179,7 +183,7 @@ export function MenuItemCard({
           <button
             type="button"
             onClick={() => setFlipped(true)}
-            className="self-start text-sm font-medium text-berry underline underline-offset-4 transition-colors hover:text-cocoa focus:outline-none focus-visible:ring-2 focus-visible:ring-cocoa focus-visible:ring-offset-2"
+            className="self-start text-xs font-medium text-berry underline sm:text-sm underline-offset-4 transition-colors hover:text-cocoa focus:outline-none focus-visible:ring-2 focus-visible:ring-cocoa focus-visible:ring-offset-2"
           >
             View description
           </button>
@@ -187,15 +191,22 @@ export function MenuItemCard({
 
         {showDietaryTags && item.dietary_tags && item.dietary_tags.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1.5">
+            {/* A sentence of a tag takes half a two-across card on a phone. The
+                pop-up, which every order goes through, shows them all. Where it
+                does show it wraps, and wrapped text spills out of a pill's ends. */}
             {item.dietary_tags.map((tag: string) => (
-              <Badge key={tag} color={dietaryColors[tag.toLowerCase()] ?? "neutral"}>
+              <Badge
+                key={tag}
+                color={dietaryColors[tag.toLowerCase()] ?? "neutral"}
+                className={tag.length > 24 ? "rounded-xl! max-sm:hidden" : ""}
+              >
                 {tag}
               </Badge>
             ))}
           </div>
         )}
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto pt-2 sm:pt-3">
           <Button
             size="sm"
             variant={blocked ? "ghost" : "cocoa"}
@@ -215,7 +226,7 @@ export function MenuItemCard({
   );
 
   const back = (
-    <div className={`${faceChrome} gap-2 p-4`}>
+    <div className={`${faceChrome} gap-2 p-3 sm:p-4`}>
       <p className="text-xs uppercase tracking-wide text-ink-soft">{item.name}</p>
       <p className="flex-1 overflow-y-auto text-sm leading-relaxed text-ink">{description}</p>
       <button

@@ -5,9 +5,11 @@ import type { ReactNode } from "react";
 /**
  * A card that turns over to show its description.
  *
- * Both faces occupy the same grid cell, so the container is as tall as the
- * taller of the two and the card does not resize as it turns — a card that
- * grew mid-flip would shove every card below it down the page.
+ * The card is as tall as its front until someone turns it. The back used to
+ * share the grid cell all the time so the card never resized, but a long
+ * description then stretched the card, and with it the row, leaving hundreds of
+ * empty pixels under short cards (client, 2026-11-04). Now the back only takes
+ * up room while it is showing, so the card grows when tapped and not before.
  *
  * The hidden face is `inert` as well as visually hidden. `backface-visibility`
  * only stops it being painted: without `inert` a screen reader still reads the
@@ -41,7 +43,7 @@ export function CardFlip({
   return (
     <div className={`h-full [perspective:1200px] ${className}`}>
       <div
-        className={`grid h-full transform-3d transition-transform duration-500 ease-[var(--ease-out)] motion-reduce:transition-none ${
+        className={`relative grid h-full transform-3d transition-transform duration-500 ease-[var(--ease-out)] motion-reduce:transition-none ${
           flipped ? "rotate-y-180" : ""
         }`}
       >
@@ -55,7 +57,7 @@ export function CardFlip({
         </div>
         <div
           data-card-face="back"
-          className={`col-start-1 row-start-1 rotate-y-180 backface-hidden ${SWAP} ${flipped ? "visible" : "invisible"}`}
+          className={`rotate-y-180 backface-hidden ${SWAP} ${flipped ? "visible col-start-1 row-start-1" : "invisible absolute inset-0"}`}
           inert={!flipped}
           aria-hidden={!flipped}
         >

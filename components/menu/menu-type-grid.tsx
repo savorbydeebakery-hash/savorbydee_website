@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useGSAP } from "@gsap/react";
-import { gsap, ScrollTrigger } from "@/lib/motion/gsap";
+import { gsap } from "@/lib/motion/gsap";
+import { CategoryJumpNav, sectionAnchor } from "@/components/menu/category-jump-nav";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { KITCHEN_NOTE } from "@/lib/menu/kitchen-note";
 import { ProductMiniCard } from "@/components/home/product-mini-card";
@@ -15,10 +16,6 @@ export interface MenuGroup {
   name: string;
   items: MenuItemForCart[];
 }
-
-/** Anchor id for a section, and the chip that jumps to it. */
-const anchorId = (name: string) =>
-  "cat-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 /**
  * The item grid on a single menu-type page (/menu/daily, /menu/preorder, …).
@@ -42,105 +39,13 @@ export function MenuTypeGrid({
   empty: string;
 }) {
   const [selected, setSelected] = useState<MenuItemForCart | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const pill = useRef<HTMLSpanElement>(null);
 
-  /**
-   * Scroll-spy: the chip for the section you are reading lights up, and the
-   * chip row centres it.
-   *
-   * One ScrollTrigger across the whole list picking the nearest section on
-   * each update, rather than one trigger per section with a start/end band.
-   * The band version left gaps: most daily items are text-only, so a section
-   * can be ~100px tall, shorter than the margin between sections — whenever
-   * the band landed in a gap NO chip was current, and the highlight blinked
-   * off between categories.
-   *
-   * The chip is centred by setting the row's own scrollLeft, NOT by calling
-   * scrollIntoView on it. scrollIntoView walks every scrollable ancestor, the
-   * document included: once the chip row had scrolled off the top, each
-   * highlight change dragged the whole page back up to it, so the menu could
-   * not be scrolled past the second category at all.
-   *
-   * Runs for everyone, reduced motion included: this is a position indicator,
-   * not decoration. Only the chip row's own scroll is made instant for them.
-   */
   useGSAP(
     () => {
       const el = root.current;
       if (!el) return;
       const sections = Array.from(el.querySelectorAll<HTMLElement>("section[id^='cat-']"));
-      if (sections.length === 0) return;
-
-      const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      let currentId: string | null = null;
-
-      // A customer who swipes the chip row to look ahead should be left alone.
-      // Without this the next scroll tick yanked the row back to the chip for
-      // the section they were still standing in.
-      let swipedAt = 0;
-      const nav = el.querySelector<HTMLElement>("nav");
-      const noteSwipe = () => {
-        swipedAt = Date.now();
-      };
-      nav?.addEventListener("pointerdown", noteSwipe);
-      nav?.addEventListener("wheel", noteSwipe, { passive: true });
-
-      // Placing the pill is separate from choosing the section, because the
-      // pill can go stale without the section changing: a webfont swapping in
-      // after first paint changes every chip's width. pick() used to return
-      // early on "same section" before it ever got here, so ScrollTrigger's
-      // onRefresh could not put it right.
-      const placePill = (id: string, animate: boolean) => {
-        const chip = el.querySelector<HTMLElement>(`[data-chip="${id}"]`);
-        if (!chip || !pill.current) return;
-        gsap.to(pill.current, {
-          x: chip.offsetLeft,
-          width: chip.offsetWidth,
-          autoAlpha: 1,
-          duration: animate && smooth ? 0.45 : 0,
-          ease: "power3.out",
-        });
-      };
-
-      const pick = () => {
-        const band = window.innerHeight * 0.45;
-        // The last section whose top has passed the band is the one being
-        // read; before any has, the first section owns it.
-        let found = sections[0];
-        for (const section of sections) {
-          if (section.getBoundingClientRect().top <= band) found = section;
-        }
-        // The maroon pill slides from the chip you were on to the one you are
-        // on, so the row reads as one indicator moving rather than two chips
-        // changing colour. It is a plain absolutely-positioned span: no Flip
-        // plugin, and nothing to lay out if GSAP never runs — the chip also
-        // carries its own [aria-current] styling underneath.
-        if (found.id === currentId) {
-          placePill(found.id, false); // keeps it true after a reflow
-          return;
-        }
-        const first = currentId === null;
-        currentId = found.id;
-        setActiveId(found.id);
-        placePill(found.id, !first);
-
-        const chip = el.querySelector<HTMLElement>(`[data-chip="${found.id}"]`);
-        const scroller = chip?.closest<HTMLElement>("nav");
-        if (!chip || !scroller) return;
-        if (Date.now() - swipedAt < 2000) return;
-
-        // Only when the chip is actually out of sight. Re-centring one that is
-        // already visible slides the row under the reader for no reason.
-        const left = chip.offsetLeft - scroller.scrollLeft;
-        if (left >= 0 && left + chip.offsetWidth <= scroller.clientWidth) return;
-
-        scroller.scrollTo({
-          left: chip.offsetLeft - (scroller.clientWidth - chip.offsetWidth) / 2,
-          behavior: smooth ? "smooth" : "auto",
-        });
-      };
 
       // Cards arrive in a short stagger as their section enters the viewport.
       //
@@ -168,24 +73,11 @@ export function MenuTypeGrid({
         });
       });
 
-      ScrollTrigger.create({
-        trigger: el,
-        start: "top bottom",
-        end: "bottom top",
-        onUpdate: pick,
-        onRefresh: pick,
-      });
-      pick();
-
       // mm.revert() as well as useGSAP's own cleanup: a matchMedia instance
       // registers its own contexts and keeps a media listener that the hook's
       // context does not own, so without this they accumulate across client
       // navigations and StrictMode's double-invoke.
-      return () => {
-        nav?.removeEventListener("pointerdown", noteSwipe);
-        nav?.removeEventListener("wheel", noteSwipe);
-        mm.revert();
-      };
+      return () => mm.revert();
     },
     { scope: root, dependencies: [groups] }
   );
@@ -210,50 +102,11 @@ export function MenuTypeGrid({
     <div ref={root}>
       {sections.length > 0 ? (
         <>
-          {/* Sticky under the 64px header: a jump list that scrolls away is
-              only useful for the first screenful, and the moving indicator it
-              carries says nothing if it cannot be seen. The background is the
-              page's own, so rows pass behind it rather than through it. */}
-          <nav
-            aria-label="Menu categories"
-            className="sticky top-16 z-20 -mx-4 mb-6 overflow-x-auto bg-bk-bg px-4 py-3 md:mx-0 md:px-0"
-          >
-            <ul className="relative flex w-max gap-2">
-              {/* Sits under the chips; invisible until the spy places it. */}
-              <span
-                ref={pill}
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 left-0 -z-10 invisible rounded-[var(--bk-r-pill)] bg-bk-maroon"
-              />
-              {sections.map((g) => (
-                <li key={g.id}>
-                  <a
-                    href={`#${anchorId(g.name)}`}
-                    data-chip={anchorId(g.name)}
-                    aria-current={activeId === anchorId(g.name) ? "location" : undefined}
-                    className={`relative inline-flex h-9 items-center rounded-[var(--bk-r-pill)] border px-4 text-sm transition-colors duration-300 ease-[var(--ease-out)] focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 motion-reduce:transition-none ${
-                      activeId === anchorId(g.name)
-                        ? "border-bk-maroon text-white"
-                        : "border-bk-border text-bk-fg hover:border-bk-fg"
-                    }`}
-                  >
-                    {g.name}
-                    <span
-                      className={`ml-1.5 ${
-                        activeId === anchorId(g.name) ? "text-white/70" : "text-bk-muted"
-                      }`}
-                    >
-                      {g.items.length}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <CategoryJumpNav sections={sections.map((g) => ({ name: g.name, count: g.items.length }))} />
 
-          <div className="flex flex-col gap-10 md:gap-14">
+          <div className="flex flex-col gap-7 md:gap-14">
             {sections.map((g) => (
-              <section key={g.id} id={anchorId(g.name)} className="scroll-mt-24">
+              <section key={g.id} id={sectionAnchor(g.name)} className="scroll-mt-32">
                 <h2 className="bk-section-title mb-3 text-bk-fg md:mb-5">
                   {g.name}
                   <span className="ml-2 text-sm font-normal text-bk-muted md:text-base">
