@@ -70,6 +70,27 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
+      # Runs the built Worker before it replaces the live one. A Next.js upgrade
+      # without the OpenNext that goes with it built cleanly, passed every check,
+      # then answered every request with a 500 (2026-11-03). robots.txt needs no
+      # database or secrets, so a failure here means the Worker itself is broken.
+      - name: Refuse to ship a Worker that can't serve a page
+        run: |
+          npx wrangler dev --env ${{ github.event.inputs.environment || 'staging' }} --port 8788 --local > wrangler.log 2>&1 &
+          code=000
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 http://localhost:8788/robots.txt || true)
+            [ "$code" != "000" ] && break
+            sleep 3
+          done
+          kill %1 || true
+          echo "The built Worker answered robots.txt with HTTP $code"
+          if [ "$code" != "200" ]; then
+            tail -40 wrangler.log
+            echo "::error::The built Worker can't serve pages (HTTP $code). Not deploying."
+            exit 1
+          fi
+
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
         with:

@@ -115,8 +115,11 @@ export function GalleryRail({
   const source = photos.slice(0, 14);
   const track = Array.from({ length: LOOP }, () => source).flat();
 
+  // overflow-x-clip: the lean above stretches the full-bleed rail past the screen
+  // edge, which would widen the whole page while scrolling. Clip rather than
+  // hidden, so the skew can still spill above and below.
   return (
-    <section className="mt-8 md:mt-14">
+    <section className="mt-8 overflow-x-clip md:mt-14">
       <div className="mx-auto w-full max-w-[var(--bk-page-width)] px-4 md:px-6">
         <SectionHead title="Our Gallery" handle={handle} href="/gallery" />
       </div>

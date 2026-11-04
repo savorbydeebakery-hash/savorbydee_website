@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Star, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { Star, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface Review {
   id: string;
@@ -14,24 +14,18 @@ export interface Review {
   rating: number | null;
 }
 
-const INTERVAL_MS = 5000;
-
 /**
- * Review carousel. One review per slide, advancing every 5s and looping.
+ * Reviews, moved through only by the visitor: swipe, or the arrows and dots.
  *
- * WCAG 2.2.2 (Pause, Stop, Hide) applies here: this moves on its own, starts
- * automatically and runs longer than 5s, so it needs a real pause control.
- * Pause-on-hover alone does not satisfy it — it does nothing for keyboard or
- * touch users — so there is an explicit toggle. Hover and keyboard focus also
- * pause, but as a convenience on top of the control, not instead of it.
+ * One fixed size for every review, set in the stylesheet so it is the same from
+ * the first paint, and nothing moves on its own. It used to advance every 5s
+ * and take the height of the review on show, so the box grew and shrank and
+ * pushed the whole page up and down while someone was reading it (client,
+ * 2026-11-04: "the site moves by itself").
  *
- * Rotation additionally:
- *   - starts paused when the visitor prefers reduced motion, but the Play
- *     button still works from there — see the note on the interval effect
- *   - stops while the tab is hidden, so a backgrounded page burns no timers
- *
- * The timer is keyed on `index`, so any manual navigation restarts the full
- * 5s dwell rather than advancing early on a timer that was already half spent.
+ * A long review scrolls inside its own card rather than making the card bigger.
+ * data-lenis-prevent is only on the ones that scroll, so wheeling over a short
+ * review still scrolls the page.
  */
 export function ReviewsCarousel({
   reviews,
@@ -47,64 +41,59 @@ export function ReviewsCarousel({
   ratingSource?: string;
 }) {
   const [index, setIndex] = useState(0);
-  const [playing, setPlaying] = useState(true);
-  const [held, setHeld] = useState(false);
-  const reduced = useRef(false);
-  // The box takes the height of the review on show. In a flex row every slide
-  // stretched to the tallest one, so a three-word review sat in a 617px box
-  // on a phone (client, 2026-10-31).
-  const slides = useRef<(HTMLElement | null)[]>([]);
-  const [height, setHeight] = useState<number | null>(null);
+  const track = useRef<HTMLDivElement>(null);
+  // Which reviews are too long for the card, so they can say so. The line that
+  // says it always has its space, so showing it can't move anything.
+  const bodies = useRef<(HTMLDivElement | null)[]>([]);
+  const [long, setLong] = useState<boolean[]>([]);
 
   const count = reviews.length;
 
+  // The track's own scroll, never scrollIntoView, which would move the page too.
   const go = useCallback(
-    (next: number) => setIndex(((next % count) + count) % count),
-    [count]
+    (next: number) => {
+      const el = track.current;
+      if (!el || count === 0) return;
+      const target = ((next % count) + count) % count;
+      const wrapped = Math.abs(target - index) > 1;
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollTo({ left: target * el.clientWidth, behavior: wrapped || reduced ? "auto" : "smooth" });
+    },
+    [count, index]
   );
 
+  // Follows swipes as well as the buttons: the scroll position is the one truth.
   useEffect(() => {
-    reduced.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced.current) setPlaying(false);
+    const el = track.current;
+    if (!el) return;
+    let frame = 0;
+    const read = () => {
+      frame = 0;
+      if (el.clientWidth > 0) setIndex(Math.round(el.scrollLeft / el.clientWidth));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(read);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
-  // NOTE: `reduced` is deliberately NOT consulted here. It sets the initial
-  // value of `playing` above and nothing else. Gating the interval on it too
-  // made the Play button a dead control for anyone with reduced motion on:
-  // visible, focusable, label flipping to "Pause", and no rotation. Reduced
-  // motion should decide the DEFAULT, not veto an explicit request to play.
-  // The slide transition still carries motion-reduce:transition-none, so a
-  // visitor who opts in gets instant cuts rather than a sliding animation.
   useEffect(() => {
-    if (!playing || held || count < 2) return;
-
-    const tick = () => setIndex((i) => (i + 1) % count);
-    let id = window.setInterval(tick, INTERVAL_MS);
-
-    // A backgrounded tab should not keep rotating; restart cleanly on return
-    // so the visitor gets a full dwell on whatever slide they come back to.
-    const onVisibility = () => {
-      window.clearInterval(id);
-      if (!document.hidden) id = window.setInterval(tick, INTERVAL_MS);
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [playing, held, count, index]);
-
-  useEffect(() => {
-    const el = slides.current[index];
+    const el = track.current;
     if (!el) return;
-    const measure = () => setHeight(el.offsetHeight);
+    const measure = () => {
+      const next = bodies.current.slice(0, count).map((b) => (b ? b.scrollHeight > b.clientHeight + 1 : false));
+      setLong((prev) => (prev.length === next.length && prev.every((v, i) => v === next[i]) ? prev : next));
+    };
     measure();
-    // Rewrapping on rotate or resize changes the height.
+    // Rewrapping on rotate or resize changes which ones fit.
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [index, count]);
+  }, [count]);
 
   if (count === 0) return null;
 
@@ -132,67 +121,72 @@ export function ReviewsCarousel({
       </div>
 
       <div
+        ref={track}
         role="group"
         aria-roledescription="carousel"
         aria-label="Customer reviews"
-        className="relative overflow-hidden rounded-[var(--bk-r-block)] border border-bk-border bg-bk-bg-3 transition-[height] duration-500 ease-[var(--ease-out)] motion-reduce:transition-none"
-        style={height != null ? { height } : undefined}
-        onMouseEnter={() => setHeld(true)}
-        onMouseLeave={() => setHeld(false)}
-        onFocusCapture={() => setHeld(true)}
-        onBlurCapture={() => setHeld(false)}
+        // The one size for every review. overflow-x with snap is the browser's
+        // own swipe, and needs nothing from the page's code to work. relative
+        // keeps the slides' sr-only text in here: it is positioned, so without
+        // this it escapes the track and makes the whole page wider than a phone.
+        className="relative flex h-[340px] snap-x snap-mandatory overflow-x-auto rounded-[var(--bk-r-block)] border border-bk-border bg-bk-bg-3 [scrollbar-width:none] md:h-[300px] [&::-webkit-scrollbar]:hidden"
       >
-        <div
-          className="flex items-start transition-transform duration-700 ease-[var(--ease-out)] motion-reduce:transition-none"
-          style={{ transform: `translateX(-${index * 100}%)` }}
-        >
-          {reviews.map((r, i) => (
-            <figure
-              key={r.id}
+        {reviews.map((r, i) => (
+          <figure
+            key={r.id}
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${i + 1} of ${count}`}
+            className="flex h-full w-full shrink-0 snap-center snap-always flex-col px-6 py-5 text-center md:px-16 md:py-6"
+          >
+            {r.rating != null && (
+              <div
+                className="mb-2 flex shrink-0 items-center justify-center gap-1 text-bk-pink"
+                aria-hidden="true"
+              >
+                {Array.from({ length: 5 }, (_, s) => (
+                  <Star
+                    key={s}
+                    size={16}
+                    fill={s < (r.rating ?? 0) ? "currentColor" : "none"}
+                    className={s < (r.rating ?? 0) ? "" : "opacity-30"}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Takes whatever the card has left. Short reviews sit in the middle
+                of it; long ones scroll inside it. overscroll-auto! undoes Lenis's
+                contain on data-lenis-prevent, which would stop the page and the
+                sideways swipe for anyone whose finger starts on a long review. */}
+            <div
               ref={(node) => {
-                slides.current[i] = node;
+                bodies.current[i] = node;
               }}
-              role="group"
-              aria-roledescription="slide"
-              aria-label={`${i + 1} of ${count}`}
-              // Slides that are off-screen stay in the DOM for the slide
-              // transition, so they are hidden from assistive tech explicitly
-              // rather than being read as one long run-on quotation.
-              aria-hidden={i !== index}
-              className="w-full shrink-0 px-6 py-10 text-center md:px-16 md:py-14"
+              {...(long[i] ? { "data-lenis-prevent": "", tabIndex: 0 } : {})}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-auto! focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg"
             >
+              <div className="flex min-h-full items-center justify-center">
+                <blockquote className="mx-auto max-w-2xl text-base leading-relaxed text-bk-fg md:text-lg">
+                  {r.body}
+                </blockquote>
+              </div>
+            </div>
+
+            <figcaption className="mt-2 shrink-0 text-sm">
+              <span className="font-semibold text-bk-fg">{r.author_name}</span>
               {r.rating != null && (
-                <div
-                  className="mb-4 flex items-center justify-center gap-1 text-bk-pink"
-                  aria-hidden="true"
-                >
-                  {Array.from({ length: 5 }, (_, s) => (
-                    <Star
-                      key={s}
-                      size={18}
-                      fill={s < (r.rating ?? 0) ? "currentColor" : "none"}
-                      className={s < (r.rating ?? 0) ? "" : "opacity-30"}
-                    />
-                  ))}
-                </div>
+                <span className="sr-only">, rated {r.rating} out of 5</span>
               )}
-
-              <blockquote className="mx-auto max-w-2xl text-lg leading-relaxed text-bk-fg md:text-xl">
-                {r.body}
-              </blockquote>
-
-              <figcaption className="mt-5 text-sm">
-                <span className="font-semibold text-bk-fg">{r.author_name}</span>
-                {r.rating != null && (
-                  <span className="sr-only">, rated {r.rating} out of 5</span>
-                )}
-                {r.item_name && (
-                  <span className="block text-bk-muted">{r.item_name}</span>
-                )}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+              {r.item_name && (
+                <span className="block truncate text-bk-muted">{r.item_name}</span>
+              )}
+              <span className="block h-4 text-xs leading-4 text-bk-muted" aria-hidden="true">
+                {long[i] ? "Scroll to read more" : ""}
+              </span>
+            </figcaption>
+          </figure>
+        ))}
       </div>
 
       {count > 1 && (
@@ -201,7 +195,7 @@ export function ReviewsCarousel({
             <ChevronLeft size={18} />
           </CarouselButton>
 
-          <ul className="flex items-center gap-2 px-2">
+          <ul className="flex flex-wrap items-center justify-center gap-2 px-2">
             {reviews.map((r, i) => (
               <li key={r.id}>
                 <button
@@ -209,8 +203,8 @@ export function ReviewsCarousel({
                   onClick={() => go(i)}
                   aria-label={`Show review ${i + 1} of ${count}`}
                   aria-current={i === index ? "true" : undefined}
-                  className={`h-2 rounded-full transition-all ${
-                    i === index ? "w-6 bg-bk-fg" : "w-2 bg-bk-border hover:bg-bk-muted"
+                  className={`relative h-2 w-2 rounded-full transition-colors after:absolute after:-inset-1 ${
+                    i === index ? "bg-bk-fg" : "bg-bk-border hover:bg-bk-muted"
                   }`}
                 />
               </li>
@@ -219,13 +213,6 @@ export function ReviewsCarousel({
 
           <CarouselButton label="Next review" onClick={() => go(index + 1)}>
             <ChevronRight size={18} />
-          </CarouselButton>
-
-          <CarouselButton
-            label={playing ? "Pause the review carousel" : "Play the review carousel"}
-            onClick={() => setPlaying((p) => !p)}
-          >
-            {playing ? <Pause size={16} /> : <Play size={16} />}
           </CarouselButton>
         </div>
       )}
@@ -247,7 +234,7 @@ function CarouselButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-bk-border text-bk-fg transition-colors hover:border-bk-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-bk-border text-bk-fg transition-colors hover:bg-bk-bg-3"
     >
       {children}
     </button>
