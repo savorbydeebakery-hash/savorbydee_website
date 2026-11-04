@@ -522,7 +522,9 @@ function MenuItemForm({
     if (!file) return;
     setUploadError(null);
     const { url, error } = await onUpload(file);
-    if (url) setForm({ ...form, image_url: url });
+    // From the latest form, not the one at the start of the upload: anything
+    // typed while the photo was on its way would otherwise be undone.
+    if (url) setForm((current) => ({ ...current, image_url: url }));
     else setUploadError(error ?? "The photo didn’t upload. Please try again.");
   };
 
@@ -809,7 +811,11 @@ function MenuItemForm({
 
         <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
           <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
+          {/* Not while a photo is uploading: saving then stores the item without
+              it, and the photo is lost (client, 2026-11-04). */}
+          <Button type="submit" variant="primary" disabled={saving || uploading}>
+            {uploading ? "Photo uploading..." : saving ? "Saving..." : "Save"}
+          </Button>
         </div>
       </form>
     </Modal>

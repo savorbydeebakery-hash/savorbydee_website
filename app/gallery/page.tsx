@@ -1,6 +1,6 @@
 import { GalleryGrid } from "@/components/gallery-grid";
 import { pageMeta } from "@/lib/site/seo";
-import { videoItem, type GalleryItem } from "@/lib/gallery/youtube";
+import { isYoutubeShort, videoItem, type GalleryItem } from "@/lib/gallery/youtube";
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,11 +43,15 @@ export default async function GalleryPage() {
 
   // A row is a photo or a YouTube video (migration 00055); select("*") so
   // this keeps working before that runs.
-  const galleryImages: GalleryItem[] = (galleryPhotos ?? []).flatMap((p): GalleryItem[] => {
-    const yt = (p as { youtube_id?: string | null }).youtube_id;
-    if (yt) return [videoItem(yt, p.caption)];
-    return p.image_url ? [{ src: p.image_url, alt: p.caption ?? "SAVOR bakery", caption: p.caption }] : [];
-  });
+  const galleryImages: GalleryItem[] = (
+    await Promise.all(
+      (galleryPhotos ?? []).map(async (p): Promise<GalleryItem[]> => {
+        const yt = (p as { youtube_id?: string | null }).youtube_id;
+        if (yt) return [videoItem(yt, p.caption, await isYoutubeShort(yt))];
+        return p.image_url ? [{ src: p.image_url, alt: p.caption ?? "SAVOR bakery", caption: p.caption }] : [];
+      })
+    )
+  ).flat();
 
   const menuImages = applyPhotoRule(menuItems, showPreorderPhotos(settings))
     .filter((item) => item.image_url)

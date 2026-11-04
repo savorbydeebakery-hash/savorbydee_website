@@ -61,7 +61,7 @@ export default async function AboutPage() {
         {ABOUT_SECTIONS.map((s) => (
           <div key={s.title}>
             <h2 className="text-center mb-3 text-xl font-semibold text-ink">{s.title}</h2>
-            <p className="leading-relaxed text-ink-soft">{s.body}</p>
+            <p className="text-center leading-relaxed text-ink-soft">{s.body}</p>
           </div>
         ))}
       </section>
@@ -76,7 +76,7 @@ export default async function AboutPage() {
           ].map((item) => (
             <li
               key={item}
-              className="rounded-2xl bg-pink-soft px-5 py-4 text-ink"
+              className="rounded-2xl bg-pink-soft px-5 py-4 text-center text-ink"
             >
               {item}
             </li>
@@ -131,14 +131,14 @@ export default async function AboutPage() {
       <section className="mx-auto max-w-xl">
         <Card className="flex flex-col gap-4">
           <h2 className="text-center text-xl font-semibold text-ink">Visit & Contact</h2>
-          <div className="flex items-start gap-3">
-            <MapPin className="mt-0.5 text-berry" size={20} />
-            <div>
+          <div className="flex items-start justify-center gap-3">
+            <MapPin className="mt-0.5 shrink-0 text-berry" size={20} />
+            <div className="text-center">
               <p className="text-sm text-ink">{addressLine1}</p>
               <p className="text-sm text-ink-soft">{addressCity}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center gap-3">
             <Phone className="text-berry" size={20} />
             <a
               href={`tel:${phone.replace(/\s/g, "")}`}
@@ -147,7 +147,7 @@ export default async function AboutPage() {
               {phone}
             </a>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center gap-3">
             <MessageCircle className="text-berry" size={20} />
             <a
               href={`https://wa.me/${whatsapp}`}
@@ -163,7 +163,7 @@ export default async function AboutPage() {
               href={mapsDirections}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-2 rounded-xl bg-mint px-4 py-2.5 text-sm font-medium text-ink hover:bg-mint/90 transition-colors"
+              className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-mint px-4 py-2.5 text-sm font-medium text-ink hover:bg-mint/90 transition-colors"
             >
               <MapPin size={16} /> Get Directions
             </a>

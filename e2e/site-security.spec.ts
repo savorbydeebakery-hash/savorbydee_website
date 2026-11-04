@@ -35,6 +35,19 @@ test.describe("phone header", () => {
     await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: /Cart/ })).toBeVisible();
   });
 
+  test("the header is solid at every scroll position, so nothing shows through it", async ({ page }) => {
+    await page.goto("/menu");
+    await page.waitForLoadState("networkidle");
+    const header = page.locator("header");
+    for (const y of [0, 10, 40, 79, 300]) {
+      await page.evaluate((top) => window.scrollTo(0, top), y);
+      await page.waitForTimeout(150);
+      const ground = await header.evaluate((e: HTMLElement) => getComputedStyle(e).backgroundColor);
+      // Any see-through colour reads as "transparent", "rgba(…)" or "… / 0.5".
+      expect(ground, `at ${y}px down the page`).not.toMatch(/transparent|rgba\(|\/ /);
+    }
+  });
+
   test("signed in, the profile button opens the profile", async ({ page }) => {
     const email = process.env.ADMIN_EMAIL, password = process.env.ADMIN_PASSWORD;
     test.skip(!email || !password, "Needs the admin login from CI's secrets.");

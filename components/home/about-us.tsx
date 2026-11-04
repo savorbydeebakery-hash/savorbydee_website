@@ -22,12 +22,12 @@ export function AboutUs({ narrative }: { narrative?: string | null }) {
 
   return (
     <section className="mx-auto mt-10 w-full max-w-[var(--bk-page-width)] px-4 md:mt-16 md:px-6">
-      <SectionHead title="About Us" />
+      <SectionHead title="About Us" centered />
 
-      <div className="rounded-[var(--bk-r-block)] bg-bk-pink-soft px-5 py-8 md:px-12 md:py-12">
+      <div className="rounded-[var(--bk-r-block)] bg-bk-pink-soft px-5 py-8 text-center md:px-12 md:py-12">
         {/* Measure capped around 65ch — the paragraph is the whole section, so
             it gets the line length of something meant to be read. */}
-        <p className="max-w-[62ch] text-base leading-[1.7] text-bk-fg md:text-lg">
+        <p className="mx-auto max-w-[62ch] text-base leading-[1.7] text-bk-fg md:text-lg">
           {copy}
         </p>
 

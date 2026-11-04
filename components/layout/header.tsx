@@ -26,18 +26,17 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const { totalItems } = useCart();
 
-  // Transparent over the hero, solid once past it.
+  // Only draws the line under the header once there is something to separate it
+  // from. The header itself is always solid: it used to be transparent for the
+  // first 80px of scrolling, and the page showed through "Savor by Dee" (client
+  // videos, 2026-10-31 and 2026-11-04).
   //
-  // Read from the live scroll position, at most once a frame. It used to be a
-  // ScrollTrigger whose onToggle went false past the trigger's END, and that
-  // end was measured at load, before images and the custom cake form filled
-  // the page out. Further down, the header turned transparent again and the
-  // page showed through it (client video, 2026-10-31; 9 of 11 pages).
+  // Read from the live scroll position, at most once a frame.
   useEffect(() => {
     let frame = 0;
     const read = () => {
       frame = 0;
-      setScrolled(window.scrollY > 80);
+      setScrolled(window.scrollY > 0);
     };
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(read);
@@ -77,10 +76,8 @@ export function Header() {
     <>
       <header
         className={clsx(
-          "sticky top-0 z-40 transition-[background-color,border-color,backdrop-filter] duration-300",
-          scrolled
-            ? "border-b border-bk-border bg-bk-bg"
-            : "border-b border-transparent bg-transparent"
+          "sticky top-0 z-40 border-b bg-bk-bg transition-[border-color] duration-300",
+          scrolled ? "border-bk-border" : "border-transparent"
         )}
       >
         <ScrollProgress />

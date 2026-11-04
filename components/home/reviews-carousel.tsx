@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Star, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
 export interface Review {
   id: string;
@@ -14,14 +14,33 @@ export interface Review {
   rating: number | null;
 }
 
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+const onReducedMotionChange = (notify: () => void) => {
+  const query = window.matchMedia(REDUCED_MOTION);
+  query.addEventListener("change", notify);
+  return () => query.removeEventListener("change", notify);
+};
+
+/** The least a review stays up, and the most: long ones get time to be read. */
+const MIN_DWELL_MS = 5000;
+const MAX_DWELL_MS = 15000;
+const MS_PER_CHARACTER = 40;
+
 /**
- * Reviews, moved through only by the visitor: swipe, or the arrows and dots.
+ * Reviews: they advance by themselves and loop, and can be swiped, or moved with
+ * the arrows and dots.
  *
  * One fixed size for every review, set in the stylesheet so it is the same from
- * the first paint, and nothing moves on its own. It used to advance every 5s
- * and take the height of the review on show, so the box grew and shrank and
- * pushed the whole page up and down while someone was reading it (client,
- * 2026-11-04: "the site moves by itself").
+ * the first paint. It used to take the height of the review on show, so every
+ * change grew or shrank the box and pushed the whole page up and down under
+ * whoever was reading it (client, 2026-11-04: "the site moves by itself").
+ *
+ * WCAG 2.2.2 (Pause, Stop, Hide) applies: this moves on its own for longer than
+ * 5s, so it has a real pause control. Rotation also waits while a mouse is over
+ * it or the keyboard is in it, stops for good when a finger lands on the reviews
+ * (they are reading, or swiping for themselves), starts paused for anyone who
+ * prefers reduced motion, and only runs while the reviews are on screen and the
+ * tab is showing.
  *
  * A long review scrolls inside its own card rather than making the card bigger.
  * data-lenis-prevent is only on the ones that scroll, so wheeling over a short
@@ -41,6 +60,17 @@ export function ReviewsCarousel({
   ratingSource?: string;
 }) {
   const [index, setIndex] = useState(0);
+  // The visitor's own choice, once they make one. Until then it follows reduced
+  // motion. That sets the default only: gating the timer on it too would make the
+  // Play button a dead control for someone who asks for it anyway.
+  const [choice, setChoice] = useState<boolean | null>(null);
+  const reduced = useSyncExternalStore(
+    onReducedMotionChange,
+    () => window.matchMedia(REDUCED_MOTION).matches,
+    () => false
+  );
+  const playing = choice ?? !reduced;
+  const [held, setHeld] = useState(false);
   const track = useRef<HTMLDivElement>(null);
   // Which reviews are too long for the card, so they can say so. The line that
   // says it always has its space, so showing it can't move anything.
@@ -95,12 +125,53 @@ export function ReviewsCarousel({
     return () => ro.disconnect();
   }, [count]);
 
+  // Keyed on index, so moving to a review by hand gives it its full time.
+  const dwell = Math.min(
+    MAX_DWELL_MS,
+    Math.max(MIN_DWELL_MS, (reviews[index]?.body.length ?? 0) * MS_PER_CHARACTER)
+  );
+  useEffect(() => {
+    const el = track.current;
+    if (!el || !playing || held || count < 2) return;
+
+    let onScreen = false;
+    let timer = 0;
+    const arm = () => {
+      window.clearTimeout(timer);
+      if (onScreen && !document.hidden) timer = window.setTimeout(() => go(index + 1), dwell);
+    };
+    const seen = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+      arm();
+    });
+    seen.observe(el);
+    document.addEventListener("visibilitychange", arm);
+    return () => {
+      window.clearTimeout(timer);
+      seen.disconnect();
+      document.removeEventListener("visibilitychange", arm);
+    };
+  }, [playing, held, count, index, dwell, go]);
+
   if (count === 0) return null;
 
   // mt-4 on a phone, not mt-8: this sits directly under the hero and the
   // client asked for the two to be closer. Desktop keeps its full rhythm.
   return (
-    <section className="mx-auto mt-4 w-full max-w-[var(--bk-page-width)] px-4 md:mt-14 md:px-6">
+    <section
+      className="mx-auto mt-4 w-full max-w-[var(--bk-page-width)] px-4 md:mt-14 md:px-6"
+      // Mouse only: a finger never reports leaving, so it would hold them forever.
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") setHeld(true);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") setHeld(false);
+      }}
+      onFocus={(e) => {
+        if (e.target.matches(":focus-visible")) setHeld(true);
+      }}
+      onBlur={() => setHeld(false)}
+    >
       <div className="mb-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1 md:mb-5">
         <h2 className="bk-section-title text-bk-fg">{title}</h2>
         {rating != null && (
@@ -122,6 +193,9 @@ export function ReviewsCarousel({
 
       <div
         ref={track}
+        onPointerDown={(e) => {
+          if (e.pointerType === "touch") setChoice(false);
+        }}
         role="group"
         aria-roledescription="carousel"
         aria-label="Customer reviews"
@@ -213,6 +287,13 @@ export function ReviewsCarousel({
 
           <CarouselButton label="Next review" onClick={() => go(index + 1)}>
             <ChevronRight size={18} />
+          </CarouselButton>
+
+          <CarouselButton
+            label={playing ? "Pause the review carousel" : "Play the review carousel"}
+            onClick={() => setChoice(!playing)}
+          >
+            {playing ? <Pause size={16} /> : <Play size={16} />}
           </CarouselButton>
         </div>
       )}

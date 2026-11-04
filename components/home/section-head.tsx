@@ -15,15 +15,17 @@ export function SectionHead({
   handle,
   href,
   linkLabel = "See All",
+  centered = false,
 }: {
   title: string;
   /** Muted text set beside the title, e.g. an Instagram handle. */
   handle?: string;
   href?: string;
   linkLabel?: string;
+  centered?: boolean;
 }) {
   return (
-    <div className="mb-3 flex items-baseline justify-between gap-4 md:mb-5">
+    <div className={`mb-3 flex items-baseline gap-4 md:mb-5 ${centered ? "justify-center" : "justify-between"}`}>
       <div className="flex items-baseline gap-2">
         <h2 className="bk-section-title text-bk-fg">{title}</h2>
         {handle && (

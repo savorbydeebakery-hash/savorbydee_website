@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { youtubeIdFrom, youtubeThumb, youtubeEmbed } from "./youtube";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { isYoutubeShort, videoItem, youtubeIdFrom, youtubeThumb, youtubeEmbed } from "./youtube";
 
 describe("youtubeIdFrom", () => {
   const id = "dQw4w9WgXcQ";
@@ -29,5 +29,26 @@ describe("thumb and embed", () => {
   it("build from the id", () => {
     expect(youtubeThumb("dQw4w9WgXcQ")).toBe("https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg");
     expect(youtubeEmbed("dQw4w9WgXcQ")).toContain("youtube-nocookie.com/embed/dQw4w9WgXcQ");
+  });
+});
+
+describe("Shorts and full videos", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("a Short has the upright thumbnail, and a full video doesn't", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 200 })));
+    expect(await isYoutubeShort("h8e6KLKbj48")).toBe(true);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+    expect(await isYoutubeShort("dQw4w9WgXcQ")).toBe(false);
+  });
+
+  it("YouTube being unreachable falls back to widescreen", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("timed out"); }));
+    expect(await isYoutubeShort("dQw4w9WgXcQ")).toBe(false);
+  });
+
+  it("each shape uses its own thumbnail", () => {
+    expect(videoItem("h8e6KLKbj48", null, true)).toMatchObject({ portrait: true, src: expect.stringContaining("oardefault") });
+    expect(videoItem("dQw4w9WgXcQ")).toMatchObject({ portrait: false, src: expect.stringContaining("hqdefault") });
   });
 });

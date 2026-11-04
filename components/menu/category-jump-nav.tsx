@@ -159,6 +159,7 @@ export function CategoryJumpNav({ sections }: { sections: { name: string; count:
                 href={`#${id}`}
                 data-chip={id}
                 aria-current={activeId === id ? "location" : undefined}
+                data-contrast-ground={activeId === id ? "maroon" : undefined}
                 className={`relative inline-flex h-9 items-center whitespace-nowrap rounded-[var(--bk-r-pill)] border px-4 text-sm transition-colors duration-300 ease-[var(--ease-out)] focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 motion-reduce:transition-none ${
                   activeId === id ? "border-bk-maroon text-white" : "border-bk-border text-bk-fg hover:border-bk-fg"
                 }`}

@@ -1,9 +1,9 @@
 import { test, expect, devices, type Page } from "@playwright/test";
 
 /**
- * The homepage reviews stay one size and only move when someone moves them. They
- * used to advance by themselves and resize to each review, which shifted the
- * whole page under whoever was reading it (client, 2026-11-04).
+ * The homepage reviews advance by themselves, inside one fixed box. They used to
+ * resize to each review, which shifted the whole page under whoever was reading
+ * it (client, 2026-11-04).
  */
 const region = (page: Page) => page.locator('[aria-label="Customer reviews"]');
 const open = async (page: Page) => {
@@ -48,13 +48,27 @@ for (const [label, use] of [
       expect(widest).toBeLessThanOrEqual(screen);
     });
 
-    test("doesn't move on its own", async ({ page }) => {
+    test("advances by itself without moving the page, and the pause button stops it", async ({ page }) => {
       await open(page);
-      const before = await region(page).evaluate((e: HTMLElement) => [e.scrollLeft, e.offsetHeight, document.documentElement.scrollHeight]);
-      await page.waitForTimeout(7000); // it used to change every 5 seconds
-      const after = await region(page).evaluate((e: HTMLElement) => [e.scrollLeft, e.offsetHeight, document.documentElement.scrollHeight]);
-      expect(after).toEqual(before);
-      await expect(page.getByRole("button", { name: /Pause the review|Play the review/ })).toHaveCount(0);
+      const before = await page.evaluate(() => [document.documentElement.scrollHeight, window.scrollY]);
+      const height = await region(page).evaluate((e: HTMLElement) => e.offsetHeight);
+
+      // The first review is a long one, so it stays up for the longest time.
+      await page.waitForFunction(
+        () => (document.querySelector('[aria-label="Customer reviews"]') as HTMLElement).scrollLeft > 0,
+        undefined,
+        { timeout: 20_000 }
+      );
+      await page.waitForTimeout(900);
+      expect(await page.evaluate(() => [document.documentElement.scrollHeight, window.scrollY])).toEqual(before);
+      expect(await region(page).evaluate((e: HTMLElement) => e.offsetHeight)).toBe(height);
+
+      await page.getByRole("button", { name: "Pause the review carousel" }).click();
+      await page.waitForTimeout(900);
+      const stoppedAt = await region(page).evaluate((e: HTMLElement) => e.scrollLeft);
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(6000); // past the shortest time a review stays up
+      expect(await region(page).evaluate((e: HTMLElement) => e.scrollLeft)).toBe(stoppedAt);
     });
 
     test("every review is the same size and the page doesn't shift", async ({ page }) => {
@@ -102,6 +116,17 @@ for (const [label, use] of [
   });
 }
 
+test.describe("with reduced motion on", () => {
+  test.use({ contextOptions: { reducedMotion: "reduce" } });
+
+  test("the reviews wait to be asked", async ({ page }) => {
+    await open(page);
+    await expect(page.getByRole("button", { name: "Play the review carousel" })).toBeVisible();
+    await page.waitForTimeout(6000);
+    expect(await region(page).evaluate((e: HTMLElement) => e.scrollLeft)).toBe(0);
+  });
+});
+
 /**
  * Where a long review sits under the finger or the pointer, it must not become a
  * dead patch of the page: read it to the end and the page carries on.
@@ -130,6 +155,8 @@ test.describe("a long review doesn't trap anyone", () => {
 
       await swipe(box.x + box.width - 40, box.y + box.height / 2, -260, 0);
       await expect(dots.nth(1)).toHaveAttribute("aria-current", "true");
+      // A finger on the reviews stops them advancing, so nothing moves mid-read.
+      await expect(page.getByRole("button", { name: "Play the review carousel" })).toBeVisible();
       await dots.nth(0).click();
       await page.waitForTimeout(800);
 

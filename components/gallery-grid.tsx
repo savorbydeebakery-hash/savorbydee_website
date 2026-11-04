@@ -74,8 +74,8 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
             className="group relative block w-full break-inside-avoid overflow-hidden rounded-[var(--r-md)] bg-shell focus:outline-none focus-visible:ring-2 focus-visible:ring-berry focus-visible:ring-offset-2"
           >
             {item.youtubeId ? (
-              // 16:9 and cropped: YouTube's thumbnail carries black bars.
-              <span className="relative block aspect-video w-full">
+              // Cropped to the video's own shape: YouTube's 4:3 thumbnail carries bars.
+              <span className={`relative block w-full ${item.portrait ? "aspect-[9/16]" : "aspect-video"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.src} alt={item.alt} loading="lazy" className="h-full w-full object-cover" />
                 <span className="absolute inset-0 flex items-center justify-center">
@@ -154,7 +154,13 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
           {active.youtubeId ? (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="aspect-video w-[92vw] max-w-5xl overflow-hidden rounded-[var(--r-md)] bg-black shadow-[0_40px_120px_-30px_rgb(0_0_0_/_0.7)]"
+              // The player takes the video's shape, as large as fits the screen in
+              // both directions, so neither kind gets bars or runs off the edge.
+              className={`overflow-hidden rounded-[var(--r-md)] bg-black shadow-[0_40px_120px_-30px_rgb(0_0_0_/_0.7)] ${
+                active.portrait
+                  ? "aspect-[9/16] w-[min(92vw,calc(84svh*9/16))]"
+                  : "aspect-video w-[min(92vw,64rem,calc(84svh*16/9))]"
+              }`}
             >
               <iframe
                 key={active.youtubeId}
