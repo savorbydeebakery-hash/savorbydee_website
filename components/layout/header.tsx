@@ -70,6 +70,19 @@ export function Header() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // The page stays put behind the open menu (client's iPhone video, 2026-11-04).
+  // scrollbar-gutter so a computer's scrollbar going away doesn't shift the page.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const html = document.documentElement;
+    html.style.overflow = "hidden";
+    html.style.scrollbarGutter = "stable";
+    return () => {
+      html.style.overflow = "";
+      html.style.scrollbarGutter = "";
+    };
+  }, [mobileOpen]);
+
   const loginHref = `/login?next=${encodeURIComponent(pathname)}`;
 
   return (
@@ -171,12 +184,12 @@ export function Header() {
 
       {/* Mobile nav drawer */}
       {mobileOpen && (
-        <div id="primary-nav-drawer" className="fixed inset-0 z-30">
+        <div id="primary-nav-drawer" data-lenis-prevent className="fixed inset-0 z-30">
           <div
-            className="absolute inset-0 bg-ink/20 backdrop-blur-sm"
+            className="absolute inset-0 touch-none bg-ink/20 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <nav className="absolute left-0 right-0 top-16 bg-white border-b border-ink/8 shadow-lg">
+          <nav className="absolute left-0 right-0 top-16 max-h-[calc(100svh-4rem)] overflow-y-auto overscroll-contain bg-white border-b border-ink/8 shadow-lg">
             <div className="flex flex-col p-4 gap-1">
               {loaded && user ? (
                 <Link
