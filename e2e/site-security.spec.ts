@@ -20,6 +20,25 @@ test.describe("site security", () => {
   test("anonymous visitors can't run the scheduled job", async ({ request }) => {
     expect((await request.get("/api/cron/ack-watchdog")).status()).toBe(401);
   });
+
+  // Closed in cloudflare-worker.mjs: it has critical advisories and nothing uses it.
+  test("the image endpoint is closed, however it's spelled, and photos still load", async ({ request, page }) => {
+    const query = "?url=%2Fhero%2Fcelebration-cakes-v3.webp&w=640&q=75";
+    for (const path of ["/_next/image", "/_next/image/", "/_next//image", "/%5Fnext/image", "/_next/%69mage", "/_NEXT/IMAGE"]) {
+      expect((await request.get(path + query)).status(), path).toBe(404);
+    }
+
+    const usedIt: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().includes("/_next/image")) usedIt.push(r.url());
+    });
+    await page.goto("/gallery");
+    await page.waitForLoadState("networkidle");
+    const firstPhoto = page.locator("main img").first();
+    await expect(firstPhoto).toBeVisible();
+    await expect.poll(() => firstPhoto.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+    expect(usedIt, "a page still asks for the closed endpoint").toEqual([]);
+  });
 });
 
 test.describe("phone header", () => {
