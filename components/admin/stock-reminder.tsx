@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { ClipboardList } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { WeeklyHours } from "@/lib/cart/validation";

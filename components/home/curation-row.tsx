@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { ArrowRight } from "lucide-react";
 import { MenuItemCard } from "@/components/menu-item-card";
 import { ItemDetailModal } from "@/components/item-detail-modal";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { ArrowRight } from "lucide-react";
 import { SectionHead } from "@/components/home/section-head";
 import { ABOUT_INTRO } from "@/lib/site/about-copy";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import QRCode from "qrcode";
 import { clsx } from "clsx";
 import { Card } from "@/components/ui/card";

@@ -10,6 +10,7 @@
 // TypeScript import of it would fail the type check that runs before one.
 
 import handler from "./.open-next/worker.js";
+import { PAGE_CACHE_SECONDS, isShareableRequest, isShareableResponse, pageCacheKey } from "./lib/site/page-cache.ts";
 
 // Next's image endpoint has critical security advisories against the version in
 // use (16.3.1), and the site never calls it: every image goes through the custom
@@ -28,10 +29,71 @@ function isImageEndpoint(url) {
   return path === "/_next/image" || path.startsWith("/_next/image/");
 }
 
+// Saved copies are for the Worker alone: browsers go on being told not to keep a page.
+const BROWSER_HEADERS = ["cache-control", "vary"];
+const savedHeader = (name) => `x-savor-browser-${name}`;
+
+function withStatus(response, status) {
+  const marked = new Response(response.body, response);
+  marked.headers.set("x-savor-cache", status);
+  return marked;
+}
+
+function forSaving(response) {
+  const copy = new Response(response.body, response);
+  for (const name of BROWSER_HEADERS) {
+    const value = copy.headers.get(name);
+    if (value) copy.headers.set(savedHeader(name), value);
+    copy.headers.delete(name);
+  }
+  copy.headers.set("cache-control", `public, max-age=${PAGE_CACHE_SECONDS}`);
+  return copy;
+}
+
+function fromSaved(saved) {
+  const copy = new Response(saved.body, saved);
+  copy.headers.delete("cache-control");
+  for (const name of BROWSER_HEADERS) {
+    const value = copy.headers.get(savedHeader(name));
+    if (value) copy.headers.set(name, value);
+    copy.headers.delete(savedHeader(name));
+  }
+  return withStatus(copy, "HIT");
+}
+
+// See lib/site/page-cache.ts. The cache is only ever a shortcut: if any part of it
+// fails, the visitor gets a freshly built page exactly as if it weren't here.
+async function fetchPage(request, env, ctx) {
+  if (!isShareableRequest(request)) return handler.fetch(request, env, ctx);
+
+  let key;
+  try {
+    key = await pageCacheKey(request, env.CF_VERSION_METADATA?.id ?? "local");
+    const saved = await caches.default.match(key);
+    if (saved) return fromSaved(saved);
+  } catch (error) {
+    console.error("[page-cache] read failed", error);
+  }
+
+  const response = await handler.fetch(request, env, ctx);
+  if (!key || !response.body || !isShareableResponse(response)) return response;
+
+  try {
+    ctx.waitUntil(
+      caches.default
+        .put(key, forSaving(response.clone()))
+        .catch((error) => console.error("[page-cache] save failed", error))
+    );
+  } catch (error) {
+    console.error("[page-cache] save failed", error);
+  }
+  return withStatus(response, "MISS");
+}
+
 const worker = {
   fetch(request, env, ctx) {
     if (isImageEndpoint(request.url)) return new Response("Not found", { status: 404 });
-    return handler.fetch(request, env, ctx);
+    return fetchPage(request, env, ctx);
   },
 
   async scheduled(_controller, env, ctx) {

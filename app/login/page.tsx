@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { safeNext } from "@/lib/site/safe-next";
 import { Cake, LogIn, UserPlus } from "lucide-react";
 import { PasswordInput } from "@/components/ui/password-input";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { ArrowRight } from "lucide-react";
 import { RevealGroup, RevealItem } from "@/components/kinetic/reveal";
 import { SmartImage } from "@/components/kinetic/smart-image";

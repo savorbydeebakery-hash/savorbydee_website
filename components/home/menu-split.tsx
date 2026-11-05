@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { ItemDetailModal } from "@/components/item-detail-modal";
 import { ProductMiniCard } from "@/components/home/product-mini-card";
 import { SectionHead } from "@/components/home/section-head";

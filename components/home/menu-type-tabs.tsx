@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/site/link";
 
 /**
  * The menu-type strip, recreated from Brooki's category tabs: a horizontal row

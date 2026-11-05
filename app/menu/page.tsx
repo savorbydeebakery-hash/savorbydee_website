@@ -1,5 +1,5 @@
 import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { JsonLd } from "@/components/site/json-ld";
 import { toPreorderListing } from "@/lib/menu/preorder-listing";
 import { categoryPath, menuSchema, pageMeta } from "@/lib/site/seo";

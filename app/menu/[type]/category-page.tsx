@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { notFound } from "next/navigation";
 import { MenuClient } from "@/components/menu-client";
 import { MenuPageNav } from "@/components/menu/menu-page-nav";

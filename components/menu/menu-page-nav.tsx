@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { MENU_TYPE_ORDER } from "@/components/home/menu-type-tabs";
 

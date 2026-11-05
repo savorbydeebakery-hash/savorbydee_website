@@ -4,7 +4,7 @@ import { isYoutubeShort, videoItem, type GalleryItem } from "@/lib/gallery/youtu
 import { publicSupabase } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { ArrowRight } from "lucide-react";
 
 export const metadata = pageMeta({

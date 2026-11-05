@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { usePathname } from "next/navigation";
 import { Menu, ShoppingBag, X, User, LogIn } from "lucide-react";
 import { useEffect, useState } from "react";

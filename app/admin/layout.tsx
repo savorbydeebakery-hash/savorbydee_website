@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import {

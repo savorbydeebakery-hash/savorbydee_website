@@ -1,7 +1,6 @@
-import Image from "next/image";
 import { JsonLd } from "@/components/site/json-ld";
 import { bakerySchema, pageMeta } from "@/lib/site/seo";
-import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
+import { getSiteSettings } from "@/lib/site/public-data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, MessageCircle } from "lucide-react";
@@ -17,20 +16,7 @@ export const metadata = pageMeta({
 export const dynamic = "force-dynamic";
 
 export default async function AboutPage() {
-  const supabase = publicSupabase();
-
-  // Fetch gallery photos + site settings
-  const [{ data: gallery }, { data: settings }] = await Promise.all([
-    supabase
-      .from("gallery_photos")
-      .select("image_url, caption")
-      // Photos only: a YouTube row (migration 00055) has no image_url.
-      .not("image_url", "is", null)
-      .eq("is_active", true)
-      .order("sort_order")
-      .limit(12),
-    getSiteSettings().then((data) => ({ data })),
-  ]);
+  const settings = await getSiteSettings();
 
   const bakeryName = settings?.bakery_name ?? "Savor by Dee";
   // `||`, not `??`: the column defaults to an empty string, and `??` let that
@@ -89,40 +75,6 @@ export default async function AboutPage() {
         <p className="leading-relaxed text-ink-soft">{PHILOSOPHY}</p>
         <p className="mt-6 text-lg font-medium leading-relaxed text-ink">{CLOSING}</p>
       </section>
-
-      {/* Gallery grid */}
-      {gallery && gallery.length > 0 && (
-        <section className="mb-16">
-          <h2 className="text-center text-h2 text-ink mb-6">Gallery</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-            {gallery.map((photo, i) => (
-              <div
-                key={i}
-                className="group relative aspect-square overflow-hidden rounded-2xl bg-pink-soft"
-              >
-                <Image
-                  src={photo.image_url}
-                  alt={photo.caption ?? ""}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 276px"
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                {photo.caption && (
-                  // Scrim deepened to cocoa/90: at ink/70 over a light photo
-                  // the caption measured 1.19:1. data-contrast-ground tells the
-                  // audit what is actually painted behind the text.
-                  <div
-                    data-contrast-ground="cocoa"
-                    className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cocoa/95 via-cocoa/70 to-transparent p-3 pt-8"
-                  >
-                    <p className="text-xs font-medium text-shell">{photo.caption}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Contact. The map beside it is gone on the client's instruction —
           no embed was ever configured, so it rendered a pink box reading "Map

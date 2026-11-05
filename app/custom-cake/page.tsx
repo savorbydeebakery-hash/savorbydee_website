@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { categorySlug } from "@/lib/menu/category-slug";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

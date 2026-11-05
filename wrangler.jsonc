@@ -22,6 +22,9 @@
   "observability": {
     "enabled": true
   },
+  // Names saved pages per deploy (lib/site/page-cache.ts). Not inherited by the
+  // environments below, so each repeats it.
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
   // No cron by default. Set per environment below, on the live worker only:
   // both workers share one database, so a cron on each would send every
   // unacknowledged-order reminder twice.
@@ -33,6 +36,7 @@
       // Despite the name, this is the worker serving savorbydee.in: every
       // normal deploy targets it (deploy.yml defaults to --env staging).
       "name": "savor-bakery-staging",
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "triggers": {
         "crons": ["*/1 * * * *"]
       },
@@ -49,6 +53,7 @@
     },
     "production": {
       "name": "savor-bakery-production",
+      "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "triggers": {
         "crons": []
       },

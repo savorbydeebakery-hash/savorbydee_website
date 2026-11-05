@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { Star, Clock, MapPin, Award, Cake } from "lucide-react";
 import { Reveal } from "@/components/kinetic/reveal";
 import { SmartImage } from "@/components/kinetic/smart-image";

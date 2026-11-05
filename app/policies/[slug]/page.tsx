@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { pageMeta } from "@/lib/site/seo";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { getSiteSettings } from "@/lib/site/public-data";
 import { formatIst } from "@/lib/time/ist";
 import { readCashSetting } from "@/lib/payments/cash";

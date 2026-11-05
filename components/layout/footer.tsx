@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { Instagram, Facebook, MessageCircle, ArrowRight } from "lucide-react";
 import { getSiteSettings } from "@/lib/site/public-data";
 

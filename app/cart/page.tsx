@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { useCart } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/cart/math";
 import { Button } from "@/components/ui/button";

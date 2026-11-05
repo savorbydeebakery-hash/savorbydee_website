@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";

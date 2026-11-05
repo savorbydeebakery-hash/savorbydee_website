@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/cart/math";
 import { Confetti } from "@/components/magicui/confetti";
 import { CheckCircle2, Clock, Hourglass, MapPin, Package, Search, XCircle } from "lucide-react";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { formatIstSlot } from "@/lib/time/ist";
 import { UpiPaymentPanel } from "@/components/payments/upi-payment-panel";
 import {

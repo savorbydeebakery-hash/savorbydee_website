@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import { Package, Cake, Tag, Image as ImageIcon, TrendingUp, Clock, Settings, ClipboardList, Trophy } from "lucide-react";
 import { istDayBounds, formatIstTime } from "@/lib/time/ist";
 import { HoursChanges } from "@/components/admin/hours-changes";

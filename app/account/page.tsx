@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/cart/math";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import Link from "@/components/site/link";
 import {
   User,
   Package,
