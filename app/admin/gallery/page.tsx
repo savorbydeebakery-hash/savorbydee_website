@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { uploadFiles, deleteFile } from "@/lib/storage/upload-helper";
 import { Trash2, Upload, ArrowUp, ArrowDown, Play, Youtube } from "lucide-react";
 import { youtubeIdFrom, youtubeThumb } from "@/lib/gallery/youtube";
+import { GALLERY_FOLDERS, imageSize } from "@/lib/gallery/folders";
 import { describeWriteError } from "@/lib/admin/write-error";
 import { reorderNeighbour, swappedSortOrders } from "@/lib/admin/reorder";
 
@@ -23,7 +24,17 @@ interface GalleryPhoto {
   caption: string | null;
   sort_order: number;
   is_active: boolean;
+  /** Slug from lib/gallery/folders.ts, null when not filed (migration 00057). */
+  folder?: string | null;
 }
+
+/** "all", "none" for photos not filed yet, or a folder's slug. */
+type FolderView = string;
+
+const folderSaveError = (message: string, fallback: string) =>
+  /folder|width|height/i.test(message)
+    ? "Folders need a one-time database update first (migration 00057). Ask your developer."
+    : fallback;
 
 export default function AdminGalleryPage() {
   const supabase = createClient();
@@ -44,6 +55,12 @@ export default function AdminGalleryPage() {
   const [videoLink, setVideoLink] = useState("");
   const [videoCaption, setVideoCaption] = useState("");
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [view, setView] = useState<FolderView>("all");
+  // New photos and videos go in the folder on show, so she can open one and upload.
+  const uploadFolder = view === "all" || view === "none" ? null : view;
+  const visible = photos.filter((p) =>
+    view === "all" ? true : view === "none" ? !p.folder : p.folder === view
+  );
 
   const fetchPhotos = useCallback(async () => {
     const [{ data, error }, { data: settings }] = await Promise.all([
@@ -82,16 +99,23 @@ export default function AdminGalleryPage() {
     if (files.length === 0) return;
     setUploading(true);
 
-    const results = await uploadFiles("gallery", files);
+    const [results, sizes] = await Promise.all([
+      uploadFiles("gallery", files),
+      Promise.all(files.map(imageSize)),
+    ]);
     const maxSort = photos.reduce((max, p) => Math.max(max, p.sort_order), 0);
 
     const newPhotos = results
-      .filter((r) => r.url && !r.error)
-      .map((r, i) => ({
+      .map((r, i) => ({ r, size: sizes[i] }))
+      .filter(({ r }) => r.url && !r.error)
+      .map(({ r, size }, i) => ({
         image_url: r.url!,
         caption: "",
         sort_order: maxSort + i + 1,
         is_active: true,
+        folder: uploadFolder,
+        width: size?.width ?? null,
+        height: size?.height ?? null,
       }));
 
     // A file that failed to upload used to be filtered out without a word, so
@@ -102,7 +126,7 @@ export default function AdminGalleryPage() {
     if (newPhotos.length > 0) {
       const { error } = await supabase.from("gallery_photos").insert(newPhotos);
       if (error) {
-        setListError(describeWriteError(error, "the new photos"));
+        setListError(folderSaveError(error.message, describeWriteError(error, "the new photos")));
       }
       fetchPhotos();
     }
@@ -132,12 +156,13 @@ export default function AdminGalleryPage() {
       // First in the gallery: a new video is usually what she wants seen.
       sort_order: first - 1,
       is_active: true,
+      folder: uploadFolder,
     });
     if (error) {
       setVideoError(
         /youtube_id|image_url|null value/i.test(error.message)
           ? "Videos need a one-time database update first (migration 00055). Ask your developer."
-          : describeWriteError(error, "this video")
+          : folderSaveError(error.message, describeWriteError(error, "this video"))
       );
       return;
     }
@@ -173,8 +198,9 @@ export default function AdminGalleryPage() {
   };
 
   const moveOrder = async (photo: GalleryPhoto, direction: "up" | "down") => {
-    // Neighbour in sort order, not sort_order ± 1 — see lib/admin/reorder.ts.
-    const swapWith = reorderNeighbour(photos, photo, direction);
+    // Neighbour in sort order, not sort_order ± 1 — see lib/admin/reorder.ts. Among
+    // the photos on show, so the arrows do what they appear to in a folder.
+    const swapWith = reorderNeighbour(visible, photo, direction);
     if (!swapWith) return;
     const next = swappedSortOrders(photo, swapWith, direction);
     setListError(null);
@@ -205,6 +231,16 @@ export default function AdminGalleryPage() {
       return;
     }
     fetchPhotos();
+  };
+
+  const setPhotoFolder = async (photo: GalleryPhoto, folder: string | null) => {
+    setListError(null);
+    const { error } = await supabase.from("gallery_photos").update({ folder }).eq("id", photo.id);
+    if (error) {
+      setListError(folderSaveError(error.message, describeWriteError(error, "that folder")));
+      return;
+    }
+    setPhotos((all) => all.map((p) => (p.id === photo.id ? { ...p, folder } : p)));
   };
 
   const saveCaption = async () => {
@@ -244,8 +280,33 @@ export default function AdminGalleryPage() {
         <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{listError}</p>
       )}
 
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <label htmlFor="gallery-folder-view" className="text-sm font-medium text-ink">
+          Show
+        </label>
+        <select
+          id="gallery-folder-view"
+          value={view}
+          onChange={(e) => setView(e.target.value)}
+          className="rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink"
+        >
+          <option value="all">All photos ({photos.length})</option>
+          <option value="none">Not in a folder ({photos.filter((p) => !p.folder).length})</option>
+          {GALLERY_FOLDERS.map((f) => (
+            <option key={f.slug} value={f.slug}>
+              {f.label} ({photos.filter((p) => p.folder === f.slug).length})
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-ink-soft">
+          {uploadFolder
+            ? `New uploads go in ${GALLERY_FOLDERS.find((f) => f.slug === uploadFolder)?.label}.`
+            : "Choose a folder here first to upload straight into it. Empty folders stay hidden from customers."}
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {photos.map((photo) => (
+        {visible.map((photo) => (
           <Card key={photo.id} className="flex flex-col gap-2 p-3">
             <div className="relative aspect-square overflow-hidden rounded-xl bg-pink-soft">
               {/* Resized by Supabase and loaded as it scrolls into view. This
@@ -285,6 +346,17 @@ export default function AdminGalleryPage() {
             {photo.image_url && inUse[photo.image_url] && (
               <p className="text-[11px] font-medium text-gold-deep">On {inUse[photo.image_url]}</p>
             )}
+            <select
+              aria-label="Folder"
+              value={photo.folder ?? ""}
+              onChange={(e) => void setPhotoFolder(photo, e.target.value || null)}
+              className="w-full rounded-lg border border-ink/15 bg-white px-2 py-1.5 text-xs text-ink"
+            >
+              <option value="">Not in a folder</option>
+              {GALLERY_FOLDERS.map((f) => (
+                <option key={f.slug} value={f.slug}>{f.label}</option>
+              ))}
+            </select>
             <div className="flex gap-1">
               <Button size="sm" variant="ghost" onClick={() => { setEditingCaption(photo); setCaptionText(photo.caption ?? ""); }}>
                 Caption
@@ -298,9 +370,9 @@ export default function AdminGalleryPage() {
             </div>
           </Card>
         ))}
-        {photos.length === 0 && (
+        {visible.length === 0 && (
           <div className="col-span-full text-center py-12 text-ink-faint">
-            No photos yet. Upload some!
+            {photos.length === 0 ? "No photos yet. Upload some!" : "Nothing in this folder yet."}
           </div>
         )}
       </div>

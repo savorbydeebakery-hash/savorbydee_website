@@ -81,7 +81,8 @@ export default async function HomePage() {
   ] = await Promise.all([
     supabase
       .from("gallery_photos")
-      .select("id, image_url, caption")
+      // "*" so this keeps working before migration 00057 adds width and height.
+      .select("*")
       // Photos only: a YouTube row (migration 00055) has no image_url.
       .not("image_url", "is", null)
       .eq("is_active", true)

@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { youtubeEmbed } from "@/lib/gallery/youtube";
+import { GALLERY_FOLDERS } from "@/lib/gallery/folders";
 
 /**
  * Gallery grid + full-size lightbox.
@@ -11,6 +12,12 @@ import { youtubeEmbed } from "@/lib/gallery/youtube";
  * The grid is CSS columns rather than a square grid. A square grid has to crop
  * every photo to fit, which is what was cutting the cakes off; columns let each
  * image keep its own aspect ratio, so nothing is cropped in the grid at all.
+ *
+ * Each tile takes its shape from the stored width and height (migration 00057), so
+ * its space is held before the photo arrives. Without them every tile was 0px tall
+ * until it loaded, so the columns reshuffled with each photo and all of them
+ * downloaded at once. A photo with no stored shape gets a 3:4 tile, the commonest
+ * shape in the library, and shows whole inside it.
  *
  * The lightbox requests `resize=contain` instead of the loader's default
  * `cover`, so the full frame is shown rather than a filled box. It is fetched
@@ -30,8 +37,27 @@ function fullSize(src: string, width = 1600) {
   return `${base}?width=${width}&quality=82&resize=contain`;
 }
 
-export function GalleryGrid({ items }: { items: GalleryItem[] }) {
+export function GalleryGrid({ items: allItems }: { items: GalleryItem[] }) {
   const [open, setOpen] = useState<number | null>(null);
+  const [folder, setFolder] = useState<string | null>(null);
+  const top = useRef<HTMLDivElement>(null);
+
+  // Only folders with something in them: an empty one is a dead end for a customer.
+  const folders = useMemo(
+    () => GALLERY_FOLDERS.filter((f) => allItems.some((item) => item.folder === f.slug)),
+    [allItems]
+  );
+  const items = useMemo(
+    () => (folder ? allItems.filter((item) => item.folder === folder) : allItems),
+    [allItems, folder]
+  );
+
+  // Back to the top of the photos, which could otherwise be shorter than the
+  // scroll position and leave the visitor looking at the footer.
+  const chooseFolder = (next: string | null) => {
+    setFolder(next);
+    if (top.current && top.current.getBoundingClientRect().top < 0) top.current.scrollIntoView();
+  };
 
   const close = useCallback(() => setOpen(null), []);
   const step = useCallback(
@@ -58,11 +84,33 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
     };
   }, [open, close, step]);
 
-  if (items.length === 0) return null;
+  if (allItems.length === 0) return null;
   const active = open === null ? null : items[open];
+  const chip = (selected: boolean) =>
+    `inline-flex h-9 items-center whitespace-nowrap rounded-[var(--bk-r-pill)] border px-4 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bk-fg focus-visible:ring-offset-2 ${
+      selected ? "border-bk-maroon bg-bk-maroon text-white" : "border-bk-border bg-bk-bg text-bk-fg hover:border-bk-fg"
+    }`;
 
   return (
     <>
+      <div ref={top} className="scroll-mt-16" />
+      {folders.length > 0 && (
+        // Sticky under the 64px header, like the menus' category chips.
+        <nav
+          aria-label="Gallery folders"
+          className="no-scrollbar sticky top-16 z-20 -mx-4 mb-4 flex gap-2 overflow-x-auto bg-background px-4 py-3 sm:-mx-6 sm:px-6"
+        >
+          <button type="button" aria-pressed={folder === null} onClick={() => chooseFolder(null)} className={chip(folder === null)}>
+            All
+          </button>
+          {folders.map((f) => (
+            <button key={f.slug} type="button" aria-pressed={folder === f.slug} onClick={() => chooseFolder(f.slug)} className={chip(folder === f.slug)}>
+              {f.label}
+            </button>
+          ))}
+        </nav>
+      )}
+
       {/* Columns, not a grid: every photo keeps its own aspect ratio. */}
       <div className="columns-2 gap-3 sm:columns-3 sm:gap-4 lg:columns-4 [&>*]:mb-3 sm:[&>*]:mb-4">
         {items.map((item, i) => (
@@ -85,15 +133,21 @@ export function GalleryGrid({ items }: { items: GalleryItem[] }) {
                 </span>
               </span>
             ) : (
-            <Image
-              src={item.src}
-              alt={item.alt}
-              width={600}
-              height={0}
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
-              className="h-auto w-full transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-              style={{ height: "auto" }}
-            />
+            <span
+              className="relative block w-full"
+              style={{ aspectRatio: item.width && item.height ? `${item.width} / ${item.height}` : "3 / 4" }}
+            >
+              <Image
+                src={item.src}
+                alt={item.alt}
+                fill
+                decoding="sync"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
+                className={`transition-transform duration-500 ease-[var(--ease-out)] group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100 ${
+                  item.width && item.height ? "object-cover" : "object-contain"
+                }`}
+              />
+            </span>
             )}
             {item.caption && (
               <span

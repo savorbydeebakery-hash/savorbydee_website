@@ -11,6 +11,9 @@ interface GalleryPhoto {
   id: string;
   image_url: string;
   caption?: string | null;
+  /** The photo's shape (migration 00057). */
+  width?: number | null;
+  height?: number | null;
 }
 
 /**
@@ -25,11 +28,12 @@ interface GalleryPhoto {
  * that photo's own aspect ratio asks for, so a portrait tile is narrow, a
  * panorama is wide, and nothing is cropped.
  *
- * The ratio has to come from the file, and gallery_photos stores no dimensions,
- * so each tile measures itself on load and remembers the result. Until it does
- * it holds 4/3 — chosen because it is the mode of this bakery's library, so
- * most tiles never visibly resize. The measurement is keyed by URL and shared
- * across the duplicated loop copies, so each distinct photo settles once.
+ * The ratio comes from gallery_photos.width and height (migration 00057), so a
+ * tile is the right width before its photo arrives. It used to measure itself on
+ * load from a guess of 4/3, but 94 of the 98 photos are portrait or square, so
+ * nearly every tile changed width while the strip was moving (client, 2026-11-05).
+ * A photo with no stored shape still measures itself, keyed by URL and shared
+ * across the duplicated loop copies, so it settles once.
  */
 
 const LOOP = 3;
@@ -139,7 +143,10 @@ export function GalleryRail({
           onMouseLeave={(e) => e.currentTarget.classList.remove("marquee-paused")}
         >
           {track.map((photo, i) => {
-            const ratio = ratios[photo.image_url] ?? 4 / 3;
+            const ratio =
+              photo.width && photo.height
+                ? clampRatio(photo.width / photo.height)
+                : (ratios[photo.image_url] ?? 4 / 3);
             return (
               <div
                 key={`${photo.id}-${i}`}
@@ -156,6 +163,7 @@ export function GalleryRail({
                   // plausible ratio range. A single value is right here because
                   // the box height never depends on the viewport.
                   sizes="384px"
+                  decoding="sync"
                   className="object-cover"
                   onLoad={(e) =>
                     measure(

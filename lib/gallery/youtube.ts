@@ -46,6 +46,11 @@ export interface GalleryItem {
   youtubeId?: string | null;
   /** An upright video, a YouTube Short: its tile and player are 9:16, not 16:9. */
   portrait?: boolean;
+  /** A photo's shape (migration 00057), so its space is known before it loads. */
+  width?: number | null;
+  height?: number | null;
+  /** Slug from lib/gallery/folders.ts. */
+  folder?: string | null;
 }
 
 /**

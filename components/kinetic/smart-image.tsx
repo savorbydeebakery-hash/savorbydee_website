@@ -1,22 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
 import { Cake } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Aspect-boxed image with a shimmer skeleton and a load-in reveal
- * (scale + desaturate → colour).
+ * Aspect-boxed image, on a soft tint until the photo arrives.
  *
- * Replaces the old KineticImage, which stacked TWO <img> elements with the
- * same src — one plain, one inside a framer-motion clip-wipe overlay — so
- * every image on the site cost 2 DOM nodes and 2 decodes. Here the same reveal
- * is a CSS transition on a single next/image, which also brings responsive
- * srcset and WebP via the Supabase loader.
+ * No load-in reveal, on purpose. Each photo used to start grey, zoomed and
+ * see-through and fade in over 0.7s, even when it was already saved on the phone,
+ * so pictures looked like they were reloading on every visit. It also left a
+ * filter and a transform on every photo for good, which on an iPhone makes pictures
+ * blink as they scroll back into view (client, 2026-11-05).
  *
- * Prop signature is unchanged from KineticImage (plus `sizes` and `priority`)
- * so call sites only needed an import swap.
+ * decoding="sync" for the same reason: next/image's default of "async" lets a phone
+ * show a blank box for a moment when it has dropped a decoded photo from memory.
  */
 export function SmartImage({
   src,
@@ -43,12 +41,6 @@ export function SmartImage({
    */
   fit?: "cover" | "contain";
 }) {
-  // Priority photos are the first thing on screen, and they usually finish
-  // before the page's code runs: holding them hidden until then is what made
-  // the largest photo on Today's Menu take seconds longer to appear. No fade for
-  // them; everything further down still fades in.
-  const [loaded, setLoaded] = useState(priority);
-
   if (!src) {
     return (
       <div
@@ -71,24 +63,14 @@ export function SmartImage({
         className
       )}
     >
-      {!loaded && <div className="skeleton absolute inset-0 z-10" />}
-
       <Image
         src={fit === "contain" ? `${src}#contain` : src}
         alt={alt}
         fill
         sizes={sizes}
         preload={priority}
-        onLoad={() => setLoaded(true)}
-        className={cn(
-          fit === "contain" ? "object-contain" : "object-cover",
-          "transition-[opacity,transform,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
-        )}
-        style={{
-          opacity: loaded ? 1 : 0,
-          transform: loaded ? "scale(1)" : "scale(1.04)",
-          filter: loaded ? "grayscale(0)" : "grayscale(1)",
-        }}
+        decoding="sync"
+        className={fit === "contain" ? "object-contain" : "object-cover"}
       />
     </div>
   );

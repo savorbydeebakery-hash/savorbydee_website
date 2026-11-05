@@ -1,11 +1,10 @@
 import { GalleryGrid } from "@/components/gallery-grid";
 import { pageMeta } from "@/lib/site/seo";
 import { isYoutubeShort, videoItem, type GalleryItem } from "@/lib/gallery/youtube";
-import { publicSupabase, getSiteSettings } from "@/lib/site/public-data";
+import { publicSupabase } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { applyPhotoRule, showPreorderPhotos } from "@/lib/menu/photos";
 import { ArrowRight } from "lucide-react";
 
 export const metadata = pageMeta({
@@ -17,50 +16,40 @@ export const metadata = pageMeta({
 
 export const dynamic = "force-dynamic"; // see app/page.tsx — ISR hangs on memoryQueue
 
-// Every image here is rendered twice — once in the parallax gallery, once in
-// the static grid below it — so the source list is bounded.
-const MAX_GALLERY_IMAGES = 100;
+// Only what Dee adds in Admin → Gallery, so she chooses what's shown. Menu photos
+// used to be added on the end automatically (client, 2026-11-05).
+const MAX_GALLERY_IMAGES = 300;
 
 export default async function GalleryPage() {
   const supabase = publicSupabase();
 
-  const [{ data: galleryPhotos }, { data: menuItems }, settings] = await Promise.all([
-    supabase
-      .from("gallery_photos")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort_order")
-      .limit(MAX_GALLERY_IMAGES),
-    supabase
-      .from("menu_items")
-      .select("id, name, image_url, daily_menu")
-      .eq("is_active", true)
-      .not("image_url", "is", null)
-      .order("sort_order")
-      .limit(24),
-    getSiteSettings(),
-  ]);
+  const { data: galleryPhotos } = await supabase
+    .from("gallery_photos")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order")
+    .limit(MAX_GALLERY_IMAGES);
 
-  // A row is a photo or a YouTube video (migration 00055); select("*") so
-  // this keeps working before that runs.
-  const galleryImages: GalleryItem[] = (
+  // A row is a photo or a YouTube video (migration 00055), with a folder and a
+  // shape (00057); select("*") so this keeps working before those run.
+  const allImages: GalleryItem[] = (
     await Promise.all(
-      (galleryPhotos ?? []).map(async (p): Promise<GalleryItem[]> => {
-        const yt = (p as { youtube_id?: string | null }).youtube_id;
-        if (yt) return [videoItem(yt, p.caption, await isYoutubeShort(yt))];
-        return p.image_url ? [{ src: p.image_url, alt: p.caption ?? "SAVOR bakery", caption: p.caption }] : [];
+      (galleryPhotos ?? []).map(async (row): Promise<GalleryItem[]> => {
+        const p = row as typeof row & {
+          youtube_id?: string | null;
+          folder?: string | null;
+          width?: number | null;
+          height?: number | null;
+        };
+        if (p.youtube_id) {
+          return [{ ...videoItem(p.youtube_id, p.caption, await isYoutubeShort(p.youtube_id)), folder: p.folder }];
+        }
+        return p.image_url
+          ? [{ src: p.image_url, alt: p.caption ?? "SAVOR bakery", caption: p.caption, folder: p.folder, width: p.width, height: p.height }]
+          : [];
       })
     )
   ).flat();
-
-  const menuImages = applyPhotoRule(menuItems, showPreorderPhotos(settings))
-    .filter((item) => item.image_url)
-    .map((item) => ({
-      src: item.image_url!,
-      alt: item.name,
-    }));
-
-  const allImages = [...galleryImages, ...menuImages];
 
   return (
     <div className="min-h-screen bg-background">
