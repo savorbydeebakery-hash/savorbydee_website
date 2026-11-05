@@ -6,20 +6,17 @@ import { isShareableRequest, isShareableResponse, pageCacheKey } from "./page-ca
 const req = (path: string, init?: RequestInit) => new Request(`https://savorbydee.in${path}`, init);
 
 describe("which requests can share a saved page", () => {
-  it.each(["/", "/menu", "/menu/daily", "/menu/cheesecakes", "/gallery", "/about", "/custom-cake", "/policies/terms", "/menu?category=cookies"])(
+  it.each(["/", "/menu", "/menu/daily", "/menu/cheesecakes", "/gallery", "/about", "/custom-cake", "/policies/terms", "/menu?category=cookies", "/cart", "/cart/checkout", "/login", "/login?next=/account", "/forgot-password", "/orders/lookup"])(
     "%s can",
     (path) => expect(isShareableRequest(req(path))).toBe(true)
   );
 
   it.each([
-    "/cart",
-    "/cart/checkout",
-    "/login",
     "/account",
     "/admin",
     "/admin/gallery",
-    "/orders/lookup",
     "/orders/SBD-1",
+    "/orders/SBD-1?phone=9876543210",
     "/reset-password",
     "/api/orders",
     "/api/push/key",

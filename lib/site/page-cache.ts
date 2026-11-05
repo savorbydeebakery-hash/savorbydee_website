@@ -6,8 +6,13 @@
  * copy, which costs next to nothing. Used by cloudflare-worker.mjs.
  *
  * Safe to share because these pages read no cookies: who's signed in is worked out
- * in the browser, and the cart lives there too. Up to 30 seconds stale is fine
- * because /api/orders rechecks price, stock, sold out and opening hours itself.
+ * in the browser, and the cart lives there too. The cart, checkout, sign-in and order
+ * lookup are empty shells from the server, filled in on the phone. Up to 30 seconds
+ * stale is fine because /api/orders rechecks price, stock, sold out and opening hours
+ * itself.
+ *
+ * Not /orders/<id>: its address carries the customer's phone number, which Next writes
+ * into the page, so it shouldn't sit in a cache however briefly.
  *
  * A list of pages rather than a list of exceptions, so a new page isn't shared with
  * strangers until someone decides it should be.
@@ -19,6 +24,10 @@ const PUBLIC_PAGES = [
   /^\/about$/,
   /^\/custom-cake$/,
   /^\/policies\/[^/]+$/,
+  /^\/cart(\/checkout)?$/,
+  /^\/login$/,
+  /^\/forgot-password$/,
+  /^\/orders\/lookup$/,
 ];
 
 /** Added by Instagram, Google and the like. Left in, every link clicked would be its own page. */

@@ -11,6 +11,7 @@
 
 import handler from "./.open-next/worker.js";
 import { PAGE_CACHE_SECONDS, isShareableRequest, isShareableResponse, pageCacheKey } from "./lib/site/page-cache.ts";
+import { limitFor } from "./lib/site/rate-limit.ts";
 
 // Next's image endpoint has critical security advisories against the version in
 // use (16.3.1), and the site never calls it: every image goes through the custom
@@ -27,6 +28,21 @@ function isImageEndpoint(url) {
   }
   path = path.replace(/[\\/]+/g, "/").toLowerCase();
   return path === "/_next/image" || path.startsWith("/_next/image/");
+}
+
+// See lib/site/rate-limit.ts. Lets the request through if the limit can't be checked:
+// a customer's order matters more than the abuse this guards against.
+async function isOverLimit(request, env) {
+  const name = limitFor(request);
+  const address = request.headers.get("cf-connecting-ip");
+  if (!name || !address || !env[name]) return false;
+  try {
+    const { success } = await env[name].limit({ key: address });
+    return !success;
+  } catch (error) {
+    console.error("[rate-limit] check failed", error);
+    return false;
+  }
 }
 
 // Saved copies are for the Worker alone: browsers go on being told not to keep a page.
@@ -91,8 +107,14 @@ async function fetchPage(request, env, ctx) {
 }
 
 const worker = {
-  fetch(request, env, ctx) {
+  async fetch(request, env, ctx) {
     if (isImageEndpoint(request.url)) return new Response("Not found", { status: 404 });
+    if (await isOverLimit(request, env)) {
+      return Response.json(
+        { error: "Too many requests. Please wait a minute and try again." },
+        { status: 429, headers: { "retry-after": "60" } }
+      );
+    }
     return fetchPage(request, env, ctx);
   },
 

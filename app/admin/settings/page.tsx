@@ -372,9 +372,9 @@ export default function AdminSettingsPage() {
             <span>
               <span className="block font-semibold text-ink">Show photos on Preorder Menu items</span>
               <span className="block text-xs text-ink-faint">
-                Off for now, because most preorder items don&rsquo;t have a photo yet and a menu
-                with only some photos looks unfinished. Once every preorder item has one, tick this
-                and Save. Today&rsquo;s Menu always shows its photos.
+                Items with no photo show as text, so a menu with only some photos can look uneven.
+                Unticking hides the photos without deleting them. Today&rsquo;s Menu always shows
+                its photos.
               </span>
             </span>
           </label>

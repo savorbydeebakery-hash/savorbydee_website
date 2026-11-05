@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 /**
  * A card that turns over to show its description.
@@ -10,6 +10,10 @@ import type { ReactNode } from "react";
  * description then stretched the card, and with it the row, leaving hundreds of
  * empty pixels under short cards (client, 2026-11-04). Now the back only takes
  * up room while it is showing, so the card grows when tapped and not before.
+ *
+ * The back's contents aren't built until someone first turns the card. A menu page has
+ * nearly a hundred cards, and hardly any get turned, so this made every page heavier to
+ * build for nothing. Its data still arrives with the page, so it opens at once.
  *
  * The hidden face is `inert` as well as visually hidden. `backface-visibility`
  * only stops it being painted: without `inert` a screen reader still reads the
@@ -40,6 +44,9 @@ export function CardFlip({
   back: ReactNode;
   className?: string;
 }) {
+  const [opened, setOpened] = useState(flipped);
+  if (flipped && !opened) setOpened(true);
+
   return (
     <div className={`h-full [perspective:1200px] ${className}`}>
       <div
@@ -61,7 +68,7 @@ export function CardFlip({
           inert={!flipped}
           aria-hidden={!flipped}
         >
-          {back}
+          {opened ? back : null}
         </div>
       </div>
     </div>

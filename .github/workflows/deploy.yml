@@ -134,7 +134,9 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
       - name: E2E against the deployed URL
-        run: npx playwright test --workers=2
+        # One at a time. CI's address has no saved pages, and at two the tests' own
+        # load hit the Worker's limit and failed tests that had nothing wrong.
+        run: npx playwright test --workers=1
         env:
           E2E_BASE_URL: ${{ env.TARGET_URL }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}

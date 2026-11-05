@@ -25,6 +25,11 @@
   // Names saved pages per deploy (lib/site/page-cache.ts). Not inherited by the
   // environments below, so each repeats it.
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  // Per visitor address, a minute at a time (lib/site/rate-limit.ts). Also not inherited.
+  "ratelimits": [
+    { "name": "WRITE_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "LOOKUP_LIMIT", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } }
+  ],
   // No cron by default. Set per environment below, on the live worker only:
   // both workers share one database, so a cron on each would send every
   // unacknowledged-order reminder twice.
@@ -37,6 +42,10 @@
       // normal deploy targets it (deploy.yml defaults to --env staging).
       "name": "savor-bakery-staging",
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
+      "ratelimits": [
+        { "name": "WRITE_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+        { "name": "LOOKUP_LIMIT", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } }
+      ],
       "triggers": {
         "crons": ["*/1 * * * *"]
       },
@@ -54,6 +63,10 @@
     "production": {
       "name": "savor-bakery-production",
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
+      "ratelimits": [
+        { "name": "WRITE_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+        { "name": "LOOKUP_LIMIT", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } }
+      ],
       "triggers": {
         "crons": []
       },

@@ -11,7 +11,7 @@ const STATUS = "x-savor-cache";
 
 test.describe("saved pages", () => {
   test("private pages are never saved", async ({ request }) => {
-    for (const path of ["/cart", "/login", "/orders/lookup", "/api/push/key"]) {
+    for (const path of ["/orders/SBD-TEST?phone=9000000000", "/reset-password", "/api/push/key"]) {
       await request.get(path);
       const res = await request.get(path);
       expect(res.headers()[STATUS], path).toBeUndefined();
@@ -42,6 +42,13 @@ test.describe("saved pages", () => {
     if (location) {
       const again = await request.get(location, { headers: { RSC: "1" } });
       expect(again.headers()["content-type"]).toContain("text/x-component");
+    }
+  });
+
+  test("pages hidden from search stay hidden when saved", async ({ request }) => {
+    for (let i = 0; i < 2; i++) {
+      const res = await request.get("/cart");
+      expect(res.headers()["x-robots-tag"]).toContain("noindex");
     }
   });
 

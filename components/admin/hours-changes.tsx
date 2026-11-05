@@ -73,6 +73,8 @@ export function HoursChanges() {
   const [overrides, setOverrides] = useState<HoursOverrides>({});
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Closing only stops Today's Menu while this is on (migration 00054).
+  const [preordersWhenClosed, setPreordersWhenClosed] = useState(true);
 
   // The form
   const [open, setOpen] = useState(false);
@@ -89,7 +91,7 @@ export function HoursChanges() {
   const load = useCallback(async () => {
     const { data, error: e } = await supabase
       .from("site_settings")
-      .select("weekly_hours, holidays, hours_overrides")
+      .select("weekly_hours, holidays, hours_overrides, preorders_when_closed")
       .eq("id", 1)
       .single();
     if (e || !data) {
@@ -98,6 +100,7 @@ export function HoursChanges() {
     }
     setWeekly((data.weekly_hours as WeeklyHours | null) ?? null);
     setHolidays((data.holidays as string[] | null) ?? []);
+    setPreordersWhenClosed(data.preorders_when_closed !== false);
     const o = readOverrides(data.hours_overrides);
     setOverrides(o);
     setLoaded(true);
@@ -332,6 +335,17 @@ export function HoursChanges() {
                 <p className="font-semibold">What customers will see on {dayLabel(date)}</p>
                 <p className="mt-1">Hours: <b>{describe(date, previewOverrides)}</b> (normally {describe(date, {})})</p>
                 <p className="mt-1">Orders are only accepted for times you&rsquo;re open, and the website shows your message while you&rsquo;re closed. It changes straight away.</p>
+                {/* Easy to assume closing stops everything. It doesn't, unless this is off. */}
+                <p className="mt-2 font-medium">
+                  {preordersWhenClosed ? (
+                    <>
+                      Preorders stay open while you&rsquo;re closed. To stop those too, untick &ldquo;Take preorders while closed&rdquo; in{" "}
+                      <a href="/admin/settings" className="underline">Settings → Operating Hours</a>.
+                    </>
+                  ) : (
+                    "Preorders are off while you're closed, so no orders can be placed."
+                  )}
+                </p>
               </div>
             )}
 
