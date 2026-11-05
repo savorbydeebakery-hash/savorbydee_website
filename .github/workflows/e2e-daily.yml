@@ -59,7 +59,7 @@ jobs:
         # with no pipefail, so piping into tee would mask Playwright's exit
         # code and every failing run would report success.
         shell: bash
-        run: npx playwright test --workers=2 2>&1 | tee e2e-output.txt
+        run: npx playwright test --workers=1 2>&1 | tee e2e-output.txt
         env:
           E2E_BASE_URL: ${{ vars.DEPLOY_URL }}
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}

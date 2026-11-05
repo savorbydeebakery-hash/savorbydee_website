@@ -7,16 +7,17 @@ import type { NextConfig } from "next";
  *
  * 'unsafe-inline' for scripts because Next writes inline scripts without a nonce, and
  * nonces would need every page built per request, which is what the saved pages avoid.
- * 'wasm-unsafe-eval' is the Lottie cake's engine.
+ * 'wasm-unsafe-eval' is the Lottie cake's engine. cloudflareinsights is Cloudflare's own
+ * analytics, which it adds to live pages only, so a local check doesn't show it.
  */
 const CONTENT_POLICY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.supabase.co https://i.ytimg.com https://images.unsplash.com",
   "media-src 'self' blob: https://*.supabase.co",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com",
   "frame-src https://www.youtube-nocookie.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
