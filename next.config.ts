@@ -1,5 +1,31 @@
 import type { NextConfig } from "next";
 
+/**
+ * What a page may load, in report-only mode: browsers note what it would block in the
+ * console and block nothing, so it can't break the site (client, 2026-11-05). To enforce
+ * it once it's been seen to stay quiet, rename the header to Content-Security-Policy.
+ *
+ * 'unsafe-inline' for scripts because Next writes inline scripts without a nonce, and
+ * nonces would need every page built per request, which is what the saved pages avoid.
+ * 'wasm-unsafe-eval' is the Lottie cake's engine.
+ */
+const CONTENT_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://*.supabase.co https://i.ytimg.com https://images.unsplash.com",
+  "media-src 'self' blob: https://*.supabase.co",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "frame-src https://www.youtube-nocookie.com",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   // No need to tell attackers which framework to look up.
   poweredByHeader: false,
@@ -66,6 +92,10 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          // HTTPS only from now on. Six months and this domain only: browsers remember
+          // it, so it's hard to take back, and a subdomain may not have HTTPS.
+          { key: "Strict-Transport-Security", value: "max-age=15552000" },
+          { key: "Content-Security-Policy-Report-Only", value: CONTENT_POLICY },
         ],
       },
     ]);

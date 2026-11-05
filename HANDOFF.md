@@ -267,7 +267,7 @@ covers each.
 - A verified UTR is unique across orders (DB index), so one screenshot cannot
   pay for two orders. Signed-in users cannot edit `total_cents`.
 - Cancelling an order puts same-IST-day stock back (trigger).
-- The Razorpay routes return 410 (`lib/payments/razorpay-off.ts`); code kept.
+- The Razorpay routes were deleted on 2026-11-05, as payments are manual UPI. `orders.razorpay_order_id` stays: the order API stores its duplicate-order key there.
 - Still needed from the client: UPI ID + payee name (from her QR), payment
   WhatsApp number if different, and a **grievance officer name** (the policy
   pages show a yellow gap until it is set).

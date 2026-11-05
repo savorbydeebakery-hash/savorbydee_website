@@ -14,10 +14,6 @@ STAFF_NOTIFY_EMAIL=
 # Cron watchdog
 CRON_SECRET=
 
-# Razorpay (test keys start with rzp_test_)
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-RAZORPAY_WEBHOOK_SECRET=
 
 # Seed accounts (one-time script)
 SEED_ADMIN_EMAIL=

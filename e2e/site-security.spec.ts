@@ -14,6 +14,14 @@ test.describe("site security", () => {
       expect(h["referrer-policy"], path).toBe("strict-origin-when-cross-origin");
       expect(h["permissions-policy"], path).toContain("camera=()");
       expect(h["x-powered-by"], path).toBeUndefined();
+      expect(h["strict-transport-security"], path).toContain("max-age=15552000");
+      expect(h["content-security-policy-report-only"], path).toContain("object-src 'none'");
+    }
+  });
+
+  test("the old card payment routes are gone", async ({ request }) => {
+    for (const path of ["/api/razorpay/create-order", "/api/razorpay/verify", "/api/razorpay/refund", "/api/webhooks/razorpay"]) {
+      expect((await request.post(path, { data: {} })).status(), path).toBe(404);
     }
   });
 

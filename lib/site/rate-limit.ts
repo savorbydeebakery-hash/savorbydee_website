@@ -10,10 +10,7 @@ export type LimitName = "WRITE_LIMIT" | "LOOKUP_LIMIT";
 
 export function limitFor(request: Request): LimitName | null {
   const { pathname } = new URL(request.url);
-  // Webhooks come from the payment provider, from a handful of addresses.
-  if (request.method === "POST" && pathname.startsWith("/api/") && !pathname.startsWith("/api/webhooks/")) {
-    return "WRITE_LIMIT";
-  }
+  if (request.method === "POST" && pathname.startsWith("/api/")) return "WRITE_LIMIT";
   if (request.method === "GET" && pathname === "/api/orders") return "LOOKUP_LIMIT";
   return null;
 }

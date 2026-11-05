@@ -14,12 +14,11 @@ describe("what counts against a rate limit", () => {
     expect(limitFor(req("/api/orders?human_id=SBD-1&phone=1"))).toBe("LOOKUP_LIMIT");
   });
 
-  it("not reading pages, an open order, or the payment provider's webhooks", () => {
+  it("not reading pages or an open order", () => {
     expect(limitFor(req("/"))).toBeNull();
     expect(limitFor(req("/menu"))).toBeNull();
     // The order page checks on its order repeatedly while it waits for payment.
     expect(limitFor(req("/api/orders/SBD-1?phone=1"))).toBeNull();
     expect(limitFor(req("/api/push/key"))).toBeNull();
-    expect(limitFor(req("/api/webhooks/razorpay", "POST"))).toBeNull();
   });
 });
