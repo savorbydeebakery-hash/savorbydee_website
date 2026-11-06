@@ -1,6 +1,7 @@
 import { GalleryGrid } from "@/components/gallery-grid";
 import { pageMeta } from "@/lib/site/seo";
 import { isYoutubeShort, videoItem, type GalleryItem } from "@/lib/gallery/youtube";
+import { GALLERY_FOLDERS, type GalleryFolder } from "@/lib/gallery/folders";
 import { publicSupabase } from "@/lib/site/public-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,12 +24,12 @@ const MAX_GALLERY_IMAGES = 300;
 export default async function GalleryPage() {
   const supabase = publicSupabase();
 
-  const { data: galleryPhotos } = await supabase
-    .from("gallery_photos")
-    .select("*")
-    .eq("is_active", true)
-    .order("sort_order")
-    .limit(MAX_GALLERY_IMAGES);
+  const [{ data: galleryPhotos }, { data: folderRows }] = await Promise.all([
+    supabase.from("gallery_photos").select("*").eq("is_active", true).order("sort_order").limit(MAX_GALLERY_IMAGES),
+    // Dee's own folders (migration 00059); the starting set if they can't be read.
+    supabase.from("gallery_folders").select("slug, label, sort_order").order("sort_order"),
+  ]);
+  const folders = (folderRows as GalleryFolder[] | null) ?? GALLERY_FOLDERS;
 
   // A row is a photo or a YouTube video (migration 00055), with a folder and a
   // shape (00057); select("*") so this keeps working before those run.
@@ -80,7 +81,7 @@ export default async function GalleryPage() {
           opens the full frame with resize=contain. */}
       {allImages.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <GalleryGrid items={allImages} />
+          <GalleryGrid items={allImages} folders={folders} />
         </section>
       )}
 

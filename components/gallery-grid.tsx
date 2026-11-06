@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { youtubeEmbed } from "@/lib/gallery/youtube";
-import { GALLERY_FOLDERS } from "@/lib/gallery/folders";
+import type { GalleryFolder } from "@/lib/gallery/folders";
 
 /**
  * Gallery grid + full-size lightbox.
@@ -37,15 +37,15 @@ function fullSize(src: string, width = 1600) {
   return `${base}?width=${width}&quality=82&resize=contain`;
 }
 
-export function GalleryGrid({ items: allItems }: { items: GalleryItem[] }) {
+export function GalleryGrid({ items: allItems, folders: allFolders }: { items: GalleryItem[]; folders: GalleryFolder[] }) {
   const [open, setOpen] = useState<number | null>(null);
   const [folder, setFolder] = useState<string | null>(null);
   const top = useRef<HTMLDivElement>(null);
 
   // Only folders with something in them: an empty one is a dead end for a customer.
   const folders = useMemo(
-    () => GALLERY_FOLDERS.filter((f) => allItems.some((item) => item.folder === f.slug)),
-    [allItems]
+    () => allFolders.filter((f) => allItems.some((item) => item.folder === f.slug)),
+    [allItems, allFolders]
   );
   const items = useMemo(
     () => (folder ? allItems.filter((item) => item.folder === folder) : allItems),

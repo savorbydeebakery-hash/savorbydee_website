@@ -10,7 +10,8 @@ import { Modal } from "@/components/ui/modal";
 import { uploadFiles, deleteFile } from "@/lib/storage/upload-helper";
 import { Trash2, Upload, ArrowUp, ArrowDown, Play, Youtube } from "lucide-react";
 import { youtubeIdFrom, youtubeThumb } from "@/lib/gallery/youtube";
-import { GALLERY_FOLDERS, imageSize } from "@/lib/gallery/folders";
+import { GALLERY_FOLDERS, imageSize, type GalleryFolder } from "@/lib/gallery/folders";
+import { GalleryFoldersManager } from "@/components/admin/gallery-folders-manager";
 import { describeWriteError } from "@/lib/admin/write-error";
 import { reorderNeighbour, swappedSortOrders } from "@/lib/admin/reorder";
 
@@ -24,7 +25,7 @@ interface GalleryPhoto {
   caption: string | null;
   sort_order: number;
   is_active: boolean;
-  /** Slug from lib/gallery/folders.ts, null when not filed (migration 00057). */
+  /** A gallery_folders slug, null when not filed (migrations 00057 and 00059). */
   folder?: string | null;
 }
 
@@ -56,6 +57,9 @@ export default function AdminGalleryPage() {
   const [videoCaption, setVideoCaption] = useState("");
   const [videoError, setVideoError] = useState<string | null>(null);
   const [view, setView] = useState<FolderView>("all");
+  // Dee's own list (migration 00059). The starting set until it loads, or if it can't.
+  const [folders, setFolders] = useState<GalleryFolder[]>(GALLERY_FOLDERS);
+  const [managingFolders, setManagingFolders] = useState(false);
   // New photos and videos go in the folder on show, so she can open one and upload.
   const uploadFolder = view === "all" || view === "none" ? null : view;
   const visible = photos.filter((p) =>
@@ -63,15 +67,17 @@ export default function AdminGalleryPage() {
   );
 
   const fetchPhotos = useCallback(async () => {
-    const [{ data, error }, { data: settings }] = await Promise.all([
+    const [{ data, error }, { data: settings }, { data: folderRows }] = await Promise.all([
       supabase.from("gallery_photos").select("*").order("sort_order"),
       supabase
         .from("site_settings")
         .select("hero_image_url, daily_menu_image_url, preorder_menu_image_url, custom_order_image_url")
         .eq("id", 1)
         .maybeSingle(),
+      supabase.from("gallery_folders").select("slug, label, sort_order").order("sort_order"),
     ]);
     if (error) setListError(describeWriteError(error, "the gallery"));
+    if (folderRows) setFolders(folderRows as GalleryFolder[]);
     setPhotos((data as GalleryPhoto[]) ?? []);
 
     const uses: Record<string, string> = {};
@@ -292,15 +298,18 @@ export default function AdminGalleryPage() {
         >
           <option value="all">All photos ({photos.length})</option>
           <option value="none">Not in a folder ({photos.filter((p) => !p.folder).length})</option>
-          {GALLERY_FOLDERS.map((f) => (
+          {folders.map((f) => (
             <option key={f.slug} value={f.slug}>
               {f.label} ({photos.filter((p) => p.folder === f.slug).length})
             </option>
           ))}
         </select>
+        <Button size="sm" variant="outline" onClick={() => setManagingFolders(true)}>
+          Manage folders
+        </Button>
         <p className="text-xs text-ink-soft">
           {uploadFolder
-            ? `New uploads go in ${GALLERY_FOLDERS.find((f) => f.slug === uploadFolder)?.label}.`
+            ? `New uploads go in ${folders.find((f) => f.slug === uploadFolder)?.label}.`
             : "Choose a folder here first to upload straight into it. Empty folders stay hidden from customers."}
         </p>
       </div>
@@ -353,7 +362,7 @@ export default function AdminGalleryPage() {
               className="w-full rounded-lg border border-ink/15 bg-white px-2 py-1.5 text-xs text-ink"
             >
               <option value="">Not in a folder</option>
-              {GALLERY_FOLDERS.map((f) => (
+              {folders.map((f) => (
                 <option key={f.slug} value={f.slug}>{f.label}</option>
               ))}
             </select>
@@ -404,6 +413,21 @@ export default function AdminGalleryPage() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {managingFolders && (
+        <GalleryFoldersManager
+          supabase={supabase}
+          folders={folders}
+          photoCount={(slug) => photos.filter((p) => p.folder === slug).length}
+          onChange={setFolders}
+          onDeleted={(slug) => {
+            // The database has already done this; mirrored so the screen agrees.
+            setPhotos((all) => all.map((p) => (p.folder === slug ? { ...p, folder: null } : p)));
+            if (view === slug) setView("all");
+          }}
+          onClose={() => setManagingFolders(false)}
+        />
       )}
 
       {editingCaption && (
