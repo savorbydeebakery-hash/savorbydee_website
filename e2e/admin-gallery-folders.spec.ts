@@ -75,7 +75,8 @@ test("a folder can be added, renamed and deleted", async ({ page }) => {
   // A name that's taken is refused before anything is sent.
   await page.getByLabel("New folder").fill("floral cakes");
   await page.getByRole("button", { name: "Add folder" }).click();
-  await expect(page.getByRole("alert")).toContainText("already");
+  // Filtered: Next's route announcer is an alert too.
+  await expect(page.getByRole("alert").filter({ hasText: "already" })).toBeVisible();
 
   await page.getByLabel("New folder").fill("Test Folder E2E");
   await page.getByRole("button", { name: "Add folder" }).click();
